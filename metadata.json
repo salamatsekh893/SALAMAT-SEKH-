@@ -1,0 +1,6 @@
+{
+  "name": "ALJOOYA SUBIDHA SERVICES",
+  "description": "Microfinance Loan Management System (JLG model) with multiple branches, multiple employees, and role-based access.",
+  "requestFramePermissions": ["camera", "microphone", "geolocation"],
+  "majorCapabilities": []
+}
