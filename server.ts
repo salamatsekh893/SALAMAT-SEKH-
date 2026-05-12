@@ -86,8 +86,8 @@ async function startServer() {
     enableKeepAlive: true,
     keepAliveInitialDelay: 10000, 
     connectTimeout: 30000,
-    maxIdle: 0, // Don't keep idle connections if they are prone to resets
-    idleTimeout: 10000, // Shorter idle timeout
+    maxIdle: 0, 
+    idleTimeout: 30000,
   });
 
   // Centralized query retry helper
@@ -375,6 +375,68 @@ async function startServer() {
 
     try {
       await conn.query(`
+        CREATE TABLE IF NOT EXISTS travel_sessions_v2 (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          user_id INT NOT NULL,
+          branch_id INT,
+          travel_date DATE NOT NULL,
+          start_meter DECIMAL(15, 2) NOT NULL,
+          end_meter DECIMAL(15, 2),
+          total_km DECIMAL(15, 2) DEFAULT 0,
+          rate_per_km DECIMAL(10, 2) DEFAULT 0,
+          total_amount DECIMAL(15, 2) DEFAULT 0,
+          start_meter_image LONGTEXT NOT NULL,
+          end_meter_image LONGTEXT,
+          start_lat DECIMAL(10, 8),
+          start_lng DECIMAL(11, 8),
+          end_lat DECIMAL(10, 8),
+          end_lng DECIMAL(11, 8),
+          gps_status VARCHAR(50),
+          status ENUM('draft', 'submitted', 'pending', 'approved', 'rejected') DEFAULT 'draft',
+          admin_remarks TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `);
+      console.log("travel_sessions_v2 table ensured");
+    } catch(e) { console.error(e); }
+
+    try {
+      await conn.query(`
+        CREATE TABLE IF NOT EXISTS travel_entries_v2 (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          session_id INT NOT NULL,
+          from_location VARCHAR(255) NOT NULL,
+          to_location VARCHAR(255) NOT NULL,
+          purpose VARCHAR(255),
+          estimated_km DECIMAL(15, 2),
+          manual_km DECIMAL(15, 2),
+          start_time TIMESTAMP NULL,
+          end_time TIMESTAMP NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (session_id) REFERENCES travel_sessions_v2(id) ON DELETE CASCADE
+        )
+      `);
+      console.log("travel_entries_v2 table ensured");
+    } catch(e) { console.error(e); }
+
+    try {
+      await conn.query(`
+        CREATE TABLE IF NOT EXISTS fuel_rate_settings (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          vehicle_type VARCHAR(50),
+          rate_per_km DECIMAL(10, 2) NOT NULL,
+          branch_id INT,
+          effective_from DATE,
+          status VARCHAR(20) DEFAULT 'active'
+        )
+      `);
+      console.log("fuel_rate_settings table ensured");
+    } catch(e) { console.error(e); }
+
+    try {
+      await conn.query(`
         CREATE TABLE IF NOT EXISTS travel_visits (
           id INT AUTO_INCREMENT PRIMARY KEY,
           shift_id INT NOT NULL,
@@ -618,7 +680,20 @@ async function startServer() {
   app.post("/api/auth/login-init", async (req, res) => {
     try {
       const { phone, password } = req.body;
-      const [rows]: any = await pool.query('SELECT * FROM users WHERE phone = ? OR email = ? LIMIT 1', [phone, phone]);
+
+      if (!phone || !password) {
+        return res.status(400).json({ error: 'Phone and password are required' });
+      }
+
+      // Check database
+      let rows: any = [];
+      try {
+        const result = await pool.query('SELECT * FROM users WHERE phone = ? OR email = ? LIMIT 1', [phone, phone]);
+        rows = result[0];
+      } catch (dbErr: any) {
+        console.error("Login DB Query Error:", dbErr);
+        return res.status(503).json({ error: 'DB Error: ' + dbErr.message });
+      }
       
       let user: any = null;
       if (rows.length > 0) {
@@ -3128,7 +3203,7 @@ async function startServer() {
   });
 
   app.post("/api/settings/:key", verifyToken, async (req: any, res) => {
-    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Unauthorized' });
     }
     try {
@@ -3396,6 +3471,175 @@ async function startServer() {
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
+  });
+
+  app.get("/api/travel/summary", verifyToken, async (req: any, res) => {
+    try {
+      const { month, year, branch_id } = req.query;
+      const targetMonth = month ? Number(month) : new Date().getMonth() + 1;
+      const targetYear = year ? Number(year) : new Date().getFullYear();
+
+      const [rows] = await pool.query(`
+        SELECT 
+          u.id as user_id, 
+          u.name as user_name, 
+          u.phone,
+          COALESCE(SUM(ts.distance_km), 0) as shift_km,
+          COALESCE(SUM(ts.amount), 0) as shift_amount,
+          COALESCE(SUM(tl.distance_km), 0) as log_km,
+          COALESCE(SUM(tl.amount), 0) as log_amount
+        FROM users u
+        LEFT JOIN travel_shifts ts ON ts.user_id = u.id AND ts.status IN ('completed', 'approved') AND MONTH(ts.start_time) = ? AND YEAR(ts.start_time) = ?
+        LEFT JOIN travel_logs tl ON tl.user_id = u.id AND tl.status = 'approved' AND MONTH(tl.date) = ? AND YEAR(tl.date) = ?
+        WHERE (? IS NULL OR u.branch_id = ?)
+        GROUP BY u.id, u.name, u.phone
+        HAVING shift_km > 0 OR log_km > 0
+        ORDER BY user_name ASC
+      `, [targetMonth, targetYear, targetMonth, targetYear, branch_id || null, branch_id || null]);
+      
+      res.json(rows);
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- Travel V2 Endpoints ---
+  app.get("/api/travel_v2/fuel-rates", verifyToken, async (req, res) => {
+    try {
+      const [rows]: any = await pool.query('SELECT * FROM fuel_rate_settings ORDER BY id DESC LIMIT 1');
+      res.json(rows[0] || { rate_per_km: 3 }); // Default rate
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/travel_v2/fuel-rates", verifyToken, async (req: any, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: "Only admin can set rates" });
+    try {
+      const { rate_per_km } = req.body;
+      await pool.query('INSERT INTO fuel_rate_settings (rate_per_km, effective_from) VALUES (?, ?)', [rate_per_km, new Date()]);
+      res.json({ message: "Rate updated" });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.get("/api/travel_v2/sessions/active", verifyToken, async (req: any, res) => {
+    try {
+      const [rows]: any = await pool.query('SELECT * FROM travel_sessions_v2 WHERE user_id = ? AND status = "draft" AND travel_date = CURDATE() ORDER BY id DESC LIMIT 1', [req.user.userId]);
+      if (!rows.length) return res.json(null);
+      const session = rows[0];
+      const [entries]: any = await pool.query('SELECT * FROM travel_entries_v2 WHERE session_id = ?', [session.id]);
+      session.entries = entries;
+      res.json(session);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/travel_v2/sessions/start", verifyToken, async (req: any, res) => {
+    try {
+      const { start_meter, start_meter_image, start_lat, start_lng } = req.body;
+      const [existing]: any = await pool.query('SELECT id FROM travel_sessions_v2 WHERE user_id = ? AND travel_date = CURDATE() AND status != "rejected"', [req.user.userId]);
+      if (existing.length > 0) return res.status(400).json({ error: "Session already exists for today" });
+
+      const [result]: any = await pool.query(
+        'INSERT INTO travel_sessions_v2 (user_id, branch_id, travel_date, start_meter, start_meter_image, start_lat, start_lng) VALUES (?, ?, CURDATE(), ?, ?, ?, ?)',
+        [req.user.userId, req.user.branchId, start_meter, start_meter_image, start_lat, start_lng]
+      );
+      res.json({ id: result.insertId });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/travel_v2/sessions/:id/entries", verifyToken, async (req: any, res) => {
+    try {
+      const { from_location, to_location, purpose, estimated_km } = req.body;
+      await pool.query(
+        'INSERT INTO travel_entries_v2 (session_id, from_location, to_location, purpose, estimated_km) VALUES (?, ?, ?, ?, ?)',
+        [req.params.id, from_location, to_location, purpose, estimated_km]
+      );
+      res.json({ message: "Entry added" });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.put("/api/travel_v2/sessions/:id/end", verifyToken, async (req: any, res) => {
+    try {
+      const { end_meter, end_meter_image, end_lat, end_lng } = req.body;
+      const [sessions]: any = await pool.query('SELECT * FROM travel_sessions_v2 WHERE id = ?', [req.params.id]);
+      if (!sessions.length) return res.status(404).json({ error: "Not found" });
+      const session = sessions[0];
+      
+      const total_km = end_meter - session.start_meter;
+      if (total_km < 0) return res.status(400).json({ error: "End meter cannot be less than start meter" });
+
+      const [rates]: any = await pool.query('SELECT rate_per_km FROM fuel_rate_settings ORDER BY id DESC LIMIT 1');
+      const rate = rates.length ? rates[0].rate_per_km : 3;
+      const total_amount = total_km * rate;
+
+      await pool.query(
+        'UPDATE travel_sessions_v2 SET end_meter = ?, end_meter_image = ?, end_lat = ?, end_lng = ?, total_km = ?, rate_per_km = ?, total_amount = ?, status = "pending" WHERE id = ?',
+        [end_meter, end_meter_image, end_lat, end_lng, total_km, rate, total_amount, req.params.id]
+      );
+      res.json({ message: "Session submitted" });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.get("/api/travel_v2/sessions", verifyToken, async (req: any, res) => {
+    try {
+      const { status } = req.query;
+      let query = `
+        SELECT ts.*, u.name as user_name, b.branch_name as branch_name 
+        FROM travel_sessions_v2 ts 
+        JOIN users u ON ts.user_id = u.id 
+        LEFT JOIN branches b ON ts.branch_id = b.id 
+        WHERE ts.status != "draft"
+      `;
+      const params: any[] = [];
+      if (status) {
+        query += ' AND ts.status = ?';
+        params.push(status);
+      }
+      query += ' ORDER BY ts.created_at DESC';
+
+      const [sessions]: any = await pool.query(query, params);
+      for (const s of sessions) {
+        const [entries] = await pool.query('SELECT * FROM travel_entries_v2 WHERE session_id = ?', [s.id]);
+        s.entries = entries;
+      }
+      res.json(sessions);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.put("/api/travel_v2/sessions/:id/status", verifyToken, async (req: any, res) => {
+    try {
+      const { status, total_km, total_amount, admin_remarks } = req.body;
+      await pool.query(
+        'UPDATE travel_sessions_v2 SET status = ?, total_km = ?, total_amount = ?, admin_remarks = ? WHERE id = ?',
+        [status, total_km, total_amount, admin_remarks, req.params.id]
+      );
+      res.json({ message: "Updated" });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.get("/api/travel_v2/stats/my", verifyToken, async (req: any, res) => {
+    try {
+      const [today]: any = await pool.query('SELECT COALESCE(SUM(total_km), 0) as km, COALESCE(SUM(total_amount), 0) as amount FROM travel_sessions_v2 WHERE user_id = ? AND travel_date = CURDATE()', [req.user.userId]);
+      const [pending]: any = await pool.query('SELECT COUNT(*) as count FROM travel_sessions_v2 WHERE user_id = ? AND status = "pending"', [req.user.userId]);
+      const [monthly]: any = await pool.query('SELECT COALESCE(SUM(total_amount), 0) as amount FROM travel_sessions_v2 WHERE user_id = ? AND status = "approved" AND MONTH(travel_date) = MONTH(CURDATE()) AND YEAR(travel_date) = YEAR(CURDATE())', [req.user.userId]);
+      
+      res.json({
+        today_km: today[0].km,
+        today_amount: today[0].amount,
+        pending_claims: pending[0].count,
+        monthly_amount: monthly[0].amount
+      });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.get("/api/travel_v2/sessions/my", verifyToken, async (req: any, res) => {
+    try {
+      const [sessions]: any = await pool.query('SELECT * FROM travel_sessions_v2 WHERE user_id = ? ORDER BY travel_date DESC LIMIT 20', [req.user.userId]);
+      for (const s of sessions) {
+        const [entries] = await pool.query('SELECT * FROM travel_entries_v2 WHERE session_id = ?', [s.id]);
+        s.entries = entries;
+      }
+      res.json(sessions);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
   app.get("/api/test-db", async (req, res) => {

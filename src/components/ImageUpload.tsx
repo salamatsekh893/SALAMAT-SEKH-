@@ -12,14 +12,17 @@ interface ImageUploadProps {
   onImageCaptured: (dataUrl: string) => void;
   preview?: string | null;
   compact?: boolean;
+  stampLocation?: boolean;
+  disableGallery?: boolean;
 }
 
-export default function ImageUpload({ label, icon: Icon, color, onImageCaptured, preview, compact }: ImageUploadProps) {
+export default function ImageUpload({ label, icon: Icon, color, onImageCaptured, preview, compact, stampLocation, disableGallery }: ImageUploadProps) {
   const [image, setImage] = useState<string | null>(null);
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
   const [showOptions, setShowOptions] = useState(false);
   const [showCropper, setShowCropper] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
   const createImage = (url: string): Promise<HTMLImageElement> =>
@@ -30,6 +33,34 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
       image.setAttribute('crossOrigin', 'anonymous');
       image.src = url;
     });
+
+  const getStampingData = async (): Promise<{ address: string, lat: number, lng: number } | null> => {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        resolve(null);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          try {
+             const osmRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
+             const osmData = await osmRes.json();
+             if (osmData && osmData.display_name) {
+               resolve({ address: osmData.display_name, lat, lng });
+             } else {
+               resolve({ address: `Point (${lat.toFixed(4)}, ${lng.toFixed(4)})`, lat, lng });
+             }
+          } catch (err) {
+             resolve({ address: `Point (${lat.toFixed(4)}, ${lng.toFixed(4)})`, lat, lng });
+          }
+        },
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    });
+  };
 
   const getCroppedImg = async (imageSrc: string, pixelCrop: PixelCrop) => {
     const image = await createImage(imageSrc);
@@ -59,6 +90,34 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
       pixelCrop.height
     );
 
+    if (stampLocation) {
+       const stampInfo = await getStampingData();
+       // we need native canvas width/height to draw correctly text sizes and bg
+       const w = pixelCrop.width;
+       const h = pixelCrop.height;
+       
+       const padding = w * 0.02;
+       ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+       ctx.fillRect(0, h - (h * 0.15), w, h * 0.15);
+       
+       ctx.fillStyle = 'white';
+       ctx.font = `bold ${w * 0.03}px sans-serif`;
+       ctx.textBaseline = 'top';
+       
+       const now = new Date();
+       const timeStr = now.toLocaleString('en-IN');
+       ctx.fillText(`Timestamp: ${timeStr}`, padding, h - (h * 0.15) + padding);
+       
+       if (stampInfo) {
+          ctx.font = `${w * 0.025}px sans-serif`;
+          ctx.fillText(`Lat/Lng: ${stampInfo.lat.toFixed(6)}, ${stampInfo.lng.toFixed(6)}`, padding, h - (h * 0.15) + padding + (w * 0.035));
+          
+          // Truncate address if too long
+          const maxAddrStr = stampInfo.address.length > 80 ? stampInfo.address.substring(0, 80) + '...' : stampInfo.address;
+          ctx.fillText(`Loc: ${maxAddrStr}`, padding, h - (h * 0.15) + padding + (w * 0.065));
+       }
+    }
+
     return canvas.toDataURL('image/jpeg', 0.6); // 60% quality output
   };
 
@@ -82,6 +141,7 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
         return;
       }
       
+      setIsProcessing(true);
       const croppedImage = await getCroppedImg(image, completedCrop);
       if (croppedImage) {
         onImageCaptured(croppedImage);
@@ -90,6 +150,8 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -104,7 +166,13 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
   return (
     <div className="w-full">
       <div 
-        onClick={() => setShowOptions(true)}
+        onClick={() => {
+          if (disableGallery) {
+             handleCameraSelect();
+          } else {
+             setShowOptions(true);
+          }
+        }}
         className={cn(
           "relative w-full border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden group/box",
           compact ? "h-20" : "h-32",
@@ -226,10 +294,11 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
               <button
                 type="button"
                 onClick={handleCropDone}
-                className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold uppercase text-xs tracking-[0.2em] shadow-xl shadow-indigo-500/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-3"
+                disabled={isProcessing}
+                className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold uppercase text-xs tracking-[0.2em] shadow-xl shadow-indigo-500/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
               >
                 <Check className="w-5 h-5" />
-                Apply Free Crop
+                {isProcessing ? 'Processing Stamp...' : 'Apply Free Crop'}
               </button>
             </div>
           </motion.div>

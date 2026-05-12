@@ -249,18 +249,6 @@ export default function Dashboard({ user }: { user: any }) {
           </button>
           )}
 
-          {hasPermission('sub_dash_quick_travel_track') && (
-          <button 
-            className="flex flex-col items-center justify-center py-1 px-0.5 sm:py-1 bg-gradient-to-br from-amber-400 to-amber-500 border border-amber-500/50 rounded-lg sm:rounded-xl shadow-sm hover:shadow-md hover:from-amber-500 hover:to-amber-600 transition-all group h-12 sm:h-16 lg:h-14"
-            onClick={() => navigate('/travel/track')}
-          >
-            <div className="w-4 h-4 sm:w-5 sm:h-5 bg-white/20 rounded-full flex items-center justify-center mb-0.5 shadow-sm group-hover:scale-110 transition-transform border border-white/20">
-              <MapPin className="w-2 h-2 sm:w-3 sm:h-3 text-white" />
-            </div>
-            <span className="text-[6px] sm:text-[7px] lg:text-[8px] font-bold text-white text-center leading-tight uppercase">Track Day</span>
-          </button>
-          )}
-
           {hasPermission('sub_dash_quick_travel_log') && (
           <button 
             className="flex flex-col items-center justify-center py-1 px-0.5 sm:py-1 bg-gradient-to-br from-slate-600 to-slate-700 border border-slate-700/50 rounded-lg sm:rounded-xl shadow-sm hover:shadow-md hover:from-slate-700 hover:to-slate-800 transition-all group h-12 sm:h-16 lg:h-14"
@@ -297,17 +285,6 @@ export default function Dashboard({ user }: { user: any }) {
           </button>
           )}
 
-          {['superadmin', 'admin'].includes(user?.role || '') && (
-          <button 
-            className="flex flex-col items-center justify-center py-1 px-0.5 sm:py-1 bg-gradient-to-br from-slate-400 to-slate-500 border border-slate-500/50 rounded-lg sm:rounded-xl shadow-sm hover:shadow-md hover:from-slate-500 hover:to-slate-600 transition-all group h-12 sm:h-16 lg:h-14"
-            onClick={() => navigate('/travel/settings')}
-          >
-            <div className="w-4 h-4 sm:w-5 sm:h-5 bg-white/20 rounded-full flex items-center justify-center mb-0.5 shadow-sm group-hover:scale-110 transition-transform border border-white/20">
-              <Settings className="w-2 h-2 sm:w-3 sm:h-3 text-white" />
-            </div>
-            <span className="text-[6px] sm:text-[7px] lg:text-[8px] font-bold text-white text-center leading-tight uppercase">Trv Config</span>
-          </button>
-          )}
         </div>
       </div>
       )}

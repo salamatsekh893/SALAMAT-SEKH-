@@ -18,9 +18,7 @@ import LoanDisbursements from './pages/LoanDisbursements';
 import ViewCollection from './pages/ViewCollection';
 import TravelLog from './pages/TravelLog';
 import TravelApprovals from './pages/TravelApprovals';
-import TravelSettings from './pages/TravelSettings';
 import CreateTravelLog from './pages/CreateTravelLog';
-import FieldTracking from './pages/FieldTracking';
 import DemandSheet from './pages/DemandSheet';
 import Reports from './pages/Reports';
 import Companies from './pages/Companies';
@@ -151,10 +149,8 @@ export default function App() {
           <Route path="/collections/approve" element={<ApproveCollection />} />
           <Route path="/collections/overdue" element={<OverdueList />} />
           <Route path="/travel/log" element={<TravelLog />} />
-          <Route path="/travel/track" element={<FieldTracking />} />
           <Route path="/travel/new" element={<CreateTravelLog />} />
           <Route path="/travel/approvals" element={<TravelApprovals />} />
-          <Route path="/travel/settings" element={<TravelSettings />} />
         </Route>
         
         {/* Fallback */}
