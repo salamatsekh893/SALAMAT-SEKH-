@@ -1240,30 +1240,10 @@ async function startServer() {
       
       query += ' ORDER BY u.name ASC';
       const [rows]: any = await pool.query(query, params);
-      
-      // Inject hardcoded admin if missing so they appear in team directory
-      const hasAdmin = rows.find((r: any) => r.phone === '9883672737');
-      if (!hasAdmin) {
-        rows.unshift({
-          id: 0,
-          name: 'Aljooya Admin',
-          phone: '9883672737',
-          role: 'superadmin',
-          branch_name: 'Super Admin',
-          address: 'Global HQ',
-          salary: '-',
-          status: 'active'
-        });
-      }
-      
       res.json(rows);
     } catch (err) {
       try {
         const [rows]: any = await pool.query('SELECT * FROM users ORDER BY name ASC');
-        const hasAdmin = rows.find((r: any) => r.phone === '9883672737');
-        if (!hasAdmin) {
-           rows.unshift({ id: 0, name: 'Aljooya Admin', phone: '9883672737', role: 'superadmin' });
-        }
         res.json(rows);
       } catch (e) {
         res.status(500).json({ error: 'Database error' });
