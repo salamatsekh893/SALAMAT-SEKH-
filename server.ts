@@ -916,6 +916,51 @@ async function startServer() {
         console.error("daily_cash_balances table creation failed:", e);
       }
 
+      try {
+        await conn.query(`
+          CREATE TABLE IF NOT EXISTS salaries (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            branch_id INT NULL,
+            user_id INT NULL,
+            month VARCHAR(20),
+            year INT,
+            basic_salary DECIMAL(15, 2) DEFAULT 0,
+            present_days INT DEFAULT 0,
+            absent_days INT DEFAULT 0,
+            late_days INT DEFAULT 0,
+            half_days INT DEFAULT 0,
+            gross_salary DECIMAL(15, 2) DEFAULT 0,
+            deductions DECIMAL(15, 2) DEFAULT 0,
+            net_salary DECIMAL(15, 2) DEFAULT 0,
+            payment_date DATE NOT NULL,
+            status ENUM('paid', 'unpaid') DEFAULT 'paid',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        console.log("salaries table ensured");
+      } catch (e: any) {
+        console.error("salaries table creation failed:", e);
+      }
+
+      try {
+        await conn.query(`
+          CREATE TABLE IF NOT EXISTS expenses (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            branch_id INT NULL,
+            category VARCHAR(100),
+            amount DECIMAL(15, 2) NOT NULL,
+            date DATE NOT NULL,
+            description TEXT,
+            payment_method VARCHAR(50),
+            bank_id INT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        console.log("expenses table ensured");
+      } catch (e: any) {
+        console.error("expenses table creation failed:", e);
+      }
+
       console.log("Database initialized successfully");
     } catch (e: any) {
       console.error("Database initialization failed:", e);
@@ -1375,11 +1420,88 @@ async function startServer() {
     }
   });
 
-  app.get("/api/salaries", async (req, res) => {
+  app.get("/api/salaries", verifyToken, async (req: any, res) => {
     try {
-      const [rows] = await pool.query('SELECT * FROM salaries ORDER BY id DESC');
-      res.json(rows);
+      const month = req.query.month as string;
+      if (!month) return res.status(400).json({ error: 'Month is required (YYYY-MM)' });
+      
+      const [users]: any = await pool.query(
+        'SELECT id as user_id, name, branch_id, role, salary as base_salary FROM users WHERE salary > 0'
+      );
+      
+      const [salaries]: any = await pool.query(
+        'SELECT * FROM salaries WHERE month = ?',
+        [month]
+      );
+      
+      // Merge users with their salary records for the given month
+      const results = users.map((u: any) => {
+        const s = salaries.find((s: any) => s.user_id === u.user_id);
+        return {
+          user_id: u.user_id,
+          name: u.name,
+          branch_id: u.branch_id,
+          role: u.role,
+          base_salary: u.base_salary,
+          id: s?.id || null, // Salary record id
+          addition: s?.addition || 0, // Using gross_salary offset or just a dummy deduction
+          deduction: s?.deductions || 0,
+          net_salary: s?.net_salary || u.base_salary,
+          status: s?.status || 'pending',
+          payment_date: s?.payment_date || null
+        };
+      });
+      res.json(results);
     } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Database error' });
+    }
+  });
+
+  app.post("/api/salaries", verifyToken, async (req: any, res) => {
+    try {
+      // POST requires: user_id, month, addition, deduction, status
+      // In the salary schema we use: gross_salary & deductions instead of addition
+      const { user_id, month, addition, deduction, status } = req.body;
+      const add = parseFloat(addition) || 0;
+      const ded = parseFloat(deduction) || 0;
+      
+      const [users]: any = await pool.query('SELECT branch_id, salary FROM users WHERE id = ?', [user_id]);
+      if (!users.length) return res.status(404).json({ error: 'User not found' });
+      
+      const base_salary = parseFloat(users[0].salary) || 0;
+      const branch_id = users[0].branch_id;
+      const net_salary = base_salary + add - ded;
+      
+      const paymentDate = new Date().toISOString().split('T')[0];
+      
+      const [existing]: any = await pool.query('SELECT id FROM salaries WHERE user_id = ? AND month = ?', [user_id, month]);
+      if (existing.length > 0) {
+        await pool.query(
+          'UPDATE salaries SET deductions = ?, net_salary = ?, status = ?, payment_date = ? WHERE id = ?',
+          [ded, net_salary, status, paymentDate, existing[0].id]
+        );
+      } else {
+        await pool.query(
+          `INSERT INTO salaries (branch_id, user_id, month, basic_salary, deductions, net_salary, payment_date, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [branch_id, user_id, month, base_salary, ded, net_salary, paymentDate, status]
+        );
+      }
+      
+      res.json({ net_salary, payment_date: paymentDate });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Database error' });
+    }
+  });
+  
+  app.delete("/api/salaries/:id", verifyToken, async (req: any, res) => {
+    try {
+      await pool.query('DELETE FROM salaries WHERE id = ?', [req.params.id]);
+      res.status(204).send();
+    } catch (err) {
+      console.error(err);
       res.status(500).json({ error: 'Database error' });
     }
   });
