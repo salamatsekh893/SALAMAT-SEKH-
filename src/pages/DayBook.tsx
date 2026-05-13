@@ -62,8 +62,9 @@ export default function DayBook() {
       
       const data = await fetchWithAuth(`/daybook?${qs.toString()}`);
       setData(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      alert("Error fetching data: " + (err.message || "Could not connect to database. Please check your Hostinger configuration."));
     } finally {
       setLoading(false);
     }

@@ -130,6 +130,235 @@ async function startServer() {
   try {
     const conn = await pool.getConnection();
     console.log("Database connected successfully to Hostinger MySQL");
+
+    // Phase 1: Basic infrastructure tables
+    try {
+      await conn.query(`
+        CREATE TABLE IF NOT EXISTS branches (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          company_id INT DEFAULT 1,
+          branch_name VARCHAR(100) NOT NULL,
+          branch_code VARCHAR(50) NOT NULL UNIQUE,
+          area VARCHAR(100),
+          district VARCHAR(100),
+          state VARCHAR(100),
+          address TEXT,
+          phone VARCHAR(20),
+          email VARCHAR(100),
+          manager_name VARCHAR(100),
+          manager_phone VARCHAR(20),
+          opening_date DATE,
+          status ENUM('active', 'inactive') DEFAULT 'active',
+          pincode VARCHAR(10),
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      console.log("branches table ensured");
+    } catch (e: any) { console.error("branches table creation failed:", e); }
+
+    try {
+      await conn.query(`
+        CREATE TABLE IF NOT EXISTS users (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(100) NOT NULL,
+          phone VARCHAR(20) NOT NULL UNIQUE,
+          email VARCHAR(100),
+          password VARCHAR(255) NOT NULL,
+          role VARCHAR(50) DEFAULT 'fo',
+          branch_id INT,
+          status ENUM('active', 'inactive') DEFAULT 'active',
+          address TEXT,
+          photo_url LONGTEXT,
+          join_date DATE,
+          salary VARCHAR(50),
+          emergency_contact VARCHAR(20),
+          date_of_birth DATE,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL
+        )
+      `);
+      console.log("users table ensured");
+    } catch (e: any) { console.error("users table creation failed:", e); }
+
+    try {
+      await conn.query(`
+        CREATE TABLE IF NOT EXISTS groups (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          group_name VARCHAR(255) NOT NULL,
+          group_code VARCHAR(100) NOT NULL UNIQUE,
+          branch_id INT,
+          collector_id INT,
+          meeting_day VARCHAR(20),
+          description TEXT,
+          status VARCHAR(50) DEFAULT 'active',
+          center_name VARCHAR(255),
+          center_code VARCHAR(100),
+          village VARCHAR(255),
+          meeting_location VARCHAR(255),
+          formation_date DATE,
+          meeting_time TIME,
+          collection_type VARCHAR(50) DEFAULT 'Weekly',
+          created_by INT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL,
+          FOREIGN KEY (collector_id) REFERENCES users(id) ON DELETE SET NULL
+        )
+      `);
+      console.log("groups table ensured");
+    } catch (e: any) { console.error("groups table creation failed:", e); }
+
+    try {
+      await conn.query(`
+        CREATE TABLE IF NOT EXISTS members (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          member_code VARCHAR(100) NOT NULL UNIQUE,
+          full_name VARCHAR(255) NOT NULL,
+          aadhar_no VARCHAR(20),
+          guardian_name VARCHAR(255),
+          guardian_type VARCHAR(50),
+          marital_status VARCHAR(50),
+          gender VARCHAR(20),
+          dob DATE,
+          age INT,
+          religion VARCHAR(50),
+          category VARCHAR(50),
+          education VARCHAR(100),
+          occupation VARCHAR(100),
+          monthly_income DECIMAL(15, 2),
+          family_members INT,
+          earning_members INT,
+          house_type VARCHAR(100),
+          residence_years INT,
+          mobile_no VARCHAR(20),
+          alt_mobile_no VARCHAR(20),
+          pin_code VARCHAR(10),
+          state VARCHAR(100),
+          district VARCHAR(100),
+          post_office VARCHAR(100),
+          police_station VARCHAR(100),
+          village VARCHAR(255),
+          voter_id VARCHAR(50),
+          pan_no VARCHAR(20),
+          group_id INT,
+          branch_id INT,
+          mem_bank_ifsc VARCHAR(50),
+          mem_bank_name VARCHAR(100),
+          mem_bank_ac VARCHAR(100),
+          nominee_name VARCHAR(100),
+          nominee_relation VARCHAR(100),
+          nominee_aadhar VARCHAR(20),
+          nominee_dob DATE,
+          nominee_age INT,
+          profile_image LONGTEXT,
+          house_image LONGTEXT,
+          aadhar_f_image LONGTEXT,
+          aadhar_b_image LONGTEXT,
+          voter_f_image LONGTEXT,
+          voter_b_image LONGTEXT,
+          signature LONGTEXT,
+          status VARCHAR(50) DEFAULT 'Active',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE SET NULL,
+          FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL
+        )
+      `);
+      console.log("members table ensured");
+    } catch (e: any) { console.error("members table creation failed:", e); }
+
+    try {
+      await conn.query(`
+        CREATE TABLE IF NOT EXISTS schemes (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          scheme_name VARCHAR(255) NOT NULL,
+          scheme_code VARCHAR(100) NOT NULL UNIQUE,
+          interest_rate DECIMAL(5, 2) NOT NULL,
+          duration_months INT NOT NULL,
+          description TEXT,
+          repayment_frequency VARCHAR(50) DEFAULT 'Weekly',
+          interest_type VARCHAR(50),
+          processing_fee DECIMAL(15, 2),
+          processing_fee_type VARCHAR(20),
+          insurance_fee DECIMAL(15, 2),
+          insurance_fee_type VARCHAR(20),
+          penalty_rate DECIMAL(5, 2),
+          status ENUM('active', 'inactive') DEFAULT 'active',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      console.log("schemes table ensured");
+    } catch (e: any) { console.error("schemes table creation failed:", e); }
+
+    try {
+      await conn.query(`
+        CREATE TABLE IF NOT EXISTS loans (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          loan_no VARCHAR(100) UNIQUE,
+          customer_id INT NOT NULL,
+          scheme_id INT NOT NULL,
+          amount DECIMAL(15, 2) NOT NULL,
+          duration_weeks INT NOT NULL,
+          interest DECIMAL(15, 2) NOT NULL,
+          installment DECIMAL(15, 2) NOT NULL,
+          start_date DATE NOT NULL,
+          status ENUM('pending', 'approved', 'active', 'closed', 'rejected') DEFAULT 'pending',
+          branch_id INT,
+          total_repayment DECIMAL(15, 2) NOT NULL,
+          processing_fee DECIMAL(15, 2) DEFAULT 0.00,
+          insurance_fee DECIMAL(15, 2) DEFAULT 0.00,
+          emi_frequency VARCHAR(50) DEFAULT 'weekly',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (customer_id) REFERENCES members(id) ON DELETE CASCADE,
+          FOREIGN KEY (scheme_id) REFERENCES schemes(id),
+          FOREIGN KEY (branch_id) REFERENCES branches(id)
+        )
+      `);
+      console.log("loans table ensured");
+    } catch (e: any) { console.error("loans table creation failed:", e); }
+
+    try {
+      await conn.query(`
+        CREATE TABLE IF NOT EXISTS collections (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          loan_id INT NOT NULL,
+          amount_paid DECIMAL(15, 2) NOT NULL,
+          payment_date DATE NOT NULL,
+          collected_by INT,
+          branch_id INT,
+          is_pre_close BOOLEAN DEFAULT FALSE,
+          status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+          approved_by INT,
+          approved_at TIMESTAMP NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (loan_id) REFERENCES loans(id) ON DELETE CASCADE,
+          FOREIGN KEY (collected_by) REFERENCES users(id),
+          FOREIGN KEY (branch_id) REFERENCES branches(id)
+        )
+      `);
+      console.log("collections table ensured");
+    } catch (e: any) { console.error("collections table creation failed:", e); }
+
+    // Phase 2: Seed default seed data if empty
+    try {
+      const [bCount]: any = await conn.query("SELECT COUNT(*) as count FROM branches");
+      if (bCount[0].count === 0) {
+        await conn.query(`
+          INSERT INTO branches (branch_name, branch_code, area, status)
+          VALUES ('Head Office', 'BR-0001', 'Hooghly', 'active')
+        `);
+        console.log("Default branch created");
+      }
+
+      const [uCount]: any = await conn.query("SELECT COUNT(*) as count FROM users");
+      if (uCount[0].count === 0) {
+        const [blist]: any = await conn.query("SELECT id FROM branches LIMIT 1");
+        const bid = blist[0]?.id || null;
+        await conn.query(`
+          INSERT INTO users (name, phone, email, password, role, status, branch_id)
+          VALUES ('Salamat Sekh', '9883672737', 'salamatsekh893@gmail.com', '123456', 'superadmin', 'active', ?)
+        `, [bid]);
+        console.log("Default admin user created");
+      }
+    } catch (e: any) { console.error("Failed to seed basic data:", e); }
     try {
       await conn.query(`
         CREATE TABLE IF NOT EXISTS otps (
@@ -2754,7 +2983,7 @@ async function startServer() {
     } catch (err: any) {
       await conn.rollback();
       console.error(err);
-      res.status(500).json({ error: 'Failed to close day book' });
+      res.status(500).json({ error: err.message || 'Failed to close day book' });
     } finally {
       conn.release();
     }
