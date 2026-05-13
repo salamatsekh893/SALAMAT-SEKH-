@@ -895,9 +895,30 @@ async function startServer() {
         }
       }
       
-      console.log("company_capital table ensured");
+      try {
+        await conn.query(`
+          CREATE TABLE IF NOT EXISTS daily_cash_balances (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            branch_id INT NULL,
+            date DATE NOT NULL,
+            opening_balance DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+            total_inflow DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+            total_outflow DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+            closing_balance DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+            status ENUM('open', 'closed') DEFAULT 'open',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_branch_date (branch_id, date)
+          )
+        `);
+        console.log("daily_cash_balances table ensured");
+      } catch (e: any) {
+        console.error("daily_cash_balances table creation failed:", e);
+      }
+
+      console.log("Database initialized successfully");
     } catch (e: any) {
-      console.error("company_capital table creation failed:", e);
+      console.error("Database initialization failed:", e);
     }
     
     conn.release();
