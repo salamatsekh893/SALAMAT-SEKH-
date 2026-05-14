@@ -107,16 +107,26 @@ export default function CreateMember() {
   const ifscCode = watch('mem_bank_ifsc');
 
   useEffect(() => {
-    if (dob) {
-      const age = differenceInYears(new Date(), new Date(dob));
-      setValue('age', age);
+    if (dob && dob !== '0000-00-00') {
+      const date = new Date(dob);
+      if (!isNaN(date.getTime())) {
+        const ageValue = differenceInYears(new Date(), date);
+        setValue('age', isNaN(ageValue) ? 0 : ageValue);
+      } else {
+        setValue('age', 0);
+      }
     }
   }, [dob, setValue]);
 
   useEffect(() => {
-    if (nomineeDob) {
-      const age = differenceInYears(new Date(), new Date(nomineeDob));
-      setValue('nominee_age', age);
+    if (nomineeDob && nomineeDob !== '0000-00-00') {
+      const date = new Date(nomineeDob);
+      if (!isNaN(date.getTime())) {
+        const ageValue = differenceInYears(new Date(), date);
+        setValue('nominee_age', isNaN(ageValue) ? 0 : ageValue);
+      } else {
+        setValue('nominee_age', 0);
+      }
     }
   }, [nomineeDob, setValue]);
 
@@ -168,8 +178,20 @@ export default function CreateMember() {
             data.group_id = String(data.group_id);
           }
           // Fix dates for HTML date input
-          if (data.dob) data.dob = data.dob.split('T')[0];
-          if (data.nominee_dob) data.nominee_dob = data.nominee_dob.split('T')[0];
+          if (data.dob) {
+            if (data.dob.startsWith('0000-00-00')) {
+              data.dob = '';
+            } else {
+              data.dob = data.dob.split('T')[0];
+            }
+          }
+          if (data.nominee_dob) {
+            if (data.nominee_dob.startsWith('0000-00-00')) {
+              data.nominee_dob = '';
+            } else {
+              data.nominee_dob = data.nominee_dob.split('T')[0];
+            }
+          }
           reset(data);
           setImages({
             profile: data.profile_image || null,
@@ -244,9 +266,24 @@ export default function CreateMember() {
   };
 
   const onValidationError = (errors: any) => {
+    console.error('Validation fails:', JSON.parse(JSON.stringify(errors, (key, value) => 
+      typeof value === 'object' && value !== null && 'ref' in value ? '[DOM Ref]' : value
+    )));
     const firstError = Object.values(errors)[0] as any;
     if (firstError) {
-      alert(`Correction needed: ${firstError.message}`);
+      if (firstError.message) {
+        alert(`Correction needed: ${firstError.message}`);
+      } else if (typeof firstError === 'object') {
+        // Handle nested errors
+        const subError = Object.values(firstError)[0] as any;
+        if (subError?.message) {
+          alert(`Correction needed: ${subError.message}`);
+        } else {
+          alert('Correction needed: Please check all required fields.');
+        }
+      } else {
+        alert('Correction needed: Invalid input');
+      }
     }
   };
 
