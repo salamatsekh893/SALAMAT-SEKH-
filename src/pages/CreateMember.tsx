@@ -22,9 +22,9 @@ const memberSchema = z.object({
   aadhar_no: z.string().min(12, 'Aadhar must be at least 12 digits'),
   full_name: z.string().min(1, 'Full name required'),
   guardian_name: z.string().min(1, 'Guardian name required'),
-  guardian_type: z.enum(['Husband', 'Father', 'Mother', 'Son', 'Daughter', 'Brother', 'Other']),
-  marital_status: z.enum(['Married', 'Unmarried', 'Widow', 'Divorced']),
-  gender: z.enum(['Male', 'Female', 'Other']),
+  guardian_type: z.string().min(1, 'Guardian type required'),
+  marital_status: z.string().min(1, 'Marital status required'),
+  gender: z.string().min(1, 'Gender required'),
   dob: z.string().min(1, 'DOB required'),
   age: z.coerce.number().optional().nullable(),
   religion: z.string().optional().default('Islam'),
@@ -34,7 +34,7 @@ const memberSchema = z.object({
   monthly_income: z.coerce.number().optional().nullable().default(0),
   family_members: z.coerce.number().optional().nullable().default(1),
   earning_members: z.coerce.number().optional().nullable().default(1),
-  house_type: z.enum(['Owned', 'Rented']).optional().default('Owned'),
+  house_type: z.string().optional().default('Owned'),
   residence_years: z.coerce.number().optional().nullable().default(1),
   mobile_no: z.string().min(10, 'Mobile must be at least 10 digits'),
   alt_mobile_no: z.string().optional().nullable(),
@@ -174,36 +174,38 @@ export default function CreateMember() {
         try {
           const data = await fetchWithAuth(`/members/${id}`);
           // Ensure group_id is a string for the form
-          if (data.group_id !== null && data.group_id !== undefined) {
+          if (data && data.group_id !== null && data.group_id !== undefined) {
             data.group_id = String(data.group_id);
           }
           // Fix dates for HTML date input
-          if (data.dob) {
+          if (data && data.dob) {
             if (data.dob.startsWith('0000-00-00')) {
               data.dob = '';
             } else {
               data.dob = data.dob.split('T')[0];
             }
           }
-          if (data.nominee_dob) {
+          if (data && data.nominee_dob) {
             if (data.nominee_dob.startsWith('0000-00-00')) {
               data.nominee_dob = '';
             } else {
               data.nominee_dob = data.nominee_dob.split('T')[0];
             }
           }
-          reset(data);
-          setImages({
-            profile: data.profile_image || null,
-            house: data.house_image || null,
-            aadhar_front: data.aadhar_image_front || null,
-            aadhar_back: data.aadhar_image_back || null,
-            voter_front: data.voter_image_front || null,
-            voter_back: data.voter_image_back || null,
-            signature: data.customer_signature || null
-          });
-        } catch (err) {
-          console.error('Failed to fetch member');
+          if (data) {
+            reset(data);
+            setImages({
+              profile: data.profile_image || null,
+              house: data.house_image || null,
+              aadhar_front: data.aadhar_image_front || null,
+              aadhar_back: data.aadhar_image_back || null,
+              voter_front: data.voter_image_front || null,
+              voter_back: data.voter_image_back || null,
+              signature: data.customer_signature || null
+            });
+          }
+        } catch (err: any) {
+          console.error('Failed to fetch member details');
         }
         setInitialLoading(false);
       };
@@ -258,32 +260,39 @@ export default function CreateMember() {
       navigate('/members');
     } catch (error: any) {
       voiceFeedback.error();
-      console.error('Save error:', error);
-      alert('Error saving member: ' + error.message);
+      const errorMsg = error?.message || 'Unknown error occurred during save';
+      console.error('Save error message:', errorMsg);
+      alert('Error saving member: ' + errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
   const onValidationError = (errors: any) => {
-    console.error('Validation fails:', JSON.parse(JSON.stringify(errors, (key, value) => 
-      typeof value === 'object' && value !== null && 'ref' in value ? '[DOM Ref]' : value
-    )));
-    const firstError = Object.values(errors)[0] as any;
-    if (firstError) {
-      if (firstError.message) {
-        alert(`Correction needed: ${firstError.message}`);
-      } else if (typeof firstError === 'object') {
-        // Handle nested errors
-        const subError = Object.values(firstError)[0] as any;
-        if (subError?.message) {
-          alert(`Correction needed: ${subError.message}`);
-        } else {
-          alert('Correction needed: Please check all required fields.');
+    const findError = (errObj: any): { field: string, message: string } | null => {
+      for (const key in errObj) {
+        const error = errObj[key];
+        if (error.message) {
+          return { field: key, message: error.message };
         }
-      } else {
-        alert('Correction needed: Invalid input');
+        if (typeof error === 'object' && error !== null) {
+          const nested = findError(error);
+          if (nested) return nested;
+        }
       }
+      return null;
+    };
+
+    const firstError = findError(errors);
+    if (firstError) {
+      // Beautify field name: aadhar_no -> Aadhar No
+      const fieldName = firstError.field
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      alert(`Correction needed in [${fieldName}]: ${firstError.message}`);
+    } else {
+      alert('Correction needed: Please check all required fields.');
     }
   };
 
@@ -385,11 +394,13 @@ export default function CreateMember() {
                 className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
               >
                 <option value="Husband">HUSBAND</option>
+                <option value="Wife">WIFE</option>
                 <option value="Father">FATHER</option>
                 <option value="Mother">MOTHER</option>
                 <option value="Son">SON</option>
                 <option value="Daughter">DAUGHTER</option>
                 <option value="Brother">BROTHER</option>
+                <option value="Other">OTHER</option>
               </select>
             </div>
             <div className="col-span-1 lg:col-span-2">
@@ -481,17 +492,15 @@ export default function CreateMember() {
             <div className="col-span-1">
               <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">State</label>
               <input 
-                readOnly
                 {...register('state')}
-                className="w-full bg-slate-100/50 text-slate-500 cursor-not-allowed border border-slate-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-medium outline-none"
+                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
               />
             </div>
             <div className="col-span-1">
               <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">District</label>
               <input 
-                readOnly
                 {...register('district')}
-                className="w-full bg-slate-100/50 text-slate-500 cursor-not-allowed border border-slate-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-medium outline-none"
+                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
               />
             </div>
             <div className="col-span-1">

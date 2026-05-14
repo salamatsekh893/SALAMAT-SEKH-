@@ -261,11 +261,11 @@ async function startServer() {
           nominee_age INT,
           profile_image LONGTEXT,
           house_image LONGTEXT,
-          aadhar_f_image LONGTEXT,
-          aadhar_b_image LONGTEXT,
-          voter_f_image LONGTEXT,
-          voter_b_image LONGTEXT,
-          signature LONGTEXT,
+          aadhar_image_front LONGTEXT,
+          aadhar_image_back LONGTEXT,
+          voter_image_front LONGTEXT,
+          voter_image_back LONGTEXT,
+          customer_signature LONGTEXT,
           status VARCHAR(50) DEFAULT 'Active',
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE SET NULL,
@@ -1911,8 +1911,8 @@ async function startServer() {
           house_type=?, residence_years=?, mobile_no=?, alt_mobile_no=?, pin_code=?, state=?, district=?,
           post_office=?, police_station=?, village=?, voter_id=?, pan_no=?, group_id=?,
           mem_bank_ifsc=?, mem_bank_name=?, mem_bank_ac=?, nominee_name=?, nominee_relation=?, nominee_aadhar=?,
-          nominee_dob=?, nominee_age=?, profile_image=?, house_image=?, aadhar_f_image=?, aadhar_b_image=?,
-          voter_f_image=?, voter_b_image=?, signature=?, status=?
+          nominee_dob=?, nominee_age=?, profile_image=?, house_image=?, aadhar_image_front=?, aadhar_image_back=?,
+          voter_image_front=?, voter_image_back=?, customer_signature=?, status=?
         WHERE id = ?`,
         [
           cleanData.full_name, cleanData.aadhar_no, cleanData.guardian_name, cleanData.guardian_type, cleanData.marital_status, cleanData.gender, cleanData.dob, toInt(cleanData.age),
@@ -2096,7 +2096,7 @@ async function startServer() {
       const [rows]: any = await pool.query(`
         SELECT l.*, 
                m.full_name as member_name, m.member_code, m.mobile_no, m.profile_image, 
-               m.house_image, m.aadhar_f_image, m.aadhar_b_image, m.voter_f_image, m.voter_b_image, m.signature,
+               m.house_image, m.aadhar_image_front, m.aadhar_image_back, m.voter_image_front, m.voter_image_back, m.customer_signature,
                m.village, m.post_office, m.police_station, m.district, m.state, m.pin_code,
                m.guardian_name, m.guardian_type, m.dob, m.occupation, m.aadhar_no, m.voter_id,
                m.nominee_name, m.nominee_relation,
@@ -2778,28 +2778,14 @@ async function startServer() {
       query += ' ORDER BY m.created_at DESC';
 
       const [rows]: any = await pool.query(query, params);
-      const mappedRows = rows.map((member: any) => ({
-        ...member,
-        branch_id: member.branch_id || member.group_branch_id,
-        aadhar_image_front: member.aadhar_f_image,
-        aadhar_image_back: member.aadhar_b_image,
-        voter_image_front: member.voter_f_image,
-        voter_image_back: member.voter_b_image,
-        customer_signature: member.signature
-      }));
-      res.json(mappedRows);
+      res.json(rows.map((m: any) => ({
+        ...m,
+        branch_id: m.branch_id || m.group_branch_id
+      })));
     } catch (err) {
       try {
         const [rows]: any = await pool.query('SELECT * FROM members ORDER BY id DESC');
-        const mappedRows = rows.map((member: any) => ({
-          ...member,
-          aadhar_image_front: member.aadhar_f_image,
-          aadhar_image_back: member.aadhar_b_image,
-          voter_image_front: member.voter_f_image,
-          voter_image_back: member.voter_b_image,
-          customer_signature: member.signature
-        }));
-        res.json(mappedRows);
+        res.json(rows);
       } catch (e) {
         res.status(500).json({ error: 'Database error' });
       }
@@ -2830,19 +2816,7 @@ async function startServer() {
     try {
       const [rows]: any = await pool.query('SELECT * FROM members WHERE id = ?', [req.params.id]);
       if (rows.length === 0) return res.status(404).json({ error: 'Member not found' });
-      
-      const member = rows[0];
-      // Map DB columns to frontend expected keys
-      const mappedMember = {
-        ...member,
-        aadhar_image_front: member.aadhar_f_image,
-        aadhar_image_back: member.aadhar_b_image,
-        voter_image_front: member.voter_f_image,
-        voter_image_back: member.voter_b_image,
-        customer_signature: member.signature
-      };
-      
-      res.json(mappedMember);
+      res.json(rows[0]);
     } catch (err) {
       res.status(500).json({ error: 'Database error' });
     }
@@ -2879,8 +2853,8 @@ async function startServer() {
           house_type, residence_years, mobile_no, alt_mobile_no, pin_code, state, district,
           post_office, police_station, village, voter_id, pan_no, group_id, 
           mem_bank_ifsc, mem_bank_name, mem_bank_ac, nominee_name, nominee_relation, nominee_aadhar,
-          nominee_dob, nominee_age, profile_image, house_image, aadhar_f_image, aadhar_b_image,
-          voter_f_image, voter_b_image, signature, status
+          nominee_dob, nominee_age, profile_image, house_image, aadhar_image_front, aadhar_image_back,
+          voter_image_front, voter_image_back, customer_signature, status
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           member_code, cleanData.full_name, cleanData.aadhar_no, cleanData.guardian_name, cleanData.guardian_type, cleanData.marital_status, cleanData.gender, cleanData.dob, toInt(cleanData.age),
