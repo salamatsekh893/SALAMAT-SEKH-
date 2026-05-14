@@ -63,7 +63,7 @@ export default function Members() {
       voiceFeedback.success();
     } catch (err: any) {
       voiceFeedback.error();
-      alert('Deletion failed');
+      alert(err.message || 'সদস্য ডিলিট করা যায়নি।');
     }
   };
 

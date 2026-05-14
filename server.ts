@@ -4018,9 +4018,10 @@ async function startServer() {
     try {
       const memberId = req.params.id;
 
-      // Check for active loans (status is not 'Closed', 'Settled' or 'Rejected')
+      // Check for active loans (status is not 'closed' or 'rejected')
+      // Note: Column name is customer_id in loans table
       const [activeLoans]: any = await pool.query(
-        "SELECT id FROM loans WHERE member_id = ? AND status NOT IN ('closed', 'settled', 'rejected')",
+        "SELECT id FROM loans WHERE customer_id = ? AND status NOT IN ('closed', 'rejected')",
         [memberId]
       );
 
