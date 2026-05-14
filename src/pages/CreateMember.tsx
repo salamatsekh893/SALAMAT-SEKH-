@@ -244,7 +244,6 @@ export default function CreateMember() {
   };
 
   const onValidationError = (errors: any) => {
-    console.log('Validation Errors:', errors);
     const firstError = Object.values(errors)[0] as any;
     if (firstError) {
       alert(`Correction needed: ${firstError.message}`);
