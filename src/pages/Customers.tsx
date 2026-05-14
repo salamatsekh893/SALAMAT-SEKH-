@@ -15,11 +15,11 @@ export default function Customers() {
 
   const loadData = () => {
     setLoading(true);
-    const promises: any[] = [fetchWithAuth('/customers'), fetchWithAuth('/groups')];
+    const promises: any[] = [fetchWithAuth('/members'), fetchWithAuth('/groups')];
     if (user?.role === 'superadmin') promises.push(fetchWithAuth('/branches'));
     
     Promise.all(promises).then(([custData, grpData, branchData]) => {
-      setCustomers(custData);
+      setCustomers(Array.isArray(custData) ? custData : []);
       setGroups(grpData);
       if (branchData) setBranches(branchData);
     }).finally(() => setLoading(false));
@@ -28,13 +28,13 @@ export default function Customers() {
   useEffect(() => { loadData(); }, []);
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to remove this client?')) return;
+    if (!confirm('আপনি কি নিশ্চিত যে আপনি এই সদস্যকে ডিলিট করতে চান?')) return;
     try {
-      await fetchWithAuth(`/customers/${id}`, { method: 'DELETE' });
+      await fetchWithAuth(`/members/${id}`, { method: 'DELETE' });
       voiceFeedback.success();
       loadData();
     } catch (err: any) {
-      alert(err.message);
+      alert(err.message || 'ডিলিট করা সম্ভব হয়নি।');
       voiceFeedback.error();
     }
   };
@@ -42,7 +42,7 @@ export default function Customers() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await fetchWithAuth('/customers', {
+      await fetchWithAuth('/members', {
         method: 'POST',
         body: JSON.stringify(formData),
       });
@@ -94,16 +94,16 @@ export default function Customers() {
                 {customers.map((cust) => (
                   <tr key={cust.id} className="group hover:bg-slate-50 transition-all duration-300">
                     <td className="p-6">
-                      <div className="text-[15px] text-slate-900 font-black tracking-tight group-hover:text-indigo-600 transition-colors uppercase">{cust.name}</div>
-                      <div className="text-[10px] text-slate-500 font-black tracking-widest mt-1 uppercase opacity-70">{cust.address}</div>
+                      <div className="text-[15px] text-slate-900 font-black tracking-tight group-hover:text-indigo-600 transition-colors uppercase">{cust.full_name || cust.name}</div>
+                      <div className="text-[10px] text-slate-500 font-black tracking-widest mt-1 uppercase opacity-70">{cust.address || cust.village}</div>
                     </td>
                     <td className="p-6">
-                      <span className="text-[14px] text-slate-700 font-black tracking-widest">{cust.phone}</span>
+                      <span className="text-[14px] text-slate-700 font-black tracking-widest">{cust.mobile_no || cust.phone}</span>
                     </td>
                     <td className="p-6">
                       <div className="flex flex-col gap-1">
                         <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest">AADHAAR SECURE</span>
-                        <span className="text-[13px] font-black tracking-wider text-slate-900">{cust.aadhaar}</span>
+                        <span className="text-[13px] font-black tracking-wider text-slate-900">{cust.aadhar_no || cust.aadhaar}</span>
                       </div>
                     </td>
                     <td className="p-6">
@@ -141,8 +141,8 @@ export default function Customers() {
                   <div key={cust.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
                      <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-4 text-white flex justify-between items-start">
                         <div>
-                           <h3 className="font-black uppercase tracking-tight text-lg leading-tight mb-1">{cust.name}</h3>
-                           <div className="text-[10px] font-bold text-indigo-100 uppercase tracking-widest opacity-90 line-clamp-1">{cust.address}</div>
+                           <h3 className="font-black uppercase tracking-tight text-lg leading-tight mb-1">{cust.full_name || cust.name}</h3>
+                           <div className="text-[10px] font-bold text-indigo-100 uppercase tracking-widest opacity-90 line-clamp-1">{cust.address || cust.village}</div>
                         </div>
                      </div>
                      
@@ -154,11 +154,11 @@ export default function Customers() {
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Contact</p>
-                          <p className="text-sm font-black text-slate-900 tracking-widest">{cust.phone}</p>
+                          <p className="text-sm font-black text-slate-900 tracking-widest">{cust.mobile_no || cust.phone}</p>
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Aadhaar (Secure)</p>
-                          <p className="text-[11px] font-black text-slate-800 tracking-widest">{cust.aadhaar}</p>
+                          <p className="text-[11px] font-black text-slate-800 tracking-widest">{cust.aadhar_no || cust.aadhaar}</p>
                         </div>
                      </div>
 

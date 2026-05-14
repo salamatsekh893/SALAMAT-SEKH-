@@ -4014,6 +4014,30 @@ async function startServer() {
     });
   }
 
+  app.delete("/api/members/:id", verifyToken, async (req: any, res) => {
+    try {
+      const memberId = req.params.id;
+
+      // Check for active loans (status is not 'Closed', 'Settled' or 'Rejected')
+      const [activeLoans]: any = await pool.query(
+        "SELECT id FROM loans WHERE member_id = ? AND status NOT IN ('closed', 'settled', 'rejected')",
+        [memberId]
+      );
+
+      if (activeLoans.length > 0) {
+        return res.status(400).json({ 
+          error: "সদস্যকে ডিলিট করা সম্ভব নয়। এই সদস্যের বর্তমানে অ্যাক্টিভ লোন রয়েছে।" 
+        });
+      }
+
+      await pool.query("DELETE FROM members WHERE id = ?", [memberId]);
+      res.json({ message: "সদস্য সফলভাবে ডিলিট করা হয়েছে।" });
+    } catch (err) {
+      console.error('Delete member error:', err);
+      res.status(500).json({ error: "ডাটাবেস এরর। সদস্য ডিলিট করা সম্ভব হয়নি।" });
+    }
+  });
+
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
