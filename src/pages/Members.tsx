@@ -416,6 +416,14 @@ export default function Members() {
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Mobile</span>
                           <p className="text-sm font-black text-slate-800">{selectedMember.mobile_no || 'N/A'}</p>
                         </div>
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Form No</span>
+                          <p className="text-sm font-black text-slate-800">{selectedMember.form_no || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Ration Card</span>
+                          <p className="text-sm font-black text-slate-800">{selectedMember.ration_card || 'N/A'}</p>
+                        </div>
                         <div className="sm:col-span-2">
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Guardian</span>
                           <p className="text-sm font-black text-slate-800 uppercase">{selectedMember.guardian_name} <span className="text-slate-400">({selectedMember.guardian_type})</span></p>
