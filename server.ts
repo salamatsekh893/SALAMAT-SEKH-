@@ -81,7 +81,7 @@ async function startServer() {
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'aljooya_db',
     waitForConnections: true,
-    connectionLimit: 10,
+    connectionLimit: 4,
     queueLimit: 0,
     enableKeepAlive: true,
     keepAliveInitialDelay: 10000, 
@@ -3343,8 +3343,8 @@ async function startServer() {
       const { type, amount, date, remarks } = req.body;
       
       const conn = await pool.getConnection();
-      await conn.beginTransaction();
       try {
+        await conn.beginTransaction();
         await conn.query(
           'INSERT INTO savings_transactions (savings_account_id, type, amount, date, remarks) VALUES (?, ?, ?, ?, ?)',
           [savings_account_id, type, amount, date, remarks || '']
