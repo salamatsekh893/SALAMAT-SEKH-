@@ -85,9 +85,7 @@ async function startServer() {
     queueLimit: 0,
     enableKeepAlive: true,
     keepAliveInitialDelay: 10000, 
-    connectTimeout: 30000,
-    maxIdle: 0, 
-    idleTimeout: 30000,
+    connectTimeout: 30000
   });
 
   // Centralized query retry helper
