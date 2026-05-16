@@ -240,13 +240,37 @@ async function startServer() {
         const cleanEmail = targetEmail.trim().toLowerCase();
         console.log(`[OTP] Sending OTP to: ${cleanEmail}`);
 
-        // Using exactly the format that worked in our manual test
+        // Using a professional HTML template for the email
         const result = await resend.emails.send({
           from: 'onboarding@resend.dev',
           to: cleanEmail,
-          subject: 'Login OTP: ' + otp,
+          subject: '🔒 Reset Password OTP: ' + otp,
           text: `Your security code is: ${otp}`,
-          html: `<strong>Code: ${otp}</strong>`
+          html: `
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e4e8ec; border-radius: 16px; background-color: #f8f9fa;">
+              <div style="text-align: center; background-color: #0056b3; padding: 20px; border-radius: 12px 12px 0 0;">
+                <h2 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold; letter-spacing: 0.5px;">ALJOOYA SUBIDHA SERVICES</h2>
+              </div>
+              <div style="padding: 25px; background-color: #ffffff; border-radius: 0 0 12px 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+                <p style="font-size: 16px; color: #333333; line-height: 1.6; margin-top: 0;">
+                  নমস্কার / স্বাগতম, <br>
+                  আপনার অ্যাকাউন্ট পাসওয়ার্ড রিসেট করার জন্য সিকিউরিটি ওটিপি (OTP) কোডটি নিচে দেওয়া হলো:
+                </p>
+                <div style="text-align: center; margin: 30px 0;">
+                  <span style="font-size: 36px; font-weight: bold; color: #0056b3; letter-spacing: 6px; background-color: #e6f0fa; padding: 12px 35px; border-radius: 10px; display: inline-block; border: 1px dashed #0056b3;">
+                    ${otp}
+                  </span>
+                </div>
+                <p style="font-size: 13px; color: #666666; text-align: center; margin-bottom: 25px;">
+                  ⏳ এই কোডটি আগামী <strong>১০ মিনিট</strong> পর্যন্ত সচল থাকবে।
+                </p>
+                <hr style="border: 0; border-top: 1px solid #e4e8ec; margin: 20px 0;">
+                <p style="font-size: 12px; color: #cc0000; text-align: center; font-weight: bold; margin: 0; background-color: #fff0f0; padding: 10px; border-radius: 6px;">
+                  ⚠️ নিরাপত্তা সতর্কতা: এই কোডটি অত্যন্ত গোপনীয়। আপনার ও আপনার কাস্টমারদের সুরক্ষার স্বার্থে এটি কাউকে শেয়ার করবেন না।
+                </p>
+              </div>
+            </div>
+          `
         });
         
         if (result.error) {
