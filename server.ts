@@ -8,7 +8,7 @@ import { Resend } from 'resend';
 
 dotenv.config({ override: true });
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-super-secure';
+const JWT_SECRET = process.env.JWT_SECRET || 'rayhan123456';
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY.trim()) : null;
 
 if (!resend) {
@@ -21,10 +21,16 @@ export const verifyToken = (req: any, res: any, next: any) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   
-  if (!token) return res.status(401).json({ error: 'Access denied' });
+  if (!token) {
+    console.warn(`[AUTH] No token provided for ${req.url}`);
+    return res.status(401).json({ error: 'Access denied' });
+  }
 
   jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
-    if (err || !user) return res.status(403).json({ error: 'Invalid token' });
+    if (err || !user) {
+      console.warn(`[AUTH] Invalid token for ${req.url}: ${err?.message || 'Invalid user'}`);
+      return res.status(403).json({ error: 'Invalid token' });
+    }
     if (user?.role === 'collector') {
       user.role = 'fo';
     }
@@ -37,7 +43,193 @@ async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
 
+  // --- DATABASE CONFIGURATION (OPTIMIZED FOR HOSTINGER & AI STUDIO) ---
+  const dbHost = process.env.DB_HOST || 'localhost';
+  const dbUser = 'u926896353_aljooya1';
+  const dbName = 'u926896353_aljooya1';
+  const dbPass = 'Payel@098765';
+  
+  console.log(`[DB INIT] Target: ${dbHost}, User: ${dbUser}, DB: ${dbName}`);
+
+  const pool = mysql.createPool({
+    host: dbHost,
+    user: dbUser,
+    password: dbPass,
+    database: dbName,
+    waitForConnections: true,
+    connectionLimit: 4,
+    queueLimit: 0,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000,
+    connectTimeout: 30000
+  });
+
+  // Global middleware
+  app.use((req, res, next) => {
+    console.log(`[REQ] ${req.method} ${req.url} (Accept: ${req.headers.accept})`);
+    next();
+  });
+
   app.use(express.json({ limit: '50mb' }));
+
+  // Verify connection at startup
+  pool.getConnection()
+    .then(conn => {
+      console.log(`✅ [DB OK] Connected as ${dbUser} to ${dbHost}`);
+      conn.release();
+    })
+    .catch(err => {
+      console.error(`❌ [DB ERROR] ${err.message}`);
+    });
+
+  app.get("/api/ping", (req, res) => {
+    res.json({ message: "pong" });
+  });
+
+  // --- Overdue Report Route (MOVED TO TOP FOR DEBUGGING) ---
+  app.get("/api/reports/overdue", verifyToken, async (req: any, res) => {
+    console.log(`[OVERDUE REQ] User:${req.user?.userId} Role:${req.user?.role}`);
+    try {
+      const { branchId, role } = req.user;
+      let whereClause = "l.status = 'active'";
+      let params: any[] = [];
+
+      if (role === 'branch_manager' || role === 'fo') {
+          whereClause += " AND (l.branch_id = ? OR m.branch_id = ?)";
+          params.push(branchId, branchId);
+      }
+      
+      const query = `
+        SELECT 
+          l.id, l.loan_no, l.amount as principal_amount, l.duration_weeks, l.interest, 
+          l.installment as emi_amount, l.start_date, l.emi_frequency, l.total_repayment, l.branch_id,
+          m.full_name as member_name, m.member_code, m.mobile_no, m.profile_image, m.group_id,
+          g.group_name, g.group_code, b.branch_name,
+          COALESCE(c_stats.total_paid, 0) as total_paid,
+          COALESCE(c_stats.paid_emi_count, 0) as paid_emi_count
+        FROM loans l
+        LEFT JOIN members m ON l.customer_id = m.id
+        LEFT JOIN groups g ON m.group_id = g.id
+        LEFT JOIN branches b ON l.branch_id = b.id
+        LEFT JOIN (
+          SELECT 
+            loan_id, 
+            SUM(amount_paid) as total_paid, 
+            COUNT(*) as paid_emi_count
+          FROM collections 
+          WHERE status = 'approved'
+          GROUP BY loan_id
+        ) c_stats ON l.id = c_stats.loan_id
+        WHERE ${whereClause}
+      `;
+
+      const [rows]: any = await pool.query(query, params);
+      const today = new Date();
+      
+      const overdueList = (rows || []).map((loan: any) => {
+        const startDate = new Date(loan.start_date);
+        const frequency = (loan.emi_frequency || 'weekly').toLowerCase();
+        
+        let expectedEmis = 0;
+        const daysPassed = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysPassed >= 0) {
+          if (frequency === 'daily') expectedEmis = daysPassed + 1;
+          else if (frequency === 'weekly') expectedEmis = Math.floor(daysPassed / 7) + 1;
+          else if (frequency === 'bi-weekly' || frequency === 'biweekly') expectedEmis = Math.floor(daysPassed / 14) + 1;
+          else if (frequency === 'monthly') {
+            expectedEmis = (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth()) + 1;
+          }
+        }
+        
+        const duration = Number(loan.duration_weeks) || 0;
+        expectedEmis = Math.min(expectedEmis, duration);
+        
+        const emiAmount = Number(loan.emi_amount) || 0;
+        const expectedAmount = expectedEmis * emiAmount;
+        const totalPaid = Number(loan.total_paid) || 0;
+        const overdueAmount = Math.max(0, expectedAmount - totalPaid);
+        const paidCount = Number(loan.paid_emi_count) || 0;
+        const missedEmis = Math.max(0, expectedEmis - paidCount);
+        
+        let dpd = 0;
+        if (overdueAmount > 10) { // Using 10 as buffer
+            const interval = frequency === 'weekly' ? 7 : frequency === 'monthly' ? 30 : frequency === 'bi-weekly' ? 14 : 1;
+            dpd = missedEmis * interval; 
+        }
+
+        return {
+          ...loan,
+          expected_emis: expectedEmis,
+          missed_emis: missedEmis,
+          overdue_amount: overdueAmount,
+          dpd: dpd
+        };
+      }).filter((l: any) => l.overdue_amount > 1);
+
+      const totalOverdue = overdueList.reduce((sum: number, l: any) => sum + Number(l.overdue_amount), 0);
+      const totalRisk = overdueList.reduce((sum: number, l: any) => sum + (Number(l.total_repayment) - Number(l.total_paid)), 0);
+      const npaCount = overdueList.filter((l: any) => l.dpd >= 90).length;
+
+      res.json({
+        summary: {
+          total_overdue: totalOverdue,
+          total_risk: totalRisk,
+          npa_count: npaCount
+        },
+        loans: overdueList
+      });
+
+    } catch (err: any) {
+      console.error('[API ERROR] Overdue Report:', err);
+      res.status(500).json({ error: 'Internal Server Error', details: err.message });
+    }
+  });
+
+  app.get("/api/reports/daily", verifyToken, async (req: any, res) => {
+    try {
+      const date = req.query.date || new Date().toISOString().split('T')[0];
+      const { branchId, role } = req.user;
+      
+      let whereClause = "DATE(c.created_at) = ?";
+      let params: any[] = [date];
+      
+      if (role !== 'superadmin' && role !== 'dm') {
+        whereClause += " AND u.branch_id = ?";
+        params.push(branchId);
+      }
+
+      const [rows] = await pool.query(`
+        SELECT 
+          c.*, 
+          m.full_name as customer_name, 
+          u.name as collected_by_name,
+          b.branch_name
+        FROM collections c
+        LEFT JOIN loans l ON c.loan_id = l.id
+        LEFT JOIN members m ON l.customer_id = m.id
+        LEFT JOIN users u ON c.collected_by = u.id
+        LEFT JOIN branches b ON u.branch_id = b.id
+        WHERE ${whereClause}
+        ORDER BY c.created_at DESC
+      `, params);
+      
+      res.json(rows);
+    } catch (err) {
+      console.error('[API ERROR] Daily Report:', err);
+      res.status(500).json({ error: 'Failed to fetch daily report' });
+    }
+  });
+
+  app.get("/api/debug-routes", (req, res) => {
+    const routes = app._router.stack
+      .filter((r: any) => r.route)
+      .map((r: any) => ({
+        path: r.route.path,
+        methods: Object.keys(r.route.methods)
+      }));
+    res.json(routes);
+  });
 
   // Unified OTP Sender
   const sendOTP = async (identifier: string, otp: string, userEmail?: string | null) => {
@@ -74,19 +266,7 @@ async function startServer() {
     return { success: false, email: targetEmail };
   };
 
-  // Database Connection
-  const pool = mysql.createPool({
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'aljooya_db',
-    waitForConnections: true,
-    connectionLimit: 4,
-    queueLimit: 0,
-    enableKeepAlive: true,
-    keepAliveInitialDelay: 10000, 
-    connectTimeout: 30000
-  });
+  // (Removed duplicate pool definition)
 
   // Centralized query retry helper
   async function queryWithRetry(sql: string, params: any[] = [], retries = 5) {
@@ -125,9 +305,10 @@ async function startServer() {
   });
 
   // Initialize Tables - Disabled to use existing production tables
-  try {
-    const conn = await pool.getConnection();
-    console.log("Database connected successfully to Hostinger MySQL");
+  (async () => {
+    try {
+      const conn = await pool.getConnection();
+      console.log("Database connected successfully to Hostinger MySQL");
 
     // Phase 1: Basic infrastructure tables
     try {
@@ -975,9 +1156,10 @@ async function startServer() {
     }
     
     conn.release();
-  } catch (err) {
-    console.error("Database connection failed:", err);
-  }
+    } catch (err) {
+      console.error("Database initialization background process failed:", err);
+    }
+  })();
 
   // API Routes
   app.post("/api/auth/login-init", async (req, res) => {
@@ -3270,7 +3452,7 @@ async function startServer() {
   app.get("/api/debug/db-structure", async (req, res) => {
     try {
       const [tables]: any = await pool.query('SHOW TABLES');
-      const dbName = process.env.DB_NAME;
+      const dbName = 'u926896353_aljooya1';
       const structure: any = {};
       
       for (const tableObj of tables) {
@@ -3997,21 +4179,6 @@ async function startServer() {
     }
   });
 
-  // Vite middleware
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
-
   app.delete("/api/members/:id", verifyToken, async (req: any, res) => {
     try {
       const memberId = req.params.id;
@@ -4036,6 +4203,30 @@ async function startServer() {
       res.status(500).json({ error: "ডাটাবেস এরর। সদস্য ডিলিট করা সম্ভব হয়নি।" });
     }
   });
+
+  app.use("/api/*", (req, res) => {
+    console.warn(`[API 404] No route matched for ${req.method} ${req.url}`);
+    res.status(404).json({ error: `API route not found: ${req.method} ${req.originalUrl}` });
+  });
+
+  // Vite middleware
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: "spa",
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.join(process.cwd(), 'dist');
+    app.use(express.static(distPath));
+    app.get('*', (req, res) => {
+      if (req.url.startsWith('/api')) {
+        console.error(`[CRITICAL] API request fell through to static fallback: ${req.method} ${req.url}`);
+        return res.status(404).json({ error: "API route not found in production fallback" });
+      }
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  }
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);

@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { voiceFeedback } from "../lib/voice";
 import { formatAmount } from "../lib/utils";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import toast from "react-hot-toast";
 import { useAuth } from "../hooks/useAuth";
@@ -99,6 +99,7 @@ const calculateOverdueInfo = (loan: any, selectedDate: string, totalPaid: number
 
 export default function BatchCollection() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [groups, setGroups] = useState<any[]>([]);
@@ -144,9 +145,21 @@ export default function BatchCollection() {
         setGroups(grpData);
         setLoans(loanData.filter((l: any) => l.status === "active"));
         setCollections(colData);
+
+        // Check if we have incoming state from navigation
+        if (location.state?.groupId) {
+          setSelectedGroup(location.state.groupId);
+          
+          if (location.state.loanId) {
+            setSelectedLoans(prev => ({ ...prev, [location.state.loanId]: true }));
+            setAmounts(prev => ({ ...prev, [location.state.loanId]: location.state.amount?.toString() || "" }));
+            setPaymentModes(prev => ({ ...prev, [location.state.loanId]: "Cash" }));
+            setAttendance(prev => ({ ...prev, [location.state.loanId]: true }));
+          }
+        }
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [location]);
 
   const handleGroupSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const groupId = e.target.value;
