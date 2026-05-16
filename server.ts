@@ -543,7 +543,7 @@ async function startServer() {
         const bid = blist[0]?.id || null;
         await conn.query(`
           INSERT INTO users (name, phone, email, password, role, status, branch_id)
-          VALUES ('Salamat Sekh', '9883672737', 'salamatsekh893@gmail.com', '123456', 'superadmin', 'active', ?)
+          VALUES ('Admin', '0000000000', 'admin@example.com', 'admin123', 'superadmin', 'active', ?)
         `, [bid]);
         console.log("Default admin user created");
       }
@@ -1186,18 +1186,6 @@ async function startServer() {
         if (user.password !== password) {
           return res.status(401).json({ error: 'Invalid password' });
         }
-      } else if (phone === '9883672737' && password === '123456') {
-        user = { 
-          id: 1, 
-          name: 'Salamat Sekh', 
-          role: 'superadmin', 
-          branch_id: null,
-          phone: '9883672737',
-          email: 'admin@aljooya.com',
-          photo_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Salamat',
-          address: 'Head Office, Aljooya',
-          join_date: '2023-01-01'
-        };
       } else {
         return res.status(401).json({ error: 'User not found' });
       }
@@ -1227,11 +1215,6 @@ async function startServer() {
       const { password } = req.body;
       const userId = req.user.userId;
 
-      // Check hardcoded superadmin
-      if (userId === 1 && password === '123456') {
-        return res.json({ valid: true });
-      }
-
       const [rows]: any = await pool.query('SELECT password FROM users WHERE id = ?', [userId]);
       if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
       
@@ -1253,7 +1236,7 @@ async function startServer() {
         [identifier, identifier]
       );
 
-      if (userRows.length === 0 && identifier !== '9883672737') {
+      if (userRows.length === 0) {
         return res.status(404).json({ error: 'User not found' });
       }
 
@@ -1293,27 +1276,12 @@ async function startServer() {
       }
 
       // Successful OTP verification
-      let user: any;
-      if (identifier === '9883672737') {
-        user = { 
-          id: 1, 
-          name: 'Salamat Sekh', 
-          role: 'superadmin', 
-          branchId: 1, 
-          phone: '9883672737',
-          email: 'admin@aljooya.com',
-          photo_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Salamat',
-          address: 'Head Office, Aljooya',
-          join_date: '2023-01-01'
-        };
-      } else {
-        const [userRows]: any = await pool.query(
-          'SELECT * FROM users WHERE phone = ? OR email = ? LIMIT 1', 
-          [identifier, identifier]
-        );
-        if (userRows.length === 0) return res.status(404).json({ error: 'User cleanup issue' });
-        user = userRows[0];
-      }
+      const [userRows]: any = await pool.query(
+        'SELECT * FROM users WHERE phone = ? OR email = ? LIMIT 1', 
+        [identifier, identifier]
+      );
+      if (userRows.length === 0) return res.status(404).json({ error: 'User not found' });
+      const user = userRows[0];
 
       const payload = { userId: user.id, role: user.role || 'employee', branchId: user.branch_id };
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
