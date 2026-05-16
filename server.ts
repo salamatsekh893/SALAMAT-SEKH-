@@ -1342,6 +1342,37 @@ async function startServer() {
     }
   });
 
+  // --- New Reset Password API ---
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { identifier, otp, newPassword } = req.body;
+      
+      // 1. Check OTP validity (expires_at check handles expiration)
+      const [otpRows]: any = await pool.query(
+        'SELECT * FROM otps WHERE identifier = ? AND otp = ? AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1',
+        [identifier, otp]
+      );
+
+      if (otpRows.length === 0) {
+        return res.status(400).json({ error: 'ভুল অথবা মেয়াদোত্তীর্ণ OTP!' });
+      }
+
+      // 2. Update new password
+      await pool.query(
+        'UPDATE users SET password = ? WHERE phone = ? OR email = ?', 
+        [newPassword, identifier, identifier]
+      );
+
+      // 3. Delete OTP after successful reset
+      await pool.query('DELETE FROM otps WHERE identifier = ?', [identifier]);
+
+      res.json({ message: 'পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে!' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'পাসওয়ার্ড রিসেট করতে সমস্যা হচ্ছে।' });
+    }
+  });
+
   app.get("/api/me", verifyToken, async (req: any, res) => {
     try {
       const [rows]: any = await pool.query('SELECT * FROM users WHERE id = ? LIMIT 1', [req.user.userId]);
