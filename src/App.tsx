@@ -13,6 +13,7 @@ import Members from './pages/Members';
 import CreateMember from './pages/CreateMember';
 import Loans from './pages/Loans';
 import CreateLoanRequest from './pages/CreateLoanRequest';
+import EditLoan from './pages/EditLoan';
 import LoanApprovals from './pages/LoanApprovals';
 import LoanDisbursements from './pages/LoanDisbursements';
 import ViewCollection from './pages/ViewCollection';
@@ -116,6 +117,7 @@ export default function App() {
               <Route path="/savings/card/:type/:id" element={<PassbookCardView />} />
               <Route path="/loans" element={<Loans />} />
               <Route path="/loans/new" element={<CreateLoanRequest />} />
+              <Route path="/loans/edit/:id" element={<EditLoan />} />
               <Route path="/loans/view/:id" element={<LoanApplicationView />} />
               <Route path="/loans/card/:id" element={<LoanCardView />} />
               <Route path="/loans/agreement/:id" element={<LoanAgreementView />} />

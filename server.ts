@@ -2329,50 +2329,62 @@ async function startServer() {
   app.put("/api/loans/:id", async (req, res) => {
     try {
       const data = req.body;
+      const loanId = req.params.id;
+
+      // Extract fields from body, handling different possible names
+      const customer_id = data.customer_id;
+      const scheme_id = data.scheme_id;
+      const branch_id = data.branch_id;
+      const amount = data.amount || data.loan_amount;
+      const duration_weeks = data.duration_weeks || data.no_of_emis;
+      const interest = data.interest || data.interest_amount;
+      const installment = data.installment || data.emi_amount;
+      const total_repayment = data.total_repayment;
+      const processing_fee = data.processing_fee;
+      const insurance_fee = data.insurance_fee;
+      const emi_frequency = data.emi_frequency;
+      const disbursement_date = data.disbursement_date;
+
       let startDateStr = data.start_date;
       if (!startDateStr) {
-         let start = new Date();
-         start.setHours(0,0,0,0);
-         // Fallback start date if not provided in put
-         try {
-           const [memberRows]: any = await pool.query(
-             `SELECT g.meeting_day FROM members m LEFT JOIN groups g ON m.group_id = g.id WHERE m.id = ?`,
-             [data.customer_id]
-           );
-           if (memberRows.length > 0 && memberRows[0].meeting_day) {
-             const meetingDayStr = memberRows[0].meeting_day;
-             const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-             const targetDay = days.indexOf(meetingDayStr);
-             const freq = data.emi_frequency || 'weekly';
-
-             if (targetDay !== -1) {
-               let daysUntil = targetDay - start.getDay();
-               if (daysUntil <= 0) daysUntil += 7;
-               if (freq === 'daily') start.setDate(start.getDate() + 1);
-               else if (freq === 'weekly') start.setDate(start.getDate() + daysUntil);
-               else if (freq === 'bi-weekly') start.setDate(start.getDate() + daysUntil + 7);
-               else if (freq === 'monthly') {
-                 start.setMonth(start.getMonth() + 1);
-                 let diff = targetDay - start.getDay();
-                 if (diff < 0) diff += 7;
-                 start.setDate(start.getDate() + diff);
-               }
-             }
-           }
-         } catch(e){}
-         startDateStr = start.toISOString().split('T')[0];
+         // Optionally recalculate if needed, but for edit we might want to keep existing
+         // Let's just update provided fields
       }
-      
+
+      const updateFields = [];
+      const params = [];
+
+      const addField = (col: string, val: any) => {
+        if (val !== undefined) {
+          updateFields.push(`${col} = ?`);
+          params.push(val);
+        }
+      };
+
+      addField('customer_id', customer_id);
+      addField('scheme_id', scheme_id);
+      addField('branch_id', branch_id);
+      addField('amount', amount);
+      addField('duration_weeks', duration_weeks);
+      addField('interest', interest);
+      addField('installment', installment);
+      addField('total_repayment', total_repayment);
+      addField('processing_fee', processing_fee);
+      addField('insurance_fee', insurance_fee);
+      addField('emi_frequency', emi_frequency);
+      addField('start_date', startDateStr);
+      addField('disbursement_date', disbursement_date);
+
+      if (updateFields.length === 0) {
+        return res.status(400).json({ error: 'No fields to update' });
+      }
+
+      params.push(loanId);
       await pool.query(
-        `UPDATE loans SET 
-          customer_id = ?, scheme_id = ?, amount = ?, duration_weeks = ?,
-          interest = ?, branch_id = ?, start_date = ?
-         WHERE id = ?`,
-        [
-          data.customer_id, data.scheme_id, data.amount, data.duration_weeks,
-          data.interest, data.branch_id, startDateStr, req.params.id
-        ]
+        `UPDATE loans SET ${updateFields.join(', ')} WHERE id = ?`,
+        params
       );
+
       res.status(200).json({ success: true });
     } catch (err: any) {
       console.error(err);
