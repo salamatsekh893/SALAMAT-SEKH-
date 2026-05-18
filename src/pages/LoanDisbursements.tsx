@@ -40,13 +40,19 @@ export default function LoanDisbursements() {
   }, []);
 
   const [confirmAction, setConfirmAction] = useState<{id: number, status: string} | null>(null);
+  const [disbursementDate, setDisbursementDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [firstEmiDate, setFirstEmiDate] = useState<string>('');
 
   const executeStatusChange = async (id: number, newStatus: string) => {
     try {
       setProcessingId(id);
       await fetchWithAuth(`/loans/${id}/status`, {
         method: 'PUT',
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ 
+          status: newStatus,
+          disbursement_date: newStatus === 'active' ? disbursementDate : undefined,
+          first_emi_date: newStatus === 'active' ? (firstEmiDate || undefined) : undefined
+        }),
       });
       voiceFeedback.success();
       loadData();
@@ -63,7 +69,14 @@ export default function LoanDisbursements() {
   };
 
   const handleStatusChange = (id: number, newStatus: string) => {
+    const loan = loans.find(l => l.id === id);
     setConfirmAction({ id, status: newStatus });
+    setDisbursementDate(format(new Date(), 'yyyy-MM-dd'));
+    if (loan && loan.start_date) {
+      setFirstEmiDate(format(new Date(loan.start_date), 'yyyy-MM-dd'));
+    } else {
+      setFirstEmiDate('');
+    }
   };
 
   const handleViewDetails = async (id: number) => {
@@ -110,9 +123,32 @@ export default function LoanDisbursements() {
               <h3 className="text-xl md:text-2xl font-black text-slate-800 mb-2">
                 {confirmAction.status === 'active' ? 'Disburse Loan?' : 'Reject Loan?'}
               </h3>
-              <p className="text-sm md:text-base text-slate-500 font-medium leading-relaxed mb-8">
+              <p className="text-sm md:text-base text-slate-500 font-medium leading-relaxed mb-6">
                 Are you sure you want to {confirmAction.status === 'active' ? <span className="text-emerald-600 font-black uppercase">disburse</span> : <span className="text-rose-600 font-black uppercase">reject</span>} this application? This action cannot be easily undone.
               </p>
+
+              {confirmAction.status === 'active' && (
+                <div className="w-full space-y-4 mb-8 text-left">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">Disbursement Date</label>
+                    <input 
+                      type="date"
+                      value={disbursementDate}
+                      onChange={(e) => setDisbursementDate(e.target.value)}
+                      className="w-full bg-slate-50 border-2 border-slate-100 p-3 rounded-xl text-sm font-bold text-slate-900 focus:border-emerald-200 focus:bg-white outline-none transition-all"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">First EMI Date</label>
+                    <input 
+                      type="date"
+                      value={firstEmiDate}
+                      onChange={(e) => setFirstEmiDate(e.target.value)}
+                      className="w-full bg-slate-50 border-2 border-slate-100 p-3 rounded-xl text-sm font-bold text-slate-900 focus:border-emerald-200 focus:bg-white outline-none transition-all"
+                    />
+                  </div>
+                </div>
+              )}
               <div className="flex flex-col sm:flex-row w-full gap-3 sm:gap-4">
                 <button
                   onClick={() => setConfirmAction(null)}
@@ -167,6 +203,18 @@ export default function LoanDisbursements() {
                               <span className="text-xs font-bold text-slate-500 uppercase">Principal</span>
                               <span className="text-sm font-black text-emerald-600">₹{formatAmount(selectedLoan.amount)}</span>
                            </div>
+                           {selectedLoan.disbursement_date && (
+                              <div className="flex justify-between">
+                                 <span className="text-xs font-bold text-slate-400 uppercase">Disbursed On</span>
+                                 <span className="text-sm font-black text-slate-600">{format(new Date(selectedLoan.disbursement_date), 'dd MMM yyyy')}</span>
+                              </div>
+                           )}
+                           {selectedLoan.start_date && (
+                              <div className="flex justify-between">
+                                 <span className="text-xs font-bold text-slate-400 uppercase">First EMI Date</span>
+                                 <span className="text-sm font-black text-indigo-600">{format(new Date(selectedLoan.start_date), 'dd MMM yyyy')}</span>
+                              </div>
+                           )}
                            <div className="flex justify-between">
                               <span className="text-xs font-bold text-slate-500 uppercase">Term</span>
                               <span className="text-sm font-black text-slate-900">{selectedLoan.duration_weeks} Weeks</span>

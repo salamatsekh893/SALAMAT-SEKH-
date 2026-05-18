@@ -513,6 +513,7 @@ async function startServer() {
           interest DECIMAL(15, 2) NOT NULL,
           installment DECIMAL(15, 2) NOT NULL,
           start_date DATE NOT NULL,
+          disbursement_date DATE NULL,
           status ENUM('pending', 'approved', 'active', 'closed', 'rejected') DEFAULT 'pending',
           branch_id INT,
           total_repayment DECIMAL(15, 2) NOT NULL,
@@ -527,6 +528,11 @@ async function startServer() {
       `);
       console.log("loans table ensured");
     } catch (e: any) { console.error("loans table creation failed:", e); }
+
+    try {
+      await conn.query("ALTER TABLE loans ADD COLUMN disbursement_date DATE NULL AFTER start_date");
+      console.log("Added disbursement_date column to loans");
+    } catch (e) {}
 
     try {
       await conn.query(`
@@ -2386,16 +2392,29 @@ async function startServer() {
 
   app.put("/api/loans/:id/status", async (req, res) => {
     try {
-      const { status } = req.body;
+      const { status, disbursement_date, first_emi_date } = req.body;
       const validStatuses = ['pending', 'approved', 'active', 'closed', 'rejected'];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({ error: 'Invalid status' });
       }
 
-      await pool.query(
-        'UPDATE loans SET status = ? WHERE id = ?',
-        [status, req.params.id]
-      );
+      let updateQuery = 'UPDATE loans SET status = ?';
+      let params = [status];
+
+      if (disbursement_date) {
+        updateQuery += ', disbursement_date = ?';
+        params.push(disbursement_date);
+      }
+
+      if (first_emi_date) {
+        updateQuery += ', start_date = ?';
+        params.push(first_emi_date);
+      }
+
+      updateQuery += ' WHERE id = ?';
+      params.push(req.params.id);
+
+      await pool.query(updateQuery, params);
       res.json({ success: true, status });
     } catch (err) {
       console.error(err);
