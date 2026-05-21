@@ -106,7 +106,7 @@ async function startServer() {
           m.full_name as member_name, m.member_code, m.mobile_no, m.profile_image, m.group_id,
           g.group_name, g.group_code, b.branch_name,
           COALESCE(c_stats.total_paid, 0) as total_paid,
-          COALESCE(c_stats.paid_emi_count, 0) as paid_emi_count
+          COALESCE(ROUND(COALESCE(c_stats.total_paid, 0) / NULLIF(l.installment, 0)), 0) as paid_emi_count
         FROM loans l
         LEFT JOIN members m ON l.customer_id = m.id
         LEFT JOIN groups g ON m.group_id = g.id
@@ -114,8 +114,7 @@ async function startServer() {
         LEFT JOIN (
           SELECT 
             loan_id, 
-            SUM(amount_paid) as total_paid, 
-            COUNT(*) as paid_emi_count
+            SUM(amount_paid) as total_paid
           FROM collections 
           WHERE status = 'approved'
           GROUP BY loan_id
@@ -2194,7 +2193,7 @@ async function startServer() {
           b.branch_name, 
           u.name as staff_name,
           COALESCE(c_stats.total_paid, 0) as total_paid,
-          COALESCE(c_stats.paid_emi_count, 0) as paid_emi_count,
+          COALESCE(ROUND(COALESCE(c_stats.total_paid, 0) / NULLIF(l.installment, 0)), 0) as paid_emi_count,
           u_closed.name as closed_by_name
         FROM loans l
         LEFT JOIN members m ON l.customer_id = m.id
@@ -2205,8 +2204,7 @@ async function startServer() {
         LEFT JOIN (
           SELECT 
             loan_id, 
-            SUM(amount_paid) as total_paid, 
-            COUNT(CASE WHEN amount_paid > 0 THEN 1 END) as paid_emi_count
+            SUM(amount_paid) as total_paid
           FROM collections 
           WHERE status != 'rejected'
           GROUP BY loan_id
@@ -3032,7 +3030,7 @@ async function startServer() {
       const [rows] = await pool.query(`
         SELECT l.*, s.scheme_name, s.interest_rate, b.branch_name,
         (SELECT COALESCE(SUM(amount_paid), 0) FROM collections WHERE loan_id = l.id AND status != 'rejected') as total_paid,
-        (SELECT COUNT(id) FROM collections WHERE loan_id = l.id AND status != 'rejected' AND amount_paid > 0) as paid_emi_count
+        COALESCE(ROUND((SELECT COALESCE(SUM(amount_paid), 0) FROM collections WHERE loan_id = l.id AND status != 'rejected') / NULLIF(l.installment, 0)), 0) as paid_emi_count
         FROM loans l
         LEFT JOIN schemes s ON l.scheme_id = s.id
         LEFT JOIN branches b ON l.branch_id = b.id

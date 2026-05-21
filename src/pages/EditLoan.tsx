@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { ArrowLeft, Save, Search, Calculator, User, Building, Landmark, FileText } from 'lucide-react';
+import { ArrowLeft, Save, Search, Calculator, User, Building, Landmark, FileText, ShieldAlert } from 'lucide-react';
 import { fetchWithAuth } from '../lib/api';
 import { formatAmount } from '../lib/utils';
 import { format } from 'date-fns';
 import { voiceFeedback } from '../lib/voice';
+import { usePermissions } from '../hooks/usePermissions';
 
 export default function EditLoan() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { canEdit } = usePermissions();
   const [loading, setLoading] = useState(false);
   const [initLoading, setInitLoading] = useState(true);
 
@@ -159,6 +161,24 @@ export default function EditLoan() {
 
   if (initLoading) {
     return <div className="p-8 text-center text-slate-500 font-bold uppercase tracking-widest text-xs animate-pulse">Loading modules...</div>;
+  }
+
+  if (!canEdit) {
+    return (
+      <div className="max-w-md mx-auto mt-12 bg-white rounded-2xl border border-slate-200 p-8 text-center shadow-lg">
+        <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <ShieldAlert className="w-8 h-8 text-rose-500" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-900 mb-1 font-sans">Access Denied</h3>
+        <p className="text-slate-500 text-xs mb-6">You do not have permission to edit loan records. Please contact your manager/administrator.</p>
+        <button
+          onClick={() => navigate('/loans')}
+          className="w-full bg-indigo-600 text-white font-semibold text-xs py-3 px-4 rounded-xl hover:bg-indigo-700 transition-colors shadow-sm cursor-pointer"
+        >
+          Go Back to Loans
+        </button>
+      </div>
+    );
   }
 
   const selectedMemberObj = (members || []).find(m => String(m.id) === String(formData.customer_id));
