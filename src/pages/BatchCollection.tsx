@@ -520,21 +520,21 @@ export default function BatchCollection() {
               {/* DESKTOP VIEW - Table based design */}
               <div className="hidden lg:block bg-white rounded-lg shadow-sm border border-slate-300 overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse min-w-[1400px]">
+                  <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-[#1D4ED8] text-white text-[11px] font-black uppercase tracking-wider">
-                      <th className="py-3 px-2 w-10 text-center border-r border-white/10">#</th>
-                      <th className="py-3 px-4 w-[280px]">NAME</th>
-                      <th className="py-3 px-4 w-[140px] text-center">CODE</th>
-                      <th className="py-3 px-4 w-[150px] text-center">MOBILE</th>
-                      <th className="py-3 px-4 w-[250px]">LOAN ID</th>
-                      <th className="py-3 px-4 text-right">PRINCIPAL</th>
-                      <th className="py-3 px-4 text-right">PAID</th>
-                      <th className="py-3 px-4 text-center">EMI</th>
-                      <th className="py-3 px-4 text-center">OD / DUE</th>
-                      <th className="py-3 px-4 text-right">BALANCE</th>
-                      <th className="py-3 px-4 text-center">MODE & CLOSE</th>
-                      <th className="py-3 px-6 text-center">COLLECT</th>
+                    <tr className="bg-[#1D4ED8] text-white text-[10px] font-black uppercase tracking-wider">
+                      <th className="py-2 px-1 w-8 text-center border-r border-white/10">#</th>
+                      <th className="py-2 px-2">NAME</th>
+                      <th className="py-2 px-2 text-center">CODE</th>
+                      <th className="py-2 px-2 text-center">MOBILE</th>
+                      <th className="py-2 px-2">LOAN ID</th>
+                      <th className="py-2 px-2 text-right">PRINCIPAL</th>
+                      <th className="py-2 px-2 text-right">PAID</th>
+                      <th className="py-2 px-2 text-center">EMI</th>
+                      <th className="py-2 px-2 text-center">OD / DUE</th>
+                      <th className="py-2 px-2 text-right">BALANCE</th>
+                      <th className="py-2 px-2 text-center">MODE / CLOSE</th>
+                      <th className="py-2 px-2 text-center w-[140px]">COLLECT</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
@@ -551,78 +551,79 @@ export default function BatchCollection() {
                           key={loan.id} 
                           className={`group transition-all ${!isPresent ? 'bg-slate-50 opacity-40' : isSelected ? "bg-blue-50/50" : "hover:bg-slate-50/30"}`}
                         >
-                          <td className="py-2.5 px-2 text-center bg-blue-700/5 text-blue-700 font-black text-[11px] border-r border-slate-100">
+                          <td className="py-2 px-1 text-center bg-blue-700/5 text-blue-700 font-black text-[10px] border-r border-slate-100">
                              {idx + 1}
                           </td>
-                          <td className="py-2.5 px-4">
-                             <div className="flex items-center gap-3">
+                          <td className="py-2 px-2">
+                             <div className="flex items-center gap-2">
                                 <input 
                                   type="checkbox" 
                                   disabled={!isPresent}
-                                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer flex-shrink-0"
                                   checked={isSelected}
                                   onChange={(e) => handleToggleLoan(loan.id, e)}
                                 />
-                                <h4 className="font-black text-[13px] text-slate-800 uppercase tracking-tight truncate">
+                                <h4 className="font-black text-[12px] text-slate-800 uppercase tracking-tight truncate max-w-[150px]" title={loan.member_name}>
                                   {loan.member_name}
                                 </h4>
                              </div>
                           </td>
-                          <td className="py-2.5 px-4 text-center">
-                             <span className="text-[11px] font-black text-blue-600">
+                          <td className="py-2 px-2 text-center">
+                             <span className="text-[10px] font-black text-blue-600 whitespace-nowrap">
                                {loan.member_code}
                              </span>
                           </td>
-                          <td className="py-2.5 px-4 text-center">
-                             <span className="text-xs font-bold text-slate-500">{loan.mobile_no || '7866829952'}</span>
+                          <td className="py-2 px-2 text-center">
+                             <span className="text-[10px] font-bold text-slate-500 whitespace-nowrap">{loan.member_mobile || loan.mobile_no || 'N/A'}</span>
                           </td>
-                          <td className="py-2.5 px-4">
-                             <div className="flex items-center gap-2">
-                                <span className="text-[11px] font-black text-slate-800 uppercase tracking-tight">{loan.loan_no || `L-260${idx+1000}`}</span>
-                                <button 
-                                  onClick={() => setTrackingLoanId(loan.id)} 
-                                  className="bg-[#00BCD4] text-white text-[9px] font-black px-1.5 py-0.5 rounded flex items-center gap-1 uppercase italic"
-                                >
-                                  <Clock className="w-2.5 h-2.5" /> TRACK
-                                </button>
-                                <span className="bg-amber-100 text-amber-700 text-[8px] font-black px-1.5 py-0.5 rounded border border-amber-200 uppercase tracking-tighter shadow-sm flex items-center gap-1">
-                                  <Calendar className="w-2 h-2" /> {getScheduleBadge(loan, date)}
-                                </span>
+                          <td className="py-2 px-2">
+                             <div className="flex flex-col gap-0.5">
+                                <span className="text-[10px] font-black text-slate-800 uppercase tracking-tight whitespace-nowrap">{loan.loan_no || `L-260${idx+1000}`}</span>
+                                <div className="flex gap-1 mt-0.5">
+                                  <button 
+                                    onClick={() => setTrackingLoanId(loan.id)} 
+                                    className="bg-[#00BCD4] text-white text-[8px] font-black px-1 py-0.5 rounded flex items-center gap-0.5 uppercase italic leading-none"
+                                  >
+                                    <Clock className="w-2 h-2" /> TRACK
+                                  </button>
+                                  <span className="bg-amber-100 text-amber-700 text-[8px] font-black px-1 py-0.5 rounded border border-amber-200 uppercase tracking-tighter shadow-sm flex items-center gap-0.5 leading-none">
+                                    <Calendar className="w-2 h-2" /> {getScheduleBadge(loan, date)}
+                                  </span>
+                                </div>
                              </div>
                           </td>
-                          <td className="py-2.5 px-4 text-right">
-                             <span className="text-xs font-bold text-slate-500">{formatAmount(loan.amount)}</span>
+                          <td className="py-2 px-2 text-right">
+                             <span className="text-[11px] font-bold text-slate-500 whitespace-nowrap">{formatAmount(loan.amount)}</span>
                           </td>
-                          <td className="py-2.5 px-4 text-right">
-                             <span className="text-xs font-black text-emerald-600">{formatAmount(totalPaidSum)}</span>
+                          <td className="py-2 px-2 text-right">
+                             <span className="text-[11px] font-black text-emerald-600 whitespace-nowrap">{formatAmount(totalPaidSum)}</span>
                           </td>
-                          <td className="py-2.5 px-4 text-center">
-                             <span className="text-xs font-black text-slate-900">{formatAmount(loan.installment)}</span>
+                          <td className="py-2 px-2 text-center">
+                             <span className="text-[11px] font-black text-slate-900 whitespace-nowrap">{formatAmount(loan.installment)}</span>
                           </td>
-                          <td className="py-2.5 px-4 text-center">
+                          <td className="py-2 px-2 text-center">
                              {(() => {
                                const { overdue } = calculateOverdueInfo(loan, date, totalPaidSum);
                                return overdue > 0 ? (
                                  <div className="flex flex-col items-center">
-                                   <span className="bg-rose-50 text-rose-600 text-[10px] font-black px-2 py-0.5 rounded border border-rose-100 uppercase italic">
+                                   <span className="bg-rose-50 text-rose-600 text-[9px] font-black px-1.5 py-0.5 rounded border border-rose-100 uppercase italic whitespace-nowrap leading-none">
                                      OD: {formatAmount(overdue)}
                                    </span>
-                                   <span className="text-[9px] font-bold text-slate-400 mt-0.5">DUE</span>
                                  </div>
                                ) : (
-                                 <span className="bg-emerald-50 text-emerald-600 text-[10px] font-black px-2 py-0.5 rounded border border-emerald-100 uppercase italic">
-                                   REGULAR
+                                 <span className="bg-emerald-50 text-emerald-600 text-[9px] font-black px-1.5 py-0.5 rounded border border-emerald-100 uppercase italic leading-none">
+                                   OK
                                  </span>
                                );
                              })()}
                           </td>
-                          <td className="py-2.5 px-4 text-right">
-                             <span className="text-xs font-black text-rose-600">{formatAmount(balance)}</span>
+                          <td className="py-2 px-2 text-right">
+                             <span className="text-[11px] font-black text-rose-600 whitespace-nowrap">{formatAmount(balance)}</span>
                           </td>
-                          <td className="py-2.5 px-4 text-center">
-                             <div className="flex flex-col items-center gap-1">
+                          <td className="py-2 px-2 text-center">
+                             <div className="flex flex-col items-center gap-1 w-full max-w-[80px] mx-auto">
                                 <select 
-                                  className="text-[10px] font-black border border-slate-300 rounded px-1.5 py-1 bg-white outline-none focus:border-blue-500 w-full"
+                                  className="text-[9px] font-black border border-slate-300 rounded px-1 min-h-[22px] bg-white outline-none focus:border-blue-500 w-full"
                                   value={paymentModes[loan.id] || "Cash"}
                                   onChange={(e) => handleModeChange(loan.id, e.target.value)}
                                 >
@@ -630,23 +631,25 @@ export default function BatchCollection() {
                                   <option value="UPI">UPI</option>
                                   <option value="Bank">Bank</option>
                                 </select>
-                                <div className="flex items-center gap-2">
-                                   <label className="relative inline-flex items-center cursor-pointer scale-75">
+                                <div className="flex items-center gap-1 justify-center">
+                                   <label className="relative inline-flex items-center cursor-pointer scale-[0.6] origin-left">
                                     <input type="checkbox" className="sr-only peer" checked={!!isClosing[loan.id]} onChange={(e) => handleToggleClose(loan.id, e.target.checked)} disabled={!isSelected} />
                                     <div className="w-7 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-rose-600"></div>
                                    </label>
-                                   <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">Close</span>
+                                   <span className="text-[8px] font-black text-rose-500 uppercase tracking-tighter">Close</span>
                                 </div>
                              </div>
                           </td>
-                          <td className="py-2.5 px-6">
-                             <input 
-                               type="number" 
-                               className={`w-full max-w-[130px] mx-auto bg-white border-2 border-emerald-500 rounded p-2 text-center font-black text-[#16A34A] text-lg focus:border-emerald-600 focus:ring-0 outline-none transition-all shadow-sm ${!isSelected ? 'opacity-20' : ''}`}
-                               value={amounts[loan.id] || ""}
-                               placeholder={roundVal(loan.installment).toString()}
-                               onChange={(e) => handleAmountChange(loan.id, e.target.value)}
-                             />
+                          <td className="py-2 px-2 align-middle">
+                             <div className="flex justify-center">
+                                <input 
+                                  type="number" 
+                                  className={`w-full max-w-[100px] min-w-[70px] bg-white border-2 border-emerald-500 rounded p-2 text-center font-black text-[#16A34A] text-xl focus:border-emerald-600 focus:ring-4 outline-none transition-all shadow-sm h-12 leading-none ${!isSelected ? 'opacity-30' : ''}`}
+                                  value={amounts[loan.id] || ""}
+                                  placeholder={roundVal(loan.installment).toString()}
+                                  onChange={(e) => handleAmountChange(loan.id, e.target.value)}
+                                />
+                             </div>
                           </td>
                         </tr>
                       );
@@ -694,7 +697,7 @@ export default function BatchCollection() {
                           </div>
                           <div className="flex items-center gap-3 mt-2">
                               <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600">
-                                <Phone className="w-3.5 h-3.5 text-slate-400" /> {loan.mobile_no || '8927143558'}
+                                <Phone className="w-3.5 h-3.5 text-slate-400" /> {loan.member_mobile || loan.mobile_no || 'N/A'}
                               </div>
                               <button 
                                 onClick={() => setTrackingLoanId(loan.id)}
