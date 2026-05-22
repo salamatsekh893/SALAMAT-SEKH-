@@ -2194,6 +2194,7 @@ async function startServer() {
           b.branch_name, 
           u.name as staff_name,
           COALESCE(c_stats.total_paid, 0) as total_paid,
+          c_stats.last_payment_date,
           COALESCE(ROUND(COALESCE(c_stats.total_paid, 0) / NULLIF(l.installment, 0)), 0) as paid_emi_count,
           u_closed.name as closed_by_name
         FROM loans l
@@ -2205,7 +2206,8 @@ async function startServer() {
         LEFT JOIN (
           SELECT 
             loan_id, 
-            SUM(amount_paid) as total_paid
+            SUM(amount_paid) as total_paid,
+            MAX(payment_date) as last_payment_date
           FROM collections 
           WHERE status != 'rejected'
           GROUP BY loan_id

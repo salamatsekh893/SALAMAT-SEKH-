@@ -21,6 +21,7 @@ import TravelLog from './pages/TravelLog';
 import TravelApprovals from './pages/TravelApprovals';
 import CreateTravelLog from './pages/CreateTravelLog';
 import DemandSheet from './pages/DemandSheet';
+import DailyDemand from './pages/DailyDemand';
 import Reports from './pages/Reports';
 import Companies from './pages/Companies';
 import CreateCompany from './pages/CreateCompany';
@@ -148,6 +149,7 @@ export default function App() {
           <Route path="/collections" element={<BatchCollection />} />
           <Route path="/collections/view" element={<ViewCollection />} />
           <Route path="/collections/demand" element={<DemandSheet />} />
+          <Route path="/collections/daily-demand" element={<DailyDemand />} />
           <Route path="/collections/approve" element={<ApproveCollection />} />
           <Route path="/collections/overdue" element={<OverdueList />} />
           <Route path="/travel/log" element={<TravelLog />} />

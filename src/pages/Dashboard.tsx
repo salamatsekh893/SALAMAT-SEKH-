@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { fetchWithAuth } from '../lib/api';
 import { formatAmount } from '../lib/utils';
-import { Building2, UsersRound, Banknote, Wallet, ArrowUpRight, TrendingUp, Calendar, Clock, CheckSquare, ArrowRightLeft, Users, Sun, Coins, MapPin, ClipboardList, CheckCircle, Settings } from 'lucide-react';
+import { Building2, UsersRound, Banknote, Wallet, ArrowUpRight, TrendingUp, Calendar, Clock, CheckSquare, ArrowRightLeft, Users, Sun, Coins, MapPin, ClipboardList, CheckCircle, Settings, Activity } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { cn } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -210,6 +210,18 @@ export default function Dashboard({ user }: { user: any }) {
               <Wallet className="w-2 h-2 sm:w-3 sm:h-3 text-white" />
             </div>
             <span className="text-[6px] sm:text-[7px] lg:text-[8px] font-bold text-white text-center leading-tight uppercase">Collection</span>
+          </button>
+          )}
+
+          {hasPermission('sub_dash_quick_col') && (
+          <button 
+            className="flex flex-col items-center justify-center py-1 px-0.5 sm:py-1 bg-gradient-to-br from-cyan-400 to-cyan-500 border border-cyan-500/50 rounded-lg sm:rounded-xl shadow-sm hover:shadow-md hover:from-cyan-500 hover:to-cyan-600 transition-all group h-12 sm:h-16 lg:h-14"
+            onClick={() => navigate('/collections/daily-demand')}
+          >
+            <div className="w-4 h-4 sm:w-5 sm:h-5 bg-white/20 rounded-full flex items-center justify-center mb-0.5 shadow-sm group-hover:scale-110 transition-transform border border-white/20">
+              <Activity className="w-2 h-2 sm:w-3 sm:h-3 text-white" />
+            </div>
+            <span className="text-[6px] sm:text-[7px] lg:text-[8px] font-bold text-white text-center leading-tight uppercase">Daily Demand</span>
           </button>
           )}
 
