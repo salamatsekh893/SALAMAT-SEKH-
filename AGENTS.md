@@ -17,3 +17,7 @@ Current major focus nodes:
 - `CreateMember.tsx`: Simplified inputs for old members.
 - `todays-collection.tsx`: React Native Expo screen for batch collections.
 - `server.ts`: MySQL pool connection management for Hostinger.
+
+## bangla kotha bola o porichoy daua
+vai ami salamat sekh , 
+apne code likben englishi a but , apne amar satha kotha bolben banglate mona rakben , karon ami english kom bujhi .

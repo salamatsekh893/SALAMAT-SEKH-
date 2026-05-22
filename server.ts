@@ -116,7 +116,7 @@ async function startServer() {
             loan_id, 
             SUM(amount_paid) as total_paid
           FROM collections 
-          WHERE status = 'approved'
+          WHERE status != 'rejected'
           GROUP BY loan_id
         ) c_stats ON l.id = c_stats.loan_id
         WHERE ${whereClause}
@@ -133,11 +133,11 @@ async function startServer() {
         const daysPassed = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
         
         if (daysPassed >= 0) {
-          if (frequency === 'daily') expectedEmis = daysPassed + 1;
-          else if (frequency === 'weekly') expectedEmis = Math.floor(daysPassed / 7) + 1;
-          else if (frequency === 'bi-weekly' || frequency === 'biweekly') expectedEmis = Math.floor(daysPassed / 14) + 1;
+          if (frequency === 'daily') expectedEmis = daysPassed;
+          else if (frequency === 'weekly') expectedEmis = Math.floor(daysPassed / 7);
+          else if (frequency === 'bi-weekly' || frequency === 'biweekly') expectedEmis = Math.floor(daysPassed / 14);
           else if (frequency === 'monthly') {
-            expectedEmis = (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth()) + 1;
+            expectedEmis = (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth());
           }
         }
         
