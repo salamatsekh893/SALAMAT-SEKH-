@@ -171,6 +171,8 @@ export default function DemandSheet() {
                   <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold w-12 text-center">Sl. No.</th>
                   <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold whitespace-nowrap">Member ID</th>
                   <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold whitespace-nowrap">Member Name</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold whitespace-nowrap">Mobile No.</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold whitespace-nowrap">Nominee Name</th>
                   <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold whitespace-nowrap">Group</th>
                   <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold whitespace-nowrap">Group Day</th>
                   <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold whitespace-nowrap">Disbursement</th>
@@ -192,6 +194,8 @@ export default function DemandSheet() {
                       <div className="font-bold text-slate-900">{loan.member_name || 'Unknown'}</div>
                       <div className="text-[10px] print:text-[8px] text-slate-500 uppercase">{loan.loan_no}</div>
                     </td>
+                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-slate-600 font-medium whitespace-nowrap text-xs">{loan.member_mobile || loan.mobile_no || 'N/A'}</td>
+                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-slate-600 uppercase text-xs">{loan.nominee_name || '-'}</td>
                     <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-slate-600">{loan.group_name || '-'}</td>
                     <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-slate-600">{loan.meeting_day || '-'}</td>
                     <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-slate-600 whitespace-nowrap">{formatDate(loan.created_at)}</td>
@@ -212,7 +216,7 @@ export default function DemandSheet() {
                 ))}
                 {filteredLoans.length > 0 && (
                   <tr className="bg-slate-100 print:bg-slate-200 font-bold text-slate-900">
-                    <td colSpan={8} className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-right">TOTAL</td>
+                    <td colSpan={10} className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-right">TOTAL</td>
                     <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-right">
                       ₹{formatAmount(filteredLoans.reduce((sum, l) => sum + (Number(l.total_repayment || 0) - Number(l.total_paid || 0)), 0))}
                     </td>
