@@ -68,8 +68,12 @@ export default function DemandSheet() {
     return true;
   });
 
-  // Sort by member name or group
-  filteredLoans.sort((a, b) => (a.member_name || '').localeCompare(b.member_name || ''));
+  // Sort by group name first, then member name
+  filteredLoans.sort((a, b) => {
+    const groupCompare = (a.group_name || '').localeCompare(b.group_name || '');
+    if (groupCompare !== 0) return groupCompare;
+    return (a.member_name || '').localeCompare(b.member_name || '');
+  });
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';

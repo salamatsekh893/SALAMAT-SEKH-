@@ -87,7 +87,11 @@ export default function DailyDemand() {
     return true;
   });
 
-  filteredLoans.sort((a, b) => (a.member_name || '').localeCompare(b.member_name || ''));
+  filteredLoans.sort((a, b) => {
+    const groupCompare = (a.group_name || '').localeCompare(b.group_name || '');
+    if (groupCompare !== 0) return groupCompare;
+    return (a.member_name || '').localeCompare(b.member_name || '');
+  });
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -99,11 +103,11 @@ export default function DailyDemand() {
         }
       `}</style>
 
-      <div className="bg-white/80 backdrop-blur-md rounded-xl shadow-sm border border-indigo-100 mb-6 print-hidden p-4">
+      <div className="bg-white/80 backdrop-blur-md rounded-xl shadow-sm border border-pink-100 mb-6 print-hidden p-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <Activity className="w-5 h-5 text-indigo-500" />
+              <Activity className="w-5 h-5 text-pink-500" />
               Daily Demand (Pending)
             </h1>
             <p className="text-slate-500 text-xs mt-1">Shows ONLY today's pending EMI collections.</p>
@@ -111,13 +115,13 @@ export default function DailyDemand() {
           
           <div className="flex flex-row items-center gap-2 w-full lg:w-auto overflow-x-auto pb-1 shrink-0 scrollbar-hide">
             <div className="flex items-center gap-1 text-slate-700 font-semibold text-sm shrink-0">
-              <Filter className="w-4 h-4 text-indigo-500" />
+              <Filter className="w-4 h-4 text-pink-500" />
             </div>
             
             <select
               value={filters.branch_id}
               onChange={(e) => setFilters(f => ({ ...f, branch_id: e.target.value }))}
-              className="bg-slate-50 border border-slate-200 text-slate-900 rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 shrink-0 min-w-[120px]"
+              className="bg-slate-50 border border-slate-200 text-slate-900 rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 shrink-0 min-w-[120px]"
             >
               <option value="">All Branches</option>
               {branches.map(b => (
@@ -127,7 +131,7 @@ export default function DailyDemand() {
             
             <button 
               onClick={handlePrint}
-              className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm shrink-0"
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:from-pink-600 hover:to-purple-700 transition-colors shadow-sm shrink-0"
             >
               <Printer className="w-4 h-4" />
               Print
@@ -140,8 +144,8 @@ export default function DailyDemand() {
         <div className="text-center py-12 text-slate-500 font-medium">Loading demand data...</div>
       ) : filteredLoans.length === 0 ? (
         <div className="bg-white/80 rounded-2xl border border-slate-100 p-12 text-center print-hidden shadow-sm">
-          <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-indigo-100">
-            <Activity className="w-8 h-8 text-indigo-400" />
+          <div className="w-16 h-16 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-pink-100">
+            <Activity className="w-8 h-8 text-pink-400" />
           </div>
           <h3 className="text-lg font-bold text-slate-900 mb-1">No Pending Demand Today!</h3>
           <p className="text-slate-500">All scheduled EMI collections have either been approved or paid in advance.</p>
@@ -157,13 +161,13 @@ export default function DailyDemand() {
           <div className="overflow-x-auto w-full print:overflow-visible">
             <table className="w-full text-left text-[13px] border-collapse min-w-[700px] print:min-w-full">
               <thead>
-                <tr className="bg-indigo-50 print:bg-slate-100 text-indigo-900 border-y border-indigo-100 print:text-black">
-                  <th className="px-3 py-2.5 print:px-2 print:py-2 border-r border-indigo-100 print:border-slate-300 font-bold w-12 text-center text-xs uppercase tracking-wider">Sl.</th>
-                  <th className="px-3 py-2.5 print:px-2 print:py-2 border-r border-indigo-100 print:border-slate-300 font-bold text-xs uppercase tracking-wider">Member Details</th>
-                  <th className="px-3 py-2.5 print:px-2 print:py-2 border-r border-indigo-100 print:border-slate-300 font-bold text-xs uppercase tracking-wider text-center">Mobile No.</th>
-                  <th className="px-3 py-2.5 print:px-2 print:py-2 border-r border-indigo-100 print:border-slate-300 font-bold text-xs uppercase tracking-wider">Group</th>
-                  <th className="px-3 py-2.5 print:px-2 print:py-2 border-r border-indigo-100 print:border-slate-300 font-bold text-xs uppercase tracking-wider text-right">Target Demand (EMI)</th>
-                  <th className="px-3 py-2.5 print:px-2 print:py-2 border-r border-indigo-100 print:border-slate-300 font-bold text-xs uppercase tracking-wider text-right print:w-20">Amount Collected</th>
+                <tr className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-600 print:bg-slate-100 text-white border-y border-pink-200 print:text-black">
+                  <th className="px-3 py-2.5 print:px-2 print:py-2 border-r border-white/20 print:border-slate-300 font-black w-12 text-center text-[10px] uppercase tracking-wider">Sl.</th>
+                  <th className="px-3 py-2.5 print:px-2 print:py-2 border-r border-white/20 print:border-slate-300 font-black text-[10px] uppercase tracking-wider">Member Details</th>
+                  <th className="px-3 py-2.5 print:px-2 print:py-2 border-r border-white/20 print:border-slate-300 font-black text-[10px] uppercase tracking-wider text-center">Mobile No.</th>
+                  <th className="px-3 py-2.5 print:px-2 print:py-2 border-r border-white/20 print:border-slate-300 font-black text-[10px] uppercase tracking-wider">Group</th>
+                  <th className="px-3 py-2.5 print:px-2 print:py-2 border-r border-white/20 print:border-slate-300 font-black text-[10px] uppercase tracking-wider text-right">Target Demand (EMI)</th>
+                  <th className="px-3 py-2.5 print:px-2 print:py-2 border-r border-white/20 print:border-slate-300 font-black text-[10px] uppercase tracking-wider text-right print:w-20">Amount Collected</th>
                 </tr>
               </thead>
               <tbody>
@@ -172,12 +176,12 @@ export default function DailyDemand() {
                     <td className="px-3 py-3 print:px-2 print:py-2 border-r border-slate-100 print:border-slate-300 text-center font-bold text-slate-500">{idx + 1}</td>
                     <td className="px-3 py-3 print:px-2 print:py-2 border-r border-slate-100 print:border-slate-300">
                       <div className="font-black text-slate-900 uppercase tracking-tight text-[13px]">{loan.member_name || 'Unknown'}</div>
-                      <div className="text-[10px] font-bold text-indigo-600 mt-0.5 tracking-widest">{loan.member_code || loan.customer_id} • LOAN #{loan.loan_no || loan.id}</div>
+                      <div className="text-[10px] font-bold text-pink-600 mt-0.5 tracking-widest">{loan.member_code || loan.customer_id} • LOAN #{loan.loan_no || loan.id}</div>
                     </td>
                     <td className="px-3 py-3 print:px-2 print:py-2 border-r border-slate-100 print:border-slate-300 text-slate-700 font-bold text-center tracking-wider text-xs">{loan.member_mobile || loan.mobile_no || '-'}</td>
                     <td className="px-3 py-3 print:px-2 print:py-2 border-r border-slate-100 print:border-slate-300 text-slate-700 font-bold uppercase text-[11px]">{loan.group_name || 'N/A'}</td>
                     <td className="px-3 py-3 print:px-2 print:py-2 border-r border-slate-100 print:border-slate-300 text-right">
-                       <span className="font-black text-indigo-700 bg-indigo-50 print:bg-transparent px-2.5 py-1 rounded text-sm print:text-xs tracking-wider">
+                       <span className="font-black text-pink-700 bg-pink-50 print:bg-transparent px-2.5 py-1 rounded text-sm print:text-xs tracking-wider">
                          ₹{formatAmount(Number(loan.installment))}
                        </span>
                     </td>
