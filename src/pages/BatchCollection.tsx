@@ -391,9 +391,9 @@ export default function BatchCollection() {
   );
 
   return (
-    <div className="pb-32 w-full mx-auto bg-[#F4F6F9] min-h-screen font-sans">
+    <div className="pb-32 w-full mx-auto bg-pink-50/40 min-h-screen font-sans">
       {/* 2. Compact Top Navbar - Branding & User Identity ONLY */}
-      <div className="bg-[#3B5998] text-white p-3 shadow-md sm:sticky sm:top-0 z-30 lg:z-10">
+      <div className="bg-pink-700 text-white p-3 shadow-md sm:sticky sm:top-0 z-30 lg:z-10">
         <div className="max-w-[1700px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <h1 className="text-base lg:text-xl font-black uppercase tracking-widest text-[#FFF]">
@@ -458,9 +458,9 @@ export default function BatchCollection() {
 
           {/* All Groups Dropdown */}
           <div className="flex items-center gap-2 px-3 py-1.5 flex-1 border-t sm:border-t-0">
-            <ListFilter className="w-3.5 h-3.5 text-blue-500" />
+            <ListFilter className="w-3.5 h-3.5 text-pink-500" />
             <select
-              className="w-full bg-transparent border-none p-0 text-[11px] font-black outline-none focus:ring-0 appearance-none cursor-pointer text-blue-600 uppercase"
+              className="w-full bg-transparent border-none p-0 text-[11px] font-black outline-none focus:ring-0 appearance-none cursor-pointer text-pink-600 uppercase"
               value={selectedGroup}
               onChange={handleGroupSelect}
             >
@@ -476,12 +476,12 @@ export default function BatchCollection() {
 
         {/* 3. Selection & Stats Strip - Matching Screenshot */}
         {selectedGroup && (
-          <div className="mx-4 mb-4 mt-6 bg-white border border-slate-100 rounded-xl p-3 flex items-center justify-between shadow-sm">
+          <div className="mx-4 mb-4 mt-6 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-600 rounded-xl p-3 flex items-center justify-between shadow-lg">
             <label className="flex items-center gap-3 cursor-pointer group">
               <div className="relative">
                 <input
                   type="checkbox"
-                  className="w-8 h-8 rounded-lg border-2 border-slate-200 text-blue-600 focus:ring-offset-0 focus:ring-0 transition-all cursor-pointer appearance-none checked:bg-blue-600 checked:border-blue-600"
+                  className="w-8 h-8 rounded-lg border-2 border-white/30 bg-white/10 text-white focus:ring-offset-0 focus:ring-0 transition-all cursor-pointer appearance-none checked:bg-white checked:border-white"
                   checked={
                     currentGroupLoans.length > 0 &&
                     Object.keys(selectedLoans).filter((k) => selectedLoans[k])
@@ -489,17 +489,17 @@ export default function BatchCollection() {
                   }
                   onChange={handleSelectAll}
                 />
-                <svg className="absolute top-1.5 left-1.5 w-5 h-5 text-white pointer-events-none opacity-0 checked:opacity-100 peer-checked:opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <svg className="absolute top-1.5 left-1.5 w-5 h-5 text-indigo-600 pointer-events-none opacity-0 checked:opacity-100 peer-checked:opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
               </div>
-              <span className="text-[11px] font-black text-slate-800 uppercase tracking-widest">SELECT ALL</span>
+              <span className="text-[11px] font-black text-white uppercase tracking-widest drop-shadow-md">SELECT ALL</span>
             </label>
 
             <div className="flex items-center gap-2">
-               <div className="bg-white px-3 py-1.5 rounded-lg border-2 border-blue-500 text-blue-600 flex items-center gap-2 font-black shadow-sm">
-                  <span className="text-[10px] uppercase">Total:</span>
+               <div className="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/30 text-white flex items-center gap-2 font-black shadow-sm">
+                  <span className="text-[10px] uppercase opacity-90">Total:</span>
                   <span className="text-sm">₹{formatAmount(totalSelected)}</span>
                </div>
-               <div className="text-[11px] font-black text-slate-800 bg-slate-50 border-2 border-slate-100 px-3 py-1.5 rounded-lg shadow-sm">
+               <div className="text-[11px] font-black text-indigo-900 bg-white border-2 border-white/30 px-3 py-1.5 rounded-lg shadow-sm">
                  {format(new Date(date), 'dd-MMM-yyyy')}
                </div>
             </div>
@@ -522,8 +522,8 @@ export default function BatchCollection() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-[#1D4ED8] text-white text-[10px] font-black uppercase tracking-wider">
-                      <th className="py-2 px-1 w-8 text-center border-r border-white/10">#</th>
+                    <tr className="bg-indigo-600 text-white border-b border-indigo-700 text-[9px] font-black uppercase tracking-wider">
+                      <th className="py-2 px-1 w-8 text-center border-r border-indigo-500">#</th>
                       <th className="py-2 px-2">NAME</th>
                       <th className="py-2 px-2 text-center">CODE</th>
                       <th className="py-2 px-2 text-center">MOBILE</th>
@@ -549,9 +549,9 @@ export default function BatchCollection() {
                       return (
                         <tr 
                           key={loan.id} 
-                          className={`group transition-all ${!isPresent ? 'bg-slate-50 opacity-40' : isSelected ? "bg-blue-50/50" : "hover:bg-slate-50/30"}`}
+                          className={`group transition-all ${!isPresent ? 'bg-slate-50 opacity-40' : isSelected ? "bg-indigo-50/50" : "hover:bg-slate-50/30"}`}
                         >
-                          <td className="py-2 px-1 text-center bg-blue-700/5 text-blue-700 font-black text-[10px] border-r border-slate-100">
+                          <td className="py-2 px-1 text-center bg-indigo-700/5 text-indigo-700 font-black text-[10px] border-r border-slate-100">
                              {idx + 1}
                           </td>
                           <td className="py-2 px-2">
@@ -559,7 +559,7 @@ export default function BatchCollection() {
                                 <input 
                                   type="checkbox" 
                                   disabled={!isPresent}
-                                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer flex-shrink-0"
+                                  className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer flex-shrink-0"
                                   checked={isSelected}
                                   onChange={(e) => handleToggleLoan(loan.id, e)}
                                 />
@@ -569,7 +569,7 @@ export default function BatchCollection() {
                              </div>
                           </td>
                           <td className="py-2 px-2 text-center">
-                             <span className="text-[10px] font-black text-blue-600 whitespace-nowrap">
+                             <span className="text-[10px] font-black text-indigo-600 whitespace-nowrap">
                                {loan.member_code}
                              </span>
                           </td>
@@ -582,7 +582,7 @@ export default function BatchCollection() {
                                 <div className="flex gap-1 mt-0.5">
                                   <button 
                                     onClick={() => setTrackingLoanId(loan.id)} 
-                                    className="bg-[#00BCD4] text-white text-[8px] font-black px-1 py-0.5 rounded flex items-center gap-0.5 uppercase italic leading-none"
+                                    className="bg-indigo-500 text-white text-[8px] font-black px-1 py-0.5 rounded flex items-center gap-0.5 uppercase italic leading-none"
                                   >
                                     <Clock className="w-2 h-2" /> TRACK
                                   </button>
@@ -623,7 +623,7 @@ export default function BatchCollection() {
                           <td className="py-2 px-2 text-center">
                              <div className="flex flex-col items-center gap-1 w-full max-w-[80px] mx-auto">
                                 <select 
-                                  className="text-[9px] font-black border border-slate-300 rounded px-1 min-h-[22px] bg-white outline-none focus:border-blue-500 w-full"
+                                  className="text-[9px] font-black border border-slate-300 rounded px-1 min-h-[22px] bg-white outline-none focus:border-pink-500 w-full"
                                   value={paymentModes[loan.id] || "Cash"}
                                   onChange={(e) => handleModeChange(loan.id, e.target.value)}
                                 >
@@ -670,7 +670,7 @@ export default function BatchCollection() {
                   const principalAmt = parseFloat(loan.amount) || 0;
 
                   return (
-                    <div key={loan.id} className={`bg-white p-5 shadow-sm border-y border-slate-200 transition-all ${isSelected ? 'border-blue-400 bg-blue-50/10' : ''}`}>
+                    <div key={loan.id} className={`bg-white p-5 shadow-sm border-y border-slate-200 transition-all ${isSelected ? 'border-pink-400 bg-pink-50/10' : ''}`}>
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="font-black text-slate-900 uppercase text-[15px] tracking-tight">{loan.member_name}</h3>
                         <div className="text-right">
@@ -683,7 +683,7 @@ export default function BatchCollection() {
                         <div className="relative mt-1">
                           <input 
                             type="checkbox" 
-                            className="w-8 h-8 rounded-xl border-2 border-slate-200 text-blue-600 focus:ring-0 transition-all appearance-none checked:bg-blue-600 checked:border-blue-600 cursor-pointer"
+                            className="w-8 h-8 rounded-xl border-2 border-slate-200 text-pink-600 focus:ring-0 transition-all appearance-none checked:bg-pink-600 checked:border-pink-600 cursor-pointer"
                             checked={isSelected}
                             onChange={(e) => handleToggleLoan(loan.id, e)}
                           />
@@ -691,7 +691,7 @@ export default function BatchCollection() {
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-1.5 text-[11px] font-black">
-                            <span className="text-blue-600">{loan.member_code}</span>
+                            <span className="text-pink-600">{loan.member_code}</span>
                             <span className="text-slate-300">|</span>
                             <span className="text-slate-500">Loan: {loan.loan_no || `L-260${idx+1000}`}</span>
                           </div>
@@ -701,7 +701,7 @@ export default function BatchCollection() {
                               </div>
                               <button 
                                 onClick={() => setTrackingLoanId(loan.id)}
-                                className="bg-[#00BCD4] text-white text-[9px] font-black px-2 py-0.5 rounded shadow-sm flex items-center gap-1 uppercase italic transition-transform active:scale-95"
+                                className="bg-pink-500 text-white text-[9px] font-black px-2 py-0.5 rounded shadow-sm flex items-center gap-1 uppercase italic transition-transform active:scale-95"
                               >
                                 <Clock className="w-3 h-3" /> Track
                               </button>
@@ -731,7 +731,7 @@ export default function BatchCollection() {
                         <div className="flex items-center gap-3 mb-4">
                            <div className="flex-1">
                               <select 
-                                className="w-full h-11 bg-white border border-slate-200 rounded-xl px-3 text-sm font-black outline-none focus:border-blue-500 shadow-sm appearance-none"
+                                className="w-full h-11 bg-white border border-slate-200 rounded-xl px-3 text-sm font-black outline-none focus:border-pink-500 shadow-sm appearance-none"
                                 value={paymentModes[loan.id] || "Cash"}
                                 onChange={(e) => handleModeChange(loan.id, e.target.value)}
                               >
@@ -770,7 +770,7 @@ export default function BatchCollection() {
                 <button
                   onClick={handleSubmit}
                   disabled={submitting || totalSelected <= 0}
-                  className="w-[350px] bg-[#2563EB] hover:bg-blue-600 active:scale-95 text-white font-black py-4 rounded-lg shadow-xl shadow-blue-500/20 flex justify-center items-center gap-3 transition-all disabled:opacity-50 uppercase tracking-widest text-lg"
+                  className="w-[350px] bg-pink-600 hover:bg-pink-700 active:scale-95 text-white font-black py-4 rounded-lg shadow-xl shadow-pink-500/20 flex justify-center items-center gap-3 transition-all disabled:opacity-50 uppercase tracking-widest text-lg"
                 >
                   {submitting ? "PROCESSING..." : "SUBMIT COLLECTION"}
                   <Send className="w-5 h-5" />
@@ -789,7 +789,7 @@ export default function BatchCollection() {
             <button
               onClick={handleSubmit}
               disabled={submitting || totalSelected <= 0}
-              className="w-full bg-[#0070f3] hover:bg-blue-700 text-white font-black text-lg py-5 rounded-xl shadow-xl shadow-blue-200 flex justify-center items-center gap-3 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest"
+              className="w-full bg-pink-600 hover:bg-pink-700 text-white font-black text-lg py-5 rounded-xl shadow-xl shadow-pink-200 flex justify-center items-center gap-3 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest"
             >
               {submitting ? "PROCESSING..." : "SUBMIT COLLECTION"}{" "}
               <Send className="w-6 h-6" />
@@ -815,7 +815,7 @@ export default function BatchCollection() {
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200"
             >
-              <div className="bg-gradient-to-r from-cyan-600 to-blue-600 p-6 flex justify-between items-center text-white">
+              <div className="bg-gradient-to-r from-pink-500 to-pink-600 p-6 flex justify-between items-center text-white">
                 <div>
                   <h2 className="text-xl font-black uppercase tracking-wider flex items-center gap-2">
                     <Clock className="w-6 h-6" /> Payment History
