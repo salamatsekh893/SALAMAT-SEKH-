@@ -2472,7 +2472,7 @@ async function startServer() {
     try {
       const { role, userId, branchId } = req.user;
       let query = `
-        SELECT c.*, l.customer_id, m.full_name as customer_name, u.name as collected_by_name, u2.name as approved_by_name, u2.role as approved_by_role 
+        SELECT c.*, l.customer_id, m.full_name as customer_name, u.name as collected_by_name, u2.name as approved_by_name, u2.role as approved_by_role, g.group_name
         FROM collections c
         LEFT JOIN loans l ON c.loan_id = l.id
         LEFT JOIN members m ON l.customer_id = m.id
