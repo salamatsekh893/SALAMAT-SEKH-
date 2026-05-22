@@ -88,8 +88,14 @@ export default function DailyDemand() {
   });
 
   filteredLoans.sort((a, b) => {
+    const timeA = a.meeting_time || '23:59:59';
+    const timeB = b.meeting_time || '23:59:59';
+    const timeCompare = timeA.localeCompare(timeB);
+    if (timeCompare !== 0) return timeCompare;
+
     const groupCompare = (a.group_name || '').localeCompare(b.group_name || '');
     if (groupCompare !== 0) return groupCompare;
+    
     return (a.member_name || '').localeCompare(b.member_name || '');
   });
 
@@ -179,7 +185,10 @@ export default function DailyDemand() {
                       <div className="text-[10px] font-bold text-pink-600 mt-0.5 tracking-widest">{loan.member_code || loan.customer_id} • LOAN #{loan.loan_no || loan.id}</div>
                     </td>
                     <td className="px-3 py-3 print:px-2 print:py-2 border-r border-slate-100 print:border-slate-300 text-slate-700 font-bold text-center tracking-wider text-xs">{loan.member_mobile || loan.mobile_no || '-'}</td>
-                    <td className="px-3 py-3 print:px-2 print:py-2 border-r border-slate-100 print:border-slate-300 text-slate-700 font-bold uppercase text-[11px]">{loan.group_name || 'N/A'}</td>
+                    <td className="px-3 py-3 print:px-2 print:py-2 border-r border-slate-100 print:border-slate-300">
+                      <div className="text-slate-700 font-bold uppercase text-[11px]">{loan.group_name || 'N/A'}</div>
+                      <div className="text-[10px] text-pink-600 font-bold mt-0.5">{loan.meeting_time ? String(loan.meeting_time).slice(0, 5) : ''}</div>
+                    </td>
                     <td className="px-3 py-3 print:px-2 print:py-2 border-r border-slate-100 print:border-slate-300 text-right">
                        <span className="font-black text-pink-700 bg-pink-50 print:bg-transparent px-2.5 py-1 rounded text-sm print:text-xs tracking-wider">
                          ₹{formatAmount(Number(loan.installment))}

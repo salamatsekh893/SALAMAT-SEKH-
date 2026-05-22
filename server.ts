@@ -2189,6 +2189,7 @@ async function startServer() {
           m.group_id, 
           g.group_name, 
           g.meeting_day, 
+          g.meeting_time,
           s.scheme_name, 
           s.interest_rate, 
           b.branch_name, 

@@ -68,10 +68,16 @@ export default function DemandSheet() {
     return true;
   });
 
-  // Sort by group name first, then member name
+  // Sort by meeting time, then group name, then member name
   filteredLoans.sort((a, b) => {
+    const timeA = a.meeting_time || '23:59:59';
+    const timeB = b.meeting_time || '23:59:59';
+    const timeCompare = timeA.localeCompare(timeB);
+    if (timeCompare !== 0) return timeCompare;
+
     const groupCompare = (a.group_name || '').localeCompare(b.group_name || '');
     if (groupCompare !== 0) return groupCompare;
+    
     return (a.member_name || '').localeCompare(b.member_name || '');
   });
 
@@ -206,7 +212,10 @@ export default function DemandSheet() {
                     </td>
                     <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200 text-pink-700 font-medium whitespace-nowrap text-xs print:text-[9px]">{loan.member_mobile || loan.mobile_no || 'N/A'}</td>
                     <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200 text-pink-700 uppercase text-xs print:text-[9px] truncate max-w-[100px]">{loan.nominee_name || '-'}</td>
-                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200 text-pink-700">{loan.group_name || '-'}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200 text-pink-700">
+                      <div>{loan.group_name || '-'}</div>
+                      <div className="text-[9px] text-pink-500/80 font-bold">{loan.meeting_time ? String(loan.meeting_time).slice(0, 5) : ''}</div>
+                    </td>
                     <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200 text-pink-700">{loan.meeting_day || '-'}</td>
                     <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200 text-pink-700 whitespace-nowrap">{formatDate(loan.created_at)}</td>
                     <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200 text-pink-700 whitespace-nowrap">{formatDate(loan.start_date)}</td>
