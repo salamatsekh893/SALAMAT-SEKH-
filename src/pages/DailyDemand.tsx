@@ -51,11 +51,11 @@ export default function DailyDemand() {
 
     // Check if expected to collect today
     let collectToday = false;
-    if (loan.emi_frequency === 'daily') {
+    if ((loan.emi_frequency || '').toLowerCase() === 'daily') {
       collectToday = todayDay !== 'Sunday'; // Assume no collection on Sunday
     } else {
       // Weekly or default
-      collectToday = loan.meeting_day === todayDay;
+      collectToday = (loan.meeting_day || '').toLowerCase() === todayDay.toLowerCase();
     }
 
     if (!collectToday) return false;
@@ -65,41 +65,23 @@ export default function DailyDemand() {
     const startDate = loan.start_date ? new Date(loan.start_date) : new Date(loan.created_at);
     startDate.setHours(0,0,0,0);
     
+    if (startDate > today) return false;
+    
     let expectedCount = 0;
-    if (loan.emi_frequency === 'daily') {
+    const emiFreq = (loan.emi_frequency || '').toLowerCase();
+    if (emiFreq === 'daily') {
       const days = differenceInDays(today, startDate);
-      // rough approx subtracting Sundays
       const sundays = Math.floor((days + startDate.getDay()) / 7);
       expectedCount = (days - sundays) + 1; 
     } else {
-      // Weekly
       const weeks = differenceInWeeks(today, startDate);
-      expectedCount = weeks + 1; // +1 for the current period 
+      expectedCount = weeks + 1;
     }
 
-    // if they have paid up to or more than expected, don't show
-    if ((loan.paid_emi_count || 0) >= expectedCount) {
-      return false;
-    }
-    
-    // Check last_payment_date to see if they literally just paid today or within a few days
-    if (loan.last_payment_date) {
-      const lastPay = new Date(loan.last_payment_date);
-      lastPay.setHours(0,0,0,0);
-      
-      if (loan.emi_frequency === 'daily') {
-        if (lastPay.getTime() >= today.getTime()) return false;
-      } else {
-        // if weekly, and they paid within the last 6 days and NOT on a previous meeting day... this gets tricky.
-        // It's safer to just rely on the paid_emi_count trick, but additionally check if they paid *today* just in case
-        if (lastPay.getTime() >= today.getTime()) return false;
-        
-        // Also if last_payment_date > today - 6 days, they paid this week's quota early
-        const diff = differenceInDays(today, lastPay);
-        if (diff > 0 && diff <= 6) {
-           return false;
-        }
-      }
+    // if their total paid covers all expected EMIs (including today's), they are up to date!
+    const exactPaidCount = (loan.total_paid || 0) / (loan.installment || 1);
+    if (exactPaidCount >= expectedCount - 0.05) {
+      return false; // Paid in full for today (or advanced)
     }
 
     return true;
