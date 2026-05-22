@@ -78,32 +78,38 @@ export default function DemandSheet() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 mb-6 print:hidden p-4">
+        <style>{`
+          @media print {
+            @page { size: landscape; margin: 8mm; }
+            body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+          }
+        `}</style>
+      <div className="bg-white/80 backdrop-blur-md rounded-xl shadow-sm border border-pink-200 mb-6 print:hidden p-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <FileSpreadsheet className="w-5 h-5 text-indigo-600" />
+            <h1 className="text-xl font-bold text-pink-900 flex items-center gap-2">
+              <FileSpreadsheet className="w-5 h-5 text-pink-600" />
               Demand Sheet
             </h1>
-            <p className="text-slate-500 text-xs mt-1">Generate collection demand</p>
+            <p className="text-pink-600/80 text-xs mt-1">Generate collection demand</p>
           </div>
           
           <div className="flex flex-row items-center gap-2 w-full lg:w-auto overflow-x-auto pb-1 shrink-0 scrollbar-hide">
-            <div className="flex items-center gap-1 text-slate-600 font-semibold text-sm shrink-0">
-              <Filter className="w-4 h-4 text-indigo-500" />
+            <div className="flex items-center gap-1 text-pink-700 font-semibold text-sm shrink-0">
+              <Filter className="w-4 h-4 text-pink-500" />
             </div>
             
             <input
                type="date"
                value={filters.date}
                onChange={(e) => setFilters(f => ({ ...f, date: e.target.value }))}
-               className="bg-slate-50 border border-slate-200 rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 shrink-0"
+               className="bg-pink-50/50 border border-pink-200 rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 shrink-0 text-pink-900"
             />
             
             <select
               value={filters.branch_id}
               onChange={(e) => setFilters(f => ({ ...f, branch_id: e.target.value }))}
-              className="bg-slate-50 border border-slate-200 rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 shrink-0 min-w-[120px]"
+              className="bg-pink-50/50 border border-pink-200 text-pink-900 rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 shrink-0 min-w-[120px]"
             >
               <option value="">All Branches</option>
               {branches.map(b => (
@@ -114,7 +120,7 @@ export default function DemandSheet() {
             <select
               value={filters.group_id}
               onChange={(e) => setFilters(f => ({ ...f, group_id: e.target.value }))}
-              className="bg-slate-50 border border-slate-200 rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 shrink-0 min-w-[120px]"
+              className="bg-pink-50/50 border border-pink-200 text-pink-900 rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 shrink-0 min-w-[120px]"
             >
               <option value="">All Groups</option>
               {groups.map((g: any) => (
@@ -124,7 +130,7 @@ export default function DemandSheet() {
             
             <button 
               onClick={handlePrint}
-              className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm shrink-0"
+              className="flex items-center justify-center gap-2 bg-pink-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-pink-700 transition-colors shadow-sm shrink-0 print:hidden"
             >
               <Printer className="w-4 h-4" />
               Print
@@ -134,21 +140,21 @@ export default function DemandSheet() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-slate-500">Loading demand data...</div>
+        <div className="text-center py-12 text-pink-500 font-medium">Loading demand data...</div>
       ) : filteredLoans.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center print:hidden">
-          <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <FileSpreadsheet className="w-8 h-8 text-slate-400" />
+        <div className="bg-white/80 rounded-2xl border border-pink-100 p-12 text-center print:hidden shadow-sm">
+          <div className="w-16 h-16 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-pink-100">
+            <FileSpreadsheet className="w-8 h-8 text-pink-400" />
           </div>
-          <h3 className="text-lg font-bold text-slate-900 mb-1">No collections found</h3>
-          <p className="text-slate-500">Adjust filters to see demand details.</p>
+          <h3 className="text-lg font-bold text-pink-900 mb-1">No collections found</h3>
+          <p className="text-pink-600/80">Adjust filters to see demand details.</p>
         </div>
       ) : (
-        <div className="bg-white border text-black border-slate-300 rounded-lg p-6 print:border-none print:p-0 print:shadow-none shadow-sm">
+        <div className="bg-white border text-pink-950 border-pink-200 rounded-xl p-6 print:border-none print:p-0 print:shadow-none shadow-sm">
           {/* Print Header */}
-          <div className="text-center mb-4 hidden print:block">
-            <h1 className="text-2xl font-bold uppercase tracking-wider mb-1">ALJOOYA SUBIDHA SERVICES</h1>
-            <h2 className="text-lg font-bold uppercase tracking-wider text-slate-700">Demand Sheet</h2>
+          <div className="text-center mb-4 hidden print:block text-pink-950">
+            <h1 className="text-2xl font-bold uppercase tracking-wider mb-1 text-pink-900">ALJOOYA SUBIDHA SERVICES</h1>
+            <h2 className="text-lg font-bold uppercase tracking-wider text-pink-700">Demand Sheet</h2>
             
             <div className="grid grid-cols-2 gap-4 mt-4 text-sm font-semibold border-b-2 border-black pb-2 text-left">
               <div>
@@ -164,68 +170,68 @@ export default function DemandSheet() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm border-collapse border border-slate-300 print:text-[10px]">
+          <div className="overflow-x-auto w-full print:overflow-visible">
+            <table className="w-full text-left text-[13px] border-collapse border border-pink-200 print:text-[9.5px]">
               <thead>
-                <tr className="bg-slate-100 print:bg-slate-200 text-slate-800 border-b border-slate-300">
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold w-12 text-center">Sl. No.</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold whitespace-nowrap">Member ID</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold whitespace-nowrap">Member Name</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold whitespace-nowrap">Mobile No.</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold whitespace-nowrap">Nominee Name</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold whitespace-nowrap">Group</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold whitespace-nowrap">Group Day</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold whitespace-nowrap">Disbursement</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold whitespace-nowrap">First EMI</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold text-center">EMIs</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold text-right">Balance</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold text-right">Demand (EMI)</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold text-right print:w-16">Arrear</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold text-right print:w-16">Collected</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-bold text-center print:w-16">Signature</th>
+                <tr className="bg-pink-100/50 print:bg-pink-100 text-pink-900 border-b border-pink-200">
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-pink-200 font-bold w-12 text-center text-[11px] print:text-[9px]">Sl. No.</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-pink-200 font-bold whitespace-nowrap text-[11px] print:text-[9px]">Member ID</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-pink-200 font-bold whitespace-nowrap text-[11px] print:text-[9px]">Member Name</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-pink-200 font-bold whitespace-nowrap text-[11px] print:text-[9px]">Mobile No.</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-pink-200 font-bold whitespace-nowrap text-[11px] print:text-[9px]">Nominee Name</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-pink-200 font-bold whitespace-nowrap text-[11px] print:text-[9px]">Group</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-pink-200 font-bold whitespace-nowrap text-[11px] print:text-[9px]">Group Day</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-pink-200 font-bold whitespace-nowrap text-[11px] print:text-[9px]">Disbursement</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-pink-200 font-bold whitespace-nowrap text-[11px] print:text-[9px]">First EMI</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-pink-200 font-bold text-center text-[11px] print:text-[9px]">EMIs</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-pink-200 font-bold text-right text-[11px] print:text-[9px]">Balance</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-pink-200 font-bold text-right text-[11px] print:text-[9px]">Demand</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-pink-200 font-bold text-right print:w-16 text-[11px] print:text-[9px]">Arrear</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-pink-200 font-bold text-right print:w-16 text-[11px] print:text-[9px]">Collected</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-pink-200 font-bold text-center print:w-16 text-[11px] print:text-[9px]">Signature</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredLoans.map((loan, idx) => (
-                  <tr key={loan.id} className="border-b border-slate-300 group hover:bg-slate-50 print:hover:bg-transparent">
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-center font-medium text-slate-500">{idx + 1}</td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-slate-800 font-medium">{loan.member_code || loan.customer_id}</td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300">
-                      <div className="font-bold text-slate-900">{loan.member_name || 'Unknown'}</div>
-                      <div className="text-[10px] print:text-[8px] text-slate-500 uppercase">{loan.loan_no}</div>
+                  <tr key={loan.id} className="border-b border-pink-100 group hover:bg-pink-50/50 print:hover:bg-transparent">
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200 text-center font-medium text-pink-500/80">{idx + 1}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200 text-pink-700 font-medium">{loan.member_code || loan.customer_id}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200">
+                      <div className="font-bold text-pink-900 leading-tight">{loan.member_name || 'Unknown'}</div>
+                      <div className="text-[10px] print:text-[7.5px] text-pink-500/80 uppercase">{loan.loan_no}</div>
                     </td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-slate-600 font-medium whitespace-nowrap text-xs">{loan.member_mobile || loan.mobile_no || 'N/A'}</td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-slate-600 uppercase text-xs">{loan.nominee_name || '-'}</td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-slate-600">{loan.group_name || '-'}</td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-slate-600">{loan.meeting_day || '-'}</td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-slate-600 whitespace-nowrap">{formatDate(loan.created_at)}</td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-slate-600 whitespace-nowrap">{formatDate(loan.start_date)}</td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-center text-[11px] font-medium print:whitespace-nowrap">
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200 text-pink-700 font-medium whitespace-nowrap text-xs print:text-[9px]">{loan.member_mobile || loan.mobile_no || 'N/A'}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200 text-pink-700 uppercase text-xs print:text-[9px] truncate max-w-[100px]">{loan.nominee_name || '-'}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200 text-pink-700">{loan.group_name || '-'}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200 text-pink-700">{loan.meeting_day || '-'}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200 text-pink-700 whitespace-nowrap">{formatDate(loan.created_at)}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200 text-pink-700 whitespace-nowrap">{formatDate(loan.start_date)}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200 text-center text-[10px] print:text-[9.5px] font-medium print:whitespace-nowrap">
                       {loan.paid_emi_count || 0}/{loan.duration_weeks || 0}
                       {((loan.paid_emi_count || 0) >= (loan.duration_weeks || 0)) && (
-                        <div className="text-[9px] print:text-[8px] text-red-600 font-bold mt-0.5 whitespace-nowrap">TENURE OVER</div>
+                        <div className="text-[9px] print:text-[8px] text-red-600 font-bold mt-0.5 whitespace-nowrap">OVER</div>
                       )}
                     </td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-right font-medium text-slate-700">₹{formatAmount(Number(loan.total_repayment || 0) - Number(loan.total_paid || 0))}</td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-right font-bold text-slate-900">₹{formatAmount(Number(loan.installment))}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200 text-right font-medium text-pink-800">₹{formatAmount(Number(loan.total_repayment || 0) - Number(loan.total_paid || 0))}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200 text-right font-black text-pink-900 bg-pink-50/30 print:bg-transparent">₹{formatAmount(Number(loan.installment))}</td>
                     {/* Empty columns for printing */}
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 bg-red-50/20 print:bg-transparent"></td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 bg-green-50/20 print:bg-transparent"></td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 bg-slate-50/50 print:bg-transparent"></td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200 bg-white print:bg-transparent"></td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200 bg-white print:bg-transparent"></td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-pink-200 bg-white print:bg-transparent"></td>
                   </tr>
                 ))}
                 {filteredLoans.length > 0 && (
-                  <tr className="bg-slate-100 print:bg-slate-200 font-bold text-slate-900">
-                    <td colSpan={10} className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-right">TOTAL</td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-right">
+                  <tr className="bg-pink-100/50 print:bg-pink-100 font-bold text-pink-900">
+                    <td colSpan={10} className="px-2 py-3 print:px-1 print:py-1 border border-pink-200 text-right uppercase tracking-wider text-xs">TOTAL</td>
+                    <td className="px-2 py-3 print:px-1 print:py-1 border border-pink-200 text-right text-pink-900">
                       ₹{formatAmount(filteredLoans.reduce((sum, l) => sum + (Number(l.total_repayment || 0) - Number(l.total_paid || 0)), 0))}
                     </td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-right text-indigo-700">
+                    <td className="px-2 py-3 print:px-1 print:py-1 border border-pink-200 text-right text-pink-950 font-black">
                       ₹{formatAmount(filteredLoans.reduce((sum, l) => sum + Number(l.installment || 0), 0))}
                     </td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300"></td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300"></td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300"></td>
+                    <td className="px-2 py-3 print:px-1 print:py-1 border border-pink-200"></td>
+                    <td className="px-2 py-3 print:px-1 print:py-1 border border-pink-200"></td>
+                    <td className="px-2 py-3 print:px-1 print:py-1 border border-pink-200"></td>
                   </tr>
                 )}
               </tbody>
