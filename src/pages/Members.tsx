@@ -462,8 +462,8 @@ export default function Members() {
                     <div>
                        <h3 className="text-sm font-black uppercase text-slate-600 tracking-widest border-l-4 border-slate-600 pl-4 mb-6">Customer Signature</h3>
                        <div className="bg-white border border-slate-200 rounded-3xl p-6 flex flex-col items-center justify-center">
-                          {selectedMember.signature ? (
-                            <img src={selectedMember.signature} className="h-24 object-contain mix-blend-multiply" alt="Signature" />
+                          {selectedMember.customer_signature ? (
+                            <img src={selectedMember.customer_signature} className="h-24 object-contain mix-blend-multiply" alt="Signature" />
                           ) : (
                             <div className="h-24 flex items-center justify-center flex-col text-slate-300">
                               <span className="text-xs font-black uppercase tracking-widest">No Signature On File</span>
@@ -537,10 +537,10 @@ export default function Members() {
                       {/* Doc Box Maker */}
                       {[
                         { label: 'House Photo', img: selectedMember.house_image },
-                        { label: 'Aadhar Front', img: selectedMember.aadhar_f_image },
-                        { label: 'Aadhar Back', img: selectedMember.aadhar_b_image },
-                        { label: 'Voter Front', img: selectedMember.voter_f_image },
-                        { label: 'Voter Back', img: selectedMember.voter_b_image },
+                        { label: 'Aadhar Front', img: selectedMember.aadhar_image_front },
+                        { label: 'Aadhar Back', img: selectedMember.aadhar_image_back },
+                        { label: 'Voter Front', img: selectedMember.voter_image_front },
+                        { label: 'Voter Back', img: selectedMember.voter_image_back },
                       ].map((doc, idx) => (
                         <div key={idx} className="bg-white rounded-3xl p-3 shadow-sm border border-slate-200 flex flex-col">
                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block text-center">{doc.label}</span>

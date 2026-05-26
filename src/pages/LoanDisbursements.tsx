@@ -268,11 +268,11 @@ export default function LoanDisbursements() {
                         {[
                            { label: 'Profile Photo', img: selectedLoan.profile_image },
                            { label: 'House Image', img: selectedLoan.house_image },
-                           { label: 'Aadhar Front', img: selectedLoan.aadhar_f_image },
-                           { label: 'Aadhar Back', img: selectedLoan.aadhar_b_image },
-                           { label: 'Voter Front', img: selectedLoan.voter_f_image },
-                           { label: 'Voter Back', img: selectedLoan.voter_b_image },
-                           { label: 'Signature', img: selectedLoan.signature }
+                           { label: 'Aadhar Front', img: selectedLoan.aadhar_image_front },
+                           { label: 'Aadhar Back', img: selectedLoan.aadhar_image_back },
+                           { label: 'Voter Front', img: selectedLoan.voter_image_front },
+                           { label: 'Voter Back', img: selectedLoan.voter_image_back },
+                           { label: 'Signature', img: selectedLoan.customer_signature }
                         ].map((doc, idx) => (
                            <div key={idx} className="flex flex-col gap-1.5">
                               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{doc.label}</span>
