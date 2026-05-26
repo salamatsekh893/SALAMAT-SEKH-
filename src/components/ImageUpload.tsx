@@ -1,7 +1,7 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import ReactCrop, { Crop, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
-import { Camera, X, RotateCw, Check, Image as ImageIcon, Smartphone } from 'lucide-react';
+import { Camera, X, RotateCw, Check, Image as ImageIcon, Smartphone, Info } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { AnimatePresence, motion } from 'motion/react';
 
@@ -23,6 +23,14 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
   const [showOptions, setShowOptions] = useState(false);
   const [showCropper, setShowCropper] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Modern HTML5 Inline Camera States
+  const [showLiveCamera, setShowLiveCamera] = useState(false);
+  const [cameraFacingMode, setCameraFacingMode] = useState<'environment' | 'user'>('environment');
+  const [cameraLoading, setCameraLoading] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
   const createImage = (url: string): Promise<HTMLImageElement> =>
@@ -155,8 +163,92 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
     }
   };
 
+  // Stop camera helper
+  const stopCamera = useCallback(() => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setShowLiveCamera(false);
+  }, [stream]);
+
+  // Clean stream on unmount
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [stream]);
+
+  // Start inline HTML5 camera preview
+  const startCamera = async (mode: 'environment' | 'user' = 'environment') => {
+    setCameraLoading(true);
+    setCameraError(null);
+    setShowLiveCamera(true);
+    setCameraFacingMode(mode);
+    try {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      
+      const constraints: MediaStreamConstraints = {
+        video: { 
+          facingMode: { ideal: mode },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+
+      const newStream = await navigator.mediaDevices.getUserMedia(constraints);
+      setStream(newStream);
+      
+      // Delay slightly to ensure video element is mounted in the DOM
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = newStream;
+        }
+      }, 150);
+    } catch (err: any) {
+      console.error("Camera access error:", err);
+      setCameraError("ইনলাইন ক্যামেরা চালু করার সময় ত্রুটি হয়েছে। অনুগ্রহ করে ব্রাউজারের ক্যামেরা পারমিশন চেক করুন অথবা সরাসরি ফাইল সিলেক্ট করুন।");
+    } finally {
+      setCameraLoading(false);
+    }
+  };
+
+  // Toggle front/back camera direction
+  const toggleCameraDirection = () => {
+    const nextMode = cameraFacingMode === 'environment' ? 'user' : 'environment';
+    startCamera(nextMode);
+  };
+
+  // Snapshot from video to canvas
+  const captureSnapshot = () => {
+    const video = videoRef.current;
+    if (video) {
+       try {
+         const canvas = document.createElement('canvas');
+         canvas.width = video.videoWidth || 640;
+         canvas.height = video.videoHeight || 480;
+         const ctx = canvas.getContext('2d');
+         if (ctx) {
+           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+           const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+           setImage(dataUrl);
+           setShowOptions(false);
+           setShowCropper(true);
+           stopCamera();
+         }
+       } catch (err) {
+         console.error("Snapshot error:", err);
+       }
+    }
+  };
+
   const handleCameraSelect = () => {
-    document.getElementById(`upload-camera-${label.replace(/\s+/g, '-')}`)?.click();
+    setShowOptions(false);
+    startCamera('environment');
   };
 
   const handleGallerySelect = () => {
@@ -192,14 +284,7 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
         </div>
       </div>
       
-      <input 
-        id={`upload-camera-${label.replace(/\s+/g, '-')}`}
-        type="file" 
-        accept="image/*" 
-        capture
-        onChange={handleFileChange}
-        className="hidden"
-      />
+      {/* Fallback hidden file uploaders (no heavy "capture" parameter to avoid Android OS crashes) */}
       <input 
         id={`upload-gallery-${label.replace(/\s+/g, '-')}`}
         type="file" 
@@ -235,7 +320,7 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
                     <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
                       <Camera className="w-5 h-5 text-indigo-600" />
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-900">Camera</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-900">Live Camera</span>
                   </button>
 
                   <button 
@@ -254,6 +339,102 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
         )}
       </AnimatePresence>
 
+      {/* Inline HTML5 Live Camera System (No Native Intent/Crash Safe) */}
+      <AnimatePresence>
+         {showLiveCamera && (
+           <motion.div 
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             exit={{ opacity: 0 }}
+             className="fixed inset-0 z-[110] bg-slate-950 flex flex-col h-[100dvh] w-screen overflow-hidden"
+           >
+              {/* Header */}
+              <div className="p-4 flex items-center justify-between text-white bg-slate-900/80 border-b border-white/5 absolute top-0 left-0 right-0 z-10 backdrop-blur-sm">
+                <div className="flex items-center gap-2">
+                   <div className="w-2.5 h-2.5 bg-rose-500 rounded-full animate-pulse" />
+                   <h3 className="text-xs font-black uppercase tracking-widest">Live: {label}</h3>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={stopCamera} 
+                  className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-all"
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
+
+              {/* Viewport */}
+              <div className="flex-1 flex items-center justify-center relative w-full h-full pt-16 pb-28">
+                 {cameraLoading && (
+                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-3 text-white">
+                       <span className="w-10 h-10 border-4 border-indigo-500 border-t-white rounded-full animate-spin" />
+                       <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Loading Lens...</span>
+                    </div>
+                 )}
+
+                 {cameraError ? (
+                    <div className="p-6 max-w-sm text-center flex flex-col items-center gap-4 text-white">
+                       <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-500 flex items-center justify-center mb-2">
+                          <Info className="w-6 h-6" />
+                       </div>
+                       <p className="text-xs font-bold leading-relaxed">{cameraError}</p>
+                       <button 
+                         type="button"
+                         onClick={handleGallerySelect}
+                         className="px-6 py-3 bg-indigo-600 rounded-xl font-bold uppercase text-[10px] tracking-widest text-white shadow-lg active:scale-95 transition-all"
+                       >
+                          গ্যালারি থেকে ফাইল সিলেক্ট করুন
+                       </button>
+                    </div>
+                 ) : (
+                    <video 
+                      ref={videoRef}
+                      playsInline
+                      autoPlay
+                      muted
+                      className="w-full h-full object-cover max-h-[80vh] md:max-w-xl md:rounded-3xl shadow-2xl"
+                    />
+                 )}
+              </div>
+
+              {/* Shutter panel at the bottom */}
+              <div className="absolute bottom-0 left-0 right-0 p-6 bg-slate-900/90 border-t border-white/5 flex items-center justify-between z-10 backdrop-blur-sm text-white px-8">
+                 <button 
+                   type="button"
+                   onClick={toggleCameraDirection}
+                   disabled={cameraLoading || !!cameraError}
+                   className="p-4 bg-white/5 hover:bg-white/10 rounded-full transition-all disabled:opacity-30 active:scale-90"
+                   title="Switch Camera Direction"
+                 >
+                    <RotateCw className="w-5 h-5" />
+                 </button>
+
+                 <button 
+                   type="button"
+                   onClick={captureSnapshot}
+                   disabled={cameraLoading || !!cameraError}
+                   className="w-16 h-16 rounded-full border-4 border-white flex items-center justify-center bg-white/20 hover:bg-white/30 active:scale-90 transition-all disabled:opacity-30 disabled:scale-100"
+                   title="Capture Photo"
+                 >
+                    <div className="w-11 h-11 rounded-full bg-white transition-all shadow-md active:bg-slate-100" />
+                 </button>
+
+                 <button 
+                   type="button"
+                   onClick={() => {
+                      stopCamera();
+                      handleGallerySelect();
+                   }}
+                   className="p-4 bg-white/5 hover:bg-white/10 rounded-full transition-all active:scale-90"
+                   title="Browse Files"
+                 >
+                    <ImageIcon className="w-5 h-5 text-emerald-400" />
+                 </button>
+              </div>
+           </motion.div>
+         )}
+      </AnimatePresence>
+
       {/* Cropper Full Screen */}
       <AnimatePresence>
         {showCropper && (
@@ -262,7 +443,7 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] bg-black flex flex-col h-[100dvh] w-screen"
+            className="fixed inset-0 z-[120] bg-black flex flex-col h-[100dvh] w-screen"
           >
             <div className="p-4 flex items-center justify-between text-white bg-black/50 absolute top-0 left-0 right-0 z-10">
               <h3 className="text-sm font-black uppercase tracking-widest">Crop {label}</h3>
@@ -307,3 +488,4 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
     </div>
   );
 }
+
