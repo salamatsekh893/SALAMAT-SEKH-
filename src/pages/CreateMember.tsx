@@ -19,34 +19,40 @@ import { differenceInYears } from 'date-fns';
 import confetti from 'canvas-confetti';
 
 const memberSchema = z.object({
-  aadhar_no: z.string().optional().nullable(),
-  full_name: z.string().min(1, 'Full name required'),
-  guardian_name: z.string().optional().nullable(),
-  guardian_type: z.string().optional().nullable(),
-  marital_status: z.string().optional().nullable(),
-  gender: z.string().optional().nullable(),
-  dob: z.string().min(1, 'DOB required'),
-  age: z.coerce.number().optional().nullable(),
+  aadhar_no: z.string()
+    .min(12, 'আধার কার্ড ১২ সংখ্যার হওয়া আবশ্যক (Aadhar must be 12 digits)')
+    .max(12, 'আধার কার্ড ১২ সংখ্যার বেশি হতে পারবে না (Aadhar can be max 12 digits)'),
+  full_name: z.string()
+    .min(3, 'কমপক্ষে ৩ অক্ষরের নাম লিখতে হবে (Full name must be at least 3 chars)'),
+  guardian_name: z.string()
+    .min(3, 'অভিভাবকের নাম আবশ্যক (Guardian name is required)'),
+  guardian_type: z.string().min(1, 'অভিভাবকের ধরণ সিলেক্ট করুন (Guardian type required)'),
+  marital_status: z.string().min(1, 'বৈবাহিক অবস্থা সিলেক্ট করুন'),
+  gender: z.string().min(1, 'জেন্ডার বা লিঙ্গ সিলেক্ট করুন'),
+  dob: z.string().min(1, 'জন্ম তারিখ আবশ্যক (DOB required)'),
+  age: z.coerce.number().min(18, 'সদস্যের বয়স কমপক্ষে ১৮ বছর হওয়া লাগবে (Age must be >= 18)'),
   religion: z.string().optional().default('Islam'),
   category: z.string().optional().default('General'),
   education: z.string().optional().default('Secondary'),
   occupation: z.string().optional().default('Housewife'),
-  monthly_income: z.coerce.number().optional().nullable().default(0),
-  family_members: z.coerce.number().optional().nullable().default(1),
-  earning_members: z.coerce.number().optional().nullable().default(1),
+  monthly_income: z.coerce.number().min(500, 'মাসিক আয় কমপক্ষে ৫০০ হতে হবে'),
+  family_members: z.coerce.number().min(1, 'পরিবারের সদস্য সংখ্যা কমপক্ষে ১ হতে হবে'),
+  earning_members: z.coerce.number().min(1, 'উপার্জনকারী সদস্য সংখ্যা কমপক্ষে ১ হতে হবে'),
   house_type: z.string().optional().default('Owned'),
   residence_years: z.coerce.number().optional().nullable().default(1),
-  mobile_no: z.string().min(10, 'Mobile must be at least 10 digits'),
+  mobile_no: z.string()
+    .min(10, 'মোবাইল নম্বর কমপক্ষে ১০ ডিজিট হতে হবে')
+    .max(10, 'মোবাইল নম্বর ১০ ডিজিটের বেশি হতে পারবে না'),
   alt_mobile_no: z.string().optional().nullable(),
-  pin_code: z.string().optional().nullable(),
-  state: z.string().optional().nullable(),
-  district: z.string().optional().nullable(),
-  post_office: z.string().optional().nullable(),
-  police_station: z.string().optional().nullable(),
-  village: z.string().optional().nullable(),
+  pin_code: z.string().min(6, 'পিনকোড আবশ্যক এবং ৬ সংখ্যার হতে হবে'),
+  state: z.string().min(1, 'রাজ্যের নাম আবশ্যক'),
+  district: z.string().min(1, 'জেলার নাম আবশ্যক'),
+  post_office: z.string().min(1, 'পোস্ট অফিস সিলেক্ট করুন'),
+  police_station: z.string().min(1, 'থানা আবশ্যক (Police Station required)'),
+  village: z.string().min(1, 'গ্রাম/এলাকার নাম আবশ্যক (Village required)'),
   voter_id: z.string().optional().nullable(),
   pan_no: z.string().optional().nullable(),
-  group_id: z.coerce.string().optional().nullable(),
+  group_id: z.coerce.string().min(1, 'গ্রুপ সিলেক্ট করা আবশ্যক (Please select operation group JLG/SHG)'),
   mem_bank_ifsc: z.string().optional().nullable(),
   mem_bank_name: z.string().optional().nullable(),
   mem_bank_ac: z.string().optional().nullable(),
@@ -324,143 +330,225 @@ export default function CreateMember() {
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white sm:rounded-[24px] shadow-sm border-y sm:border border-slate-200 overflow-hidden"
+          className="bg-white sm:rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden"
         >
-          <div className="bg-gradient-to-r from-sky-50 to-blue-50 border-b border-sky-100 px-4 sm:px-6 py-4 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-sky-500/10 via-indigo-500/5 to-transparent border-b border-slate-100 px-4 sm:px-6 py-5 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-white p-2 rounded-lg shadow-sm border border-sky-100">
-                <Info className="w-5 h-5 text-sky-600" />
+              <div className="bg-sky-500 text-white p-2.5 rounded-2xl shadow-md">
+                <Info className="w-5 h-5" />
               </div>
-              <h2 className="text-[11px] sm:text-[13px] font-black text-slate-800 tracking-widest uppercase">1. Identification & Personal</h2>
+              <div>
+                <h2 className="text-sm font-black text-slate-800 tracking-wide uppercase">১. ব্যক্তিগত ও পরিচয় বিবরণী (1. Personal Details)</h2>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">Identification & Identity Credentials</p>
+              </div>
             </div>
             {!id && (
               <button
                 type="button"
                 onClick={() => setShowScanner(true)}
-                className="bg-white text-sky-600 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest border border-sky-100 hover:bg-sky-100 transition-all flex items-center gap-2 shadow-sm"
+                className="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-sky-500/20 active:scale-95"
               >
-                <QrCode className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">Scan Aadhar</span>
-                <span className="sm:hidden">Scan</span>
+                <QrCode className="w-4 h-4" />
+                <span>Scan Aadhar</span>
               </button>
             )}
           </div>
 
-          <div className="p-4 sm:p-6 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+          <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {/* Aadhar Number */}
             <div className="col-span-1">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">Aadhar Number</label>
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Aadhar Card <span className="text-rose-500 font-black">*</span>
+              </label>
               <input 
                 {...register('aadhar_no')}
-                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder:text-slate-300"
-                placeholder="0000 0000 0000"
+                maxLength={12}
+                className={cn(
+                  "w-full bg-slate-50 focus:bg-white border text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all placeholder:text-slate-300 shadow-inner",
+                  errors.aadhar_no ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200 focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500"
+                )}
+                placeholder="12 digit aadhar number"
               />
               {errors.aadhar_no?.message && (
-                <p className="mt-1 text-[10px] font-bold text-rose-500 uppercase ml-1 italic">
-                  {String(errors.aadhar_no?.message)}
-                </p>
+                <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-rose-500 uppercase ml-1 bg-rose-50 p-2 rounded-lg border border-rose-100">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{String(errors.aadhar_no?.message)}</span>
+                </div>
               )}
             </div>
+
+            {/* Candidate Full Name */}
             <div className="col-span-1 lg:col-span-2">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">Full Identity Name</label>
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Full Identity Name (সদস্যের নাম) <span className="text-rose-500 font-black">*</span>
+              </label>
               <input 
                 {...register('full_name')}
-                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-uppercase"
+                className={cn(
+                  "w-full bg-slate-50 focus:bg-white border text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-inner uppercase",
+                  errors.full_name ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200 focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500"
+                )}
                 placeholder="AS PER GOVT RECORD"
               />
               {errors.full_name?.message && (
-                <p className="mt-1 text-[10px] font-bold text-rose-500 uppercase ml-1 italic">
-                  {String(errors.full_name?.message)}
-                </p>
+                <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-rose-500 uppercase ml-1 bg-rose-50 p-2 rounded-lg border border-rose-100">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{String(errors.full_name?.message)}</span>
+                </div>
               )}
             </div>
+
+            {/* Mobile Contact */}
             <div className="col-span-1">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">Mobile Contact</label>
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Mobile Contact <span className="text-rose-500 font-black">*</span>
+              </label>
               <input 
                 {...register('mobile_no')}
-                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                placeholder="+91 00000 00000"
+                maxLength={10}
+                className={cn(
+                  "w-full bg-slate-50 focus:bg-white border text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-inner",
+                  errors.mobile_no ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200 focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500"
+                )}
+                placeholder="10 digit mobile number"
               />
               {errors.mobile_no?.message && (
-                <p className="mt-1 text-[10px] font-bold text-rose-500 uppercase ml-1 italic">
-                  {String(errors.mobile_no?.message)}
-                </p>
+                <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-rose-500 uppercase ml-1 bg-rose-50 p-2 rounded-lg border border-rose-100">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{String(errors.mobile_no?.message)}</span>
+                </div>
               )}
             </div>
 
+            {/* Guardian Type */}
             <div className="col-span-1">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">Guardian Type</label>
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Guardian Type <span className="text-rose-500 font-black">*</span>
+              </label>
               <select 
                 {...register('guardian_type')}
-                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                className="w-full bg-slate-50 focus:bg-white border border-slate-200 text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-sm focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500"
               >
-                <option value="Husband">HUSBAND</option>
-                <option value="Wife">WIFE</option>
-                <option value="Father">FATHER</option>
-                <option value="Mother">MOTHER</option>
-                <option value="Son">SON</option>
-                <option value="Daughter">DAUGHTER</option>
-                <option value="Brother">BROTHER</option>
-                <option value="Other">OTHER</option>
-              </select>
-            </div>
-            <div className="col-span-1 lg:col-span-2">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">Guardian Name</label>
-              <input 
-                {...register('guardian_name')}
-                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-              />
-            </div>
-            <div className="col-span-1">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">Gender Identity</label>
-              <select 
-                {...register('gender')}
-                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-              >
-                <option value="Female">FEMALE</option>
-                <option value="Male">MALE</option>
-                <option value="Other">OTHER</option>
+                <option value="Husband">HUSBAND / স্বামী</option>
+                <option value="Wife">WIFE / স্ত্রী</option>
+                <option value="Father">FATHER / পিতা</option>
+                <option value="Mother">MOTHER / মাতা</option>
+                <option value="Son">SON / পুত্র</option>
+                <option value="Daughter">DAUGHTER / কন্যা</option>
+                <option value="Brother">BROTHER / ভাই</option>
+                <option value="Other">OTHER / অন্যান্য</option>
               </select>
             </div>
 
+            {/* Guardian Name */}
+            <div className="col-span-1 lg:col-span-2">
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Guardian Name (অভিভাবকের নাম) <span className="text-rose-500 font-black">*</span>
+              </label>
+              <input 
+                {...register('guardian_name')}
+                className={cn(
+                  "w-full bg-slate-50 focus:bg-white border text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-inner",
+                  errors.guardian_name ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200 focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500"
+                )}
+                placeholder="GUARDIAN FULL NAME"
+              />
+              {errors.guardian_name?.message && (
+                <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-rose-500 uppercase ml-1 bg-rose-50 p-2 rounded-lg border border-rose-100">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{String(errors.guardian_name?.message)}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Gender */}
             <div className="col-span-1">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">Date of Birth</label>
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Gender Identity <span className="text-rose-500 font-black">*</span>
+              </label>
+              <select 
+                {...register('gender')}
+                className="w-full bg-slate-50 focus:bg-white border border-slate-200 text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-sm focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500"
+              >
+                <option value="Female">FEMALE / মহিলা</option>
+                <option value="Male">MALE / পুরুষ</option>
+                <option value="Other">OTHER / অন্যান্য</option>
+              </select>
+            </div>
+
+            {/* Date Of Birth */}
+            <div className="col-span-1">
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Date of Birth (জন্ম তারিখ) <span className="text-rose-500 font-black">*</span>
+              </label>
               <input 
                 type="date"
                 {...register('dob')}
-                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                className={cn(
+                  "w-full bg-slate-50 focus:bg-white border text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-inner",
+                  errors.dob ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200 focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500"
+                )}
               />
+              {errors.dob?.message && (
+                <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-rose-500 uppercase ml-1 bg-rose-50 p-2 rounded-lg border border-rose-100">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{String(errors.dob?.message)}</span>
+                </div>
+              )}
             </div>
+
+            {/* Member Age */}
             <div className="col-span-1">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">Member Age</label>
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Member Age (সদস্যের বয়স) <span className="text-rose-500 font-black">*</span>
+              </label>
               <input 
                 readOnly
                 {...register('age', { valueAsNumber: true })}
-                className="w-full bg-slate-100/50 text-slate-500 cursor-not-allowed border border-slate-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-medium outline-none"
+                className={cn(
+                  "w-full bg-slate-100/50 text-slate-500 cursor-not-allowed border text-xs sm:text-[13px] font-bold rounded-2xl px-4 py-3.5 outline-none shadow-sm",
+                  errors.age ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200"
+                )}
                 placeholder="AUTO CALCULATED"
               />
+              {errors.age?.message && (
+                <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-rose-500 uppercase ml-1 bg-rose-50 p-2 rounded-lg border border-rose-100">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{String(errors.age?.message)}</span>
+                </div>
+              )}
             </div>
+
+            {/* Marital Status */}
             <div className="col-span-1">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">Marital Status</label>
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Marital Status <span className="text-rose-500 font-black">*</span>
+              </label>
               <select 
                 {...register('marital_status')}
-                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                className="w-full bg-slate-50 focus:bg-white border border-slate-200 text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-sm focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500"
               >
-                <option value="Married">MARRIED</option>
-                <option value="Unmarried">UNMARRIED</option>
-                <option value="Widow">WIDOW</option>
-                <option value="Divorced">DIVORCED</option>
+                <option value="Married">MARRIED / বিবাহিত</option>
+                <option value="Unmarried">UNMARRIED / অবিবাহিত</option>
+                <option value="Widow">WIDOW / বিধবা</option>
+                <option value="Divorced">DIVORCED / বিবাহবিচ্ছেদ</option>
               </select>
             </div>
+
+            {/* Category */}
             <div className="col-span-1">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">Category</label>
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Category <span className="text-rose-500 font-black">*</span>
+              </label>
               <select 
                 {...register('category')}
-                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                className="w-full bg-slate-50 focus:bg-white border border-slate-200 text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-sm focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500"
               >
                 <option value="General">GENERAL</option>
                 <option value="SC">SC</option>
                 <option value="ST">ST</option>
                 <option value="OBC-A">OBC-A</option>
+                <option value="OBC-B">OBC-B</option>
               </select>
             </div>
           </div>
@@ -471,76 +559,169 @@ export default function CreateMember() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white sm:rounded-[24px] shadow-sm border-y sm:border border-slate-200 overflow-hidden"
+          className="bg-white sm:rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden"
         >
-          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100 px-4 sm:px-6 py-4 flex items-center gap-3">
-            <div className="bg-white p-2 rounded-lg shadow-sm border border-emerald-100">
-              <MapPin className="w-5 h-5 text-emerald-600" />
+          <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent border-b border-slate-100 px-4 sm:px-6 py-5 flex items-center gap-3">
+            <div className="bg-emerald-500 text-white p-2.5 rounded-2xl shadow-md">
+              <MapPin className="w-5 h-5" />
             </div>
-            <h2 className="text-[11px] sm:text-[13px] font-black text-slate-800 tracking-widest uppercase">2. Residential & Group Logistics</h2>
+            <div>
+              <h2 className="text-sm font-black text-slate-800 tracking-wide uppercase">২. স্থায়ী ঠিকানা ও সমিতি তথ্য (2. Address & Group)</h2>
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">Residential & Area Allocation</p>
+            </div>
           </div>
 
-          <div className="p-4 sm:p-6 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+          <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {/* Pin Code */}
             <div className="col-span-1">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">Pin Code Retrieval</label>
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Pin Code (পিন কোড) <span className="text-rose-500 font-black">*</span>
+              </label>
               <input 
                 {...register('pin_code')}
-                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                maxLength={6}
+                className={cn(
+                  "w-full bg-slate-50 focus:bg-white border text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-inner",
+                  errors.pin_code ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500"
+                )}
                 placeholder="6 DIGIT PIN"
               />
+              {errors.pin_code?.message && (
+                <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-rose-500 uppercase ml-1 bg-rose-50 p-2 rounded-lg border border-rose-100">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{String(errors.pin_code?.message)}</span>
+                </div>
+              )}
             </div>
+
+            {/* State */}
             <div className="col-span-1">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">State</label>
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                State (রাজ্য) <span className="text-rose-500 font-black">*</span>
+              </label>
               <input 
                 {...register('state')}
-                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                className={cn(
+                  "w-full bg-slate-50 focus:bg-white border text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-inner",
+                  errors.state ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500"
+                )}
               />
+              {errors.state?.message && (
+                <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-rose-500 uppercase ml-1 bg-rose-50 p-2 rounded-lg border border-rose-100">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{String(errors.state?.message)}</span>
+                </div>
+              )}
             </div>
+
+            {/* District */}
             <div className="col-span-1">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">District</label>
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                District (জেলা) <span className="text-rose-500 font-black">*</span>
+              </label>
               <input 
                 {...register('district')}
-                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                className={cn(
+                  "w-full bg-slate-50 focus:bg-white border text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-inner",
+                  errors.district ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500"
+                )}
               />
+              {errors.district?.message && (
+                <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-rose-500 uppercase ml-1 bg-rose-50 p-2 rounded-lg border border-rose-100">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{String(errors.district?.message)}</span>
+                </div>
+              )}
             </div>
+
+            {/* Post Office */}
             <div className="col-span-1">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">Post Office</label>
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Post Office (পোস্ট অফিস) <span className="text-rose-500 font-black">*</span>
+              </label>
               <select 
                 {...register('post_office')}
-                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-uppercase"
+                className={cn(
+                  "w-full bg-slate-50 focus:bg-white border text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-sm focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500",
+                  errors.post_office ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200"
+                )}
               >
                 <option value="">-- SELECT PO --</option>
                 {poList.map(po => <option key={po} value={po}>{po.toUpperCase()}</option>)}
               </select>
+              {errors.post_office?.message && (
+                <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-rose-500 uppercase ml-1 bg-rose-50 p-2 rounded-lg border border-rose-100">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{String(errors.post_office?.message)}</span>
+                </div>
+              )}
             </div>
 
+            {/* Police Station */}
             <div className="col-span-1">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">Police Station</label>
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Police Station (থানা) <span className="text-rose-500 font-black">*</span>
+              </label>
               <input 
                 {...register('police_station')}
-                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-uppercase"
+                className={cn(
+                  "w-full bg-slate-50 focus:bg-white border text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-inner uppercase",
+                  errors.police_station ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500"
+                )}
+                placeholder="Police Station Location"
               />
+              {errors.police_station?.message && (
+                <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-rose-500 uppercase ml-1 bg-rose-50 p-2 rounded-lg border border-rose-100">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{String(errors.police_station?.message)}</span>
+                </div>
+              )}
             </div>
+
+            {/* Village / Para */}
             <div className="col-span-1">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">Village / Para</label>
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Village / Para (গ্রাম বা পাড়া) <span className="text-rose-500 font-black">*</span>
+              </label>
               <input 
                 {...register('village')}
-                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-uppercase"
+                className={cn(
+                  "w-full bg-slate-50 focus:bg-white border text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-inner uppercase",
+                  errors.village ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500"
+                )}
+                placeholder="Village / Para Name"
               />
+              {errors.village?.message && (
+                <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-rose-500 uppercase ml-1 bg-rose-50 p-2 rounded-lg border border-rose-100">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{String(errors.village?.message)}</span>
+                </div>
+              )}
             </div>
+
+            {/* Operation Group */}
             <div className="col-span-1 lg:col-span-2">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">Operation Group (JLG/SHG)</label>
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Operation Group (সমিতি বা দল) <span className="text-rose-500 font-black">*</span>
+              </label>
               <select 
                 {...register('group_id')}
                 disabled={!!id && ['fo'].includes(user?.role || '')}
                 className={cn(
-                  "w-full border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-[13px] font-bold outline-none shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all",
+                  "w-full border text-xs sm:text-[13px] font-bold outline-none rounded-2xl px-4 py-3.5 transition-all shadow-sm focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500",
+                  errors.group_id ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200",
                   !!id && ["fo"].includes(user?.role || "") ? "bg-slate-100/50 text-slate-500 cursor-not-allowed border-slate-200" : "bg-slate-50 focus:bg-white text-slate-800"
                 )}
               >
                 <option value="">-- SELECT GROUP --</option>
                 {groups.map(g => <option key={g.id} value={g.id}>{g.group_name} ({g.group_code})</option>)}
               </select>
+              {errors.group_id?.message && (
+                <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-rose-500 uppercase ml-1 bg-rose-50 p-2 rounded-lg border border-rose-100">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{String(errors.group_id?.message)}</span>
+                </div>
+              )}
             </div>
           </div>
         </motion.div>
@@ -550,69 +731,96 @@ export default function CreateMember() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white sm:rounded-[24px] shadow-sm border-y sm:border border-slate-200 overflow-hidden"
+          className="bg-white sm:rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden"
         >
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100 px-4 sm:px-6 py-4 flex items-center gap-3">
-            <div className="bg-white p-2 rounded-lg shadow-sm border border-amber-100">
-              <University className="w-5 h-5 text-amber-600" />
+          <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent border-b border-slate-100 px-4 sm:px-6 py-5 flex items-center gap-3">
+            <div className="bg-amber-500 text-white p-2.5 rounded-2xl shadow-md">
+              <University className="w-5 h-5" />
             </div>
-            <h2 className="text-[11px] sm:text-[13px] font-black text-slate-800 tracking-widest uppercase">3. Banking & Inheritance</h2>
+            <div>
+              <h2 className="text-sm font-black text-slate-800 tracking-wide uppercase">৩. ব্যাংক একাউন্ট ও নমিনির বিবরণী (3. Banking & Nominee)</h2>
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">Financial & nominee inheritance</p>
+            </div>
           </div>
 
-          <div className="p-4 sm:p-6 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+          <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {/* IFSC Retrieve */}
             <div className="col-span-1">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">IFSC Retrieval</label>
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Bank IFSC (আইএফএসসি কোড)
+              </label>
               <input 
                 {...register('mem_bank_ifsc')}
-                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                placeholder="BANK IFSC"
+                className="w-full bg-slate-50 focus:bg-white border border-slate-200 text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-inner focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 uppercase"
+                placeholder="IFSC CODE"
               />
             </div>
+
+            {/* Bank Branch Identification */}
             <div className="col-span-1 lg:col-span-2">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">Bank Branch Identification</label>
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Bank & Branch Name (ব্যাংক ও শাখা)
+              </label>
               <input 
                 readOnly
                 {...register('mem_bank_name')}
-                className="w-full bg-slate-100/50 text-slate-500 cursor-not-allowed border border-slate-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-medium outline-none"
+                className="w-full bg-slate-100/50 text-slate-500 cursor-not-allowed border border-slate-200 text-xs sm:text-[13px] font-bold rounded-2xl px-4 py-3.5 outline-none shadow-sm"
                 placeholder="AUTO IDENTIFIED"
               />
             </div>
+
+            {/* Account Number */}
             <div className="col-span-1">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">Account Number</label>
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Account Number (অ্যাকাউন্ট নম্বর)
+              </label>
               <input 
                 {...register('mem_bank_ac')}
-                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                placeholder="SAVINGS A/C"
+                className="w-full bg-slate-50 focus:bg-white border border-slate-200 text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-inner focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500"
+                placeholder="SAVINGS A/C NO"
               />
             </div>
 
+            {/* Nominee Full Name */}
             <div className="col-span-1 lg:col-span-2">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">Nominee Full Name</label>
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Nominee Full Name (নমিনির নাম)
+              </label>
               <input 
                 {...register('nominee_name')}
-                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-uppercase"
+                className="w-full bg-slate-50 focus:bg-white border border-slate-200 text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-inner focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 uppercase"
+                placeholder="NOMINATE NAME"
               />
             </div>
+
+            {/* Inheritance Relation */}
             <div className="col-span-1">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">Inheritance Relation</label>
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Nominee Relation (নমিনির সাথে সম্পর্ক)
+              </label>
               <select 
                 {...register('nominee_relation')}
-                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                className="w-full bg-slate-50 focus:bg-white border border-slate-200 text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-sm focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500"
               >
-                <option value="Husband">HUSBAND</option>
-                <option value="Wife">WIFE</option>
-                <option value="Son">SON</option>
-                <option value="Daughter">DAUGHTER</option>
-                <option value="Father">FATHER</option>
-                <option value="Mother">MOTHER</option>
+                <option value="Husband">HUSBAND / স্বামী</option>
+                <option value="Wife">WIFE / স্ত্রী</option>
+                <option value="Son">SON / পুত্র</option>
+                <option value="Daughter">DAUGHTER / কন্যা</option>
+                <option value="Father">FATHER / পিতা</option>
+                <option value="Mother">MOTHER / মাতা</option>
+                <option value="Other">OTHER / অন্যান্য</option>
               </select>
             </div>
+
+            {/* Nominee DOB */}
             <div className="col-span-1">
-              <label className="block text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-1.5 ml-1 sm:ml-0.5">Nominee DOB</label>
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Nominee DOB (নমিনির জন্ম তারিখ)
+              </label>
               <input 
                 type="date"
                 {...register('nominee_dob')}
-                className="w-full bg-slate-50 focus:bg-white border border-slate-300 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[13px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                className="w-full bg-slate-50 focus:bg-white border border-slate-200 text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-inner focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500"
               />
             </div>
           </div>
@@ -623,64 +831,81 @@ export default function CreateMember() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white sm:rounded-[24px] shadow-sm border-y sm:border border-slate-200 overflow-hidden"
+          className="bg-white sm:rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden"
         >
-          <div className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200 px-4 sm:px-6 py-4 flex items-center gap-3">
-            <div className="bg-white p-2 rounded-lg shadow-sm border border-slate-200">
-              <Camera className="w-5 h-5 text-slate-600" />
+          <div className="bg-gradient-to-r from-slate-500/10 via-slate-500/5 to-transparent border-b border-slate-100 px-4 sm:px-6 py-5 flex items-center gap-3">
+            <div className="bg-slate-700 text-white p-2.5 rounded-2xl shadow-md">
+              <Camera className="w-5 h-5" />
             </div>
-            <h2 className="text-[11px] sm:text-[13px] font-black text-slate-800 tracking-widest uppercase">4. Documentation & Verification Assets</h2>
+            <div>
+              <h2 className="text-sm font-black text-slate-800 tracking-wide uppercase">৪. প্রয়োজনীয় নথি ও স্বাক্ষর আপলোড (4. Documentation)</h2>
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">Verification Assets & Customer Authorizations</p>
+            </div>
           </div>
 
-          <div className="p-4 sm:p-6 grid grid-cols-2 md:grid-cols-6 gap-3 sm:gap-6">
-            <ImageUpload 
-              label="Profile" 
-              icon={UserPlus} 
-              color="text-indigo-600" 
-              preview={images.profile}
-              onImageCaptured={(url) => setImages(prev => ({ ...prev, profile: url }))} 
-            />
-            <ImageUpload 
-              label="House" 
-              icon={MapPin} 
-              color="text-emerald-600" 
-              preview={images.house}
-              onImageCaptured={(url) => setImages(prev => ({ ...prev, house: url }))} 
-            />
-            <ImageUpload 
-              label="Aadhar F" 
-              icon={QrCode} 
-              color="text-sky-600" 
-              preview={images.aadhar_front}
-              onImageCaptured={(url) => setImages(prev => ({ ...prev, aadhar_front: url }))} 
-            />
-            <ImageUpload 
-              label="Aadhar B" 
-              icon={QrCode} 
-              color="text-sky-600" 
-              preview={images.aadhar_back}
-              onImageCaptured={(url) => setImages(prev => ({ ...prev, aadhar_back: url }))} 
-            />
-            <ImageUpload 
-              label="Voter F" 
-              icon={Info} 
-              color="text-amber-600" 
-              preview={images.voter_front}
-              onImageCaptured={(url) => setImages(prev => ({ ...prev, voter_front: url }))} 
-            />
-            <ImageUpload 
-              label="Voter B" 
-              icon={Info} 
-              color="text-amber-600" 
-              preview={images.voter_back}
-              onImageCaptured={(url) => setImages(prev => ({ ...prev, voter_back: url }))} 
-            />
+          <div className="p-4 sm:p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col items-center">
+              <ImageUpload 
+                label="Profile" 
+                icon={UserPlus} 
+                color="text-indigo-600" 
+                preview={images.profile}
+                onImageCaptured={(url) => setImages(prev => ({ ...prev, profile: url }))} 
+              />
+            </div>
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col items-center">
+              <ImageUpload 
+                label="House" 
+                icon={MapPin} 
+                color="text-emerald-600" 
+                preview={images.house}
+                onImageCaptured={(url) => setImages(prev => ({ ...prev, house: url }))} 
+              />
+            </div>
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col items-center">
+              <ImageUpload 
+                label="Aadhar F" 
+                icon={QrCode} 
+                color="text-sky-600" 
+                preview={images.aadhar_front}
+                onImageCaptured={(url) => setImages(prev => ({ ...prev, aadhar_front: url }))} 
+              />
+            </div>
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col items-center">
+              <ImageUpload 
+                label="Aadhar B" 
+                icon={QrCode} 
+                color="text-sky-600" 
+                preview={images.aadhar_back}
+                onImageCaptured={(url) => setImages(prev => ({ ...prev, aadhar_back: url }))} 
+              />
+            </div>
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col items-center">
+              <ImageUpload 
+                label="Voter F" 
+                icon={Info} 
+                color="text-amber-600" 
+                preview={images.voter_front}
+                onImageCaptured={(url) => setImages(prev => ({ ...prev, voter_front: url }))} 
+              />
+            </div>
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col items-center">
+              <ImageUpload 
+                label="Voter B" 
+                icon={Info} 
+                color="text-amber-600" 
+                preview={images.voter_back}
+                onImageCaptured={(url) => setImages(prev => ({ ...prev, voter_back: url }))} 
+              />
+            </div>
           </div>
 
-          <div className="mt-10 border-t border-slate-200 pt-10">
+          <div className="mt-8 border-t border-slate-100 pt-8 pb-8 px-4 sm:px-6">
             <div className="flex flex-col items-center">
-              <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Authentication Signature</label>
-              <div className="w-full max-w-2xl">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">
+                Authentication Signature (সদস্যের ডিজিটাল স্বাক্ষর)
+              </label>
+              <div className="w-full max-w-2xl bg-slate-50 p-4 rounded-3xl border border-slate-200 shadow-inner">
                 <SignaturePad 
                   savedSignature={images.signature}
                   onSave={(url) => setImages(prev => ({ ...prev, signature: url }))} 
@@ -692,26 +917,26 @@ export default function CreateMember() {
         </motion.div>
 
         {/* Floating/Sticky Action Bar */}
-        <div className="sticky bottom-4 z-40 bg-white/80 backdrop-blur-3xl border border-slate-100 p-4 rounded-[30px] shadow-2xl flex items-center justify-between gap-4">
+        <div className="sticky bottom-4 z-40 bg-white/90 backdrop-blur-md border border-slate-200/80 p-4 rounded-3xl shadow-2xl flex items-center justify-between gap-4 mt-6">
           <button
             type="button"
             onClick={() => navigate('/members')}
-            className="px-6 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-all"
+            className="px-6 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-all border border-slate-200"
           >
-            Abort Registration
+            Abort / বাতিল করুন
           </button>
           
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 sm:max-w-xs bg-indigo-600 text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-3 shadow-xl shadow-indigo-500/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 sm:max-w-xs bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-3 shadow-xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <>
                 <Save className="w-4 h-4" />
-                {id ? 'Commit Changes' : 'Confirm & Save'}
+                {id ? 'Commit Changes' : 'Confirm & Save / সংরক্ষণ করুন'}
               </>
             )}
           </button>
