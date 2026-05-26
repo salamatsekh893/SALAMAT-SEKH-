@@ -351,56 +351,56 @@ export default function DayBook() {
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[#f8f9fa] min-h-screen">
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sticky top-0 z-20 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="bg-purple-100 p-2.5 rounded-full">
-            <BookOpen className="w-5 h-5 text-purple-700" />
+      <div className="bg-white border-b border-slate-200 px-3 sm:px-4 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sticky top-0 z-20 shadow-sm">
+        <div className="flex items-center gap-2">
+          <div className="bg-purple-100 p-1.5 rounded-full">
+            <BookOpen className="w-4 h-4 text-purple-700" />
           </div>
           <div>
-            <h1 className="text-xl font-black text-slate-800 tracking-tight uppercase text-purple-600">Day Book Pro</h1>
+            <h1 className="text-base font-black text-slate-800 tracking-tight uppercase text-purple-600">Day Book Pro</h1>
           </div>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <button 
             onClick={exportToExcel}
-            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm ml-auto sm:ml-0"
+            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-md text-xs font-bold transition-colors shadow-sm ml-auto sm:ml-0"
           >
-            <Download className="w-4 h-4" /> Export
+            <Download className="w-3.5 h-3.5" /> Export
           </button>
         </div>
       </div>
 
-      <div className="p-4 sm:p-6 space-y-4 max-w-5xl mx-auto w-full">
+      <div className="p-2 sm:p-4 space-y-2.5 max-w-7xl mx-auto w-full">
         {!isClosed && date < format(new Date(), 'yyyy-MM-dd') && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-start gap-3">
-            <Lock className="w-8 h-8 text-red-600 flex-shrink-0" />
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-red-50 border border-red-200 p-3 rounded-lg flex items-start gap-2.5">
+            <Lock className="w-6 h-6 text-red-600 flex-shrink-0" />
             <div>
-              <h3 className="text-red-700 font-black text-lg">SYSTEM LOCKED!</h3>
-              <p className="text-red-600 text-sm font-medium mt-1">Warning: Account for {format(new Date(date), 'dd-MMM-yyyy')} is not closed! System Locked.</p>
+              <h3 className="text-red-700 font-black text-sm">SYSTEM LOCKED!</h3>
+              <p className="text-red-600 text-xs font-medium mt-0.5">Warning: Account for {format(new Date(date), 'dd-MMM-yyyy')} is not closed! System Locked.</p>
             </div>
           </motion.div>
         )}
 
         {/* Date and Branch Selectors + Actions */}
-        <div className="flex flex-col md:flex-row justify-between items-stretch gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-stretch gap-2.5">
           <div className="flex gap-2 flex-1 relative">
-             <div className="flex-1 flex items-center bg-white border border-slate-200 rounded-lg px-3 overflow-hidden shadow-sm">
-                <Calendar className="w-5 h-5 text-rose-500 mr-2 flex-shrink-0" />
+             <div className="flex-1 flex items-center bg-white border border-slate-200 rounded-lg px-2.5 overflow-hidden shadow-sm">
+                <Calendar className="w-4 h-4 text-rose-500 mr-1.5 flex-shrink-0" />
                 <input 
                   type="date" 
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="w-full py-3 bg-transparent text-slate-800 font-bold focus:outline-none"
+                  className="w-full py-1.5 bg-transparent text-slate-800 font-bold text-xs sm:text-sm focus:outline-none"
                 />
              </div>
              {(user?.role === 'superadmin' || user?.role === 'manager') && (
-               <div className="flex-1 flex items-center bg-white border border-slate-200 rounded-lg px-3 overflow-hidden shadow-sm">
-                  <Building2 className="w-5 h-5 text-blue-500 mr-2 flex-shrink-0" />
+               <div className="flex-1 flex items-center bg-white border border-slate-200 rounded-lg px-2.5 overflow-hidden shadow-sm">
+                  <Building2 className="w-4 h-4 text-blue-500 mr-1.5 flex-shrink-0" />
                   <select 
                     value={branchId}
                     onChange={(e) => setBranchId(e.target.value)}
-                    className="w-full py-3 bg-transparent text-slate-800 font-bold focus:outline-none appearance-none"
+                    className="w-full py-1.5 bg-transparent text-slate-800 font-bold text-xs sm:text-sm focus:outline-none appearance-none"
                   >
                     <option value="">ALL BRANCHES</option>
                     {branches.map(b => (
@@ -413,27 +413,27 @@ export default function DayBook() {
 
           <div className="flex gap-2 shrink-0 flex-col sm:flex-row">
              {collections.filter((c: any) => c.status === 'pending').length > 0 && !isClosed && branchId && (
-                <div className="bg-amber-100 text-amber-800 px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 border border-amber-200">
-                  <AlertCircle className="w-4 h-4" /> {collections.filter((c: any) => c.status === 'pending').length} Pending Collections
+                <div className="bg-amber-100 text-amber-800 px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold flex items-center gap-1.5 border border-amber-200">
+                  <AlertCircle className="w-3.5 h-3.5" /> {collections.filter((c: any) => c.status === 'pending').length} Pending
                 </div>
              )}
              {branchId && (
              <div className="flex gap-2">
-               <button onClick={() => setShowTransferModal(true)} disabled={closing || isClosed} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[#0ea5e9] hover:bg-[#0284c7] text-white px-6 py-3 rounded-lg text-sm font-black uppercase tracking-wider transition-colors shadow-md text-nowrap disabled:opacity-50">
-                 <RefreshCw className="w-4 h-4" /> Transfer
+               <button onClick={() => setShowTransferModal(true)} disabled={closing || isClosed} className="flex-1 md:flex-none flex items-center justify-center gap-1.5 bg-[#0ea5e9] hover:bg-[#0284c7] text-white px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-colors shadow-sm text-nowrap disabled:opacity-50">
+                 <RefreshCw className="w-3.5 h-3.5" /> Transfer
                </button>
                {isClosed ? (
                  user?.role === 'superadmin' && (
-                   <button onClick={handleOpenDayBook} disabled={closing} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-6 py-3 rounded-lg text-sm font-black uppercase tracking-wider transition-colors shadow-md disabled:opacity-50 text-nowrap">
-                     <Unlock className="w-4 h-4" /> Re-Open
+                   <button onClick={handleOpenDayBook} disabled={closing} className="flex-1 md:flex-none flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-colors shadow-sm disabled:opacity-50 text-nowrap">
+                     <Unlock className="w-3.5 h-3.5" /> Re-Open
                    </button>
                  )
                ) : (
-                 <button onClick={openCloseModal} disabled={closing} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[#f43f5e] hover:bg-[#e11d48] text-white px-6 py-3 rounded-lg text-sm font-black uppercase tracking-wider transition-colors shadow-md disabled:opacity-50 text-nowrap relative overflow-hidden">
+                 <button onClick={openCloseModal} disabled={closing} className="flex-1 md:flex-none flex items-center justify-center gap-1.5 bg-[#f43f5e] hover:bg-[#e11d48] text-white px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-colors shadow-sm disabled:opacity-50 text-nowrap relative overflow-hidden">
                    {collections.filter((c: any) => c.status === 'pending').length > 0 && (
                      <div className="absolute inset-0 bg-slate-800/20"></div>
                    )}
-                   <Lock className="w-4 h-4" /> Close
+                   <Lock className="w-3.5 h-3.5" /> Close
                  </button>
                )}
              </div>
@@ -442,102 +442,102 @@ export default function DayBook() {
         </div>
 
         {/* 4 Main Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-[#0ea5e9] px-4 py-5 rounded-xl shadow-md text-white flex flex-col items-center justify-center text-center">
-            <div className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest opacity-90 mb-1">Opening Balance</div>
-            <div className="text-xl sm:text-2xl font-black">₹{formatAmount(openingBalance)}</div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+          <div className="bg-[#0ea5e9] px-3 py-2.5 sm:py-3.5 rounded-lg shadow-sm text-white flex flex-col items-center justify-center text-center">
+            <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider opacity-90 mb-0.5">Opening Balance</div>
+            <div className="text-sm sm:text-lg font-black leading-none">₹{formatAmount(openingBalance)}</div>
           </div>
-          <div className="bg-[#10b981] px-4 py-5 rounded-xl shadow-md text-white flex flex-col items-center justify-center text-center">
-            <div className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest opacity-90 mb-1">Total Cash In</div>
-            <div className="text-xl sm:text-2xl font-black">+ ₹{formatAmount(totalInflows)}</div>
+          <div className="bg-[#10b981] px-3 py-2.5 sm:py-3.5 rounded-lg shadow-sm text-white flex flex-col items-center justify-center text-center">
+            <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider opacity-90 mb-0.5">Total Cash In</div>
+            <div className="text-sm sm:text-lg font-black leading-none">+ ₹{formatAmount(totalInflows)}</div>
           </div>
-          <div className="bg-[#f97316] px-4 py-5 rounded-xl shadow-md text-white flex flex-col items-center justify-center text-center">
-            <div className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest opacity-90 mb-1">Total Cash Out</div>
-            <div className="text-xl sm:text-2xl font-black">- ₹{formatAmount(totalOutflows)}</div>
+          <div className="bg-[#f97316] px-3 py-2.5 sm:py-3.5 rounded-lg shadow-sm text-white flex flex-col items-center justify-center text-center">
+            <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider opacity-90 mb-0.5">Total Cash Out</div>
+            <div className="text-sm sm:text-lg font-black leading-none">- ₹{formatAmount(totalOutflows)}</div>
           </div>
-          <div className="bg-[#a855f7] px-4 py-5 rounded-xl shadow-md text-white flex flex-col items-center justify-center text-center">
-            <div className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest opacity-90 mb-1">Net Hand Cash</div>
-            <div className="text-xl sm:text-2xl font-black">₹{formatAmount(closingBalance)}</div>
+          <div className="bg-[#a855f7] px-3 py-2.5 sm:py-3.5 rounded-lg shadow-sm text-white flex flex-col items-center justify-center text-center">
+            <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider opacity-90 mb-0.5">Net Hand Cash</div>
+            <div className="text-sm sm:text-lg font-black leading-none">₹{formatAmount(closingBalance)}</div>
           </div>
         </div>
 
         {/* Sub-breakdown Stats (like standard app view) */}
-        <div className="bg-white rounded-xl shadow-sm border border-rose-100 p-3">
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-3 text-center">
-            <div className="border border-green-100 rounded bg-green-50/50 py-2">
-              <div className="text-[9px] sm:text-[10px] font-black uppercase text-green-700 tracking-wider">Coll.</div>
-              <div className="text-xs sm:text-sm font-bold text-green-600">+{formatAmount(totalCollections)}</div>
+        <div className="bg-white rounded-lg shadow-sm border border-rose-100 p-2">
+          <div className="grid grid-cols-4 lg:grid-cols-8 gap-1.5 text-center">
+            <div className="border border-green-50 rounded bg-green-50/40 py-1 px-1">
+              <div className="text-[8px] sm:text-[9px] font-black uppercase text-green-700 tracking-wider">Coll.</div>
+              <div className="text-xs font-bold text-green-600">+{formatAmount(totalCollections)}</div>
             </div>
-            <div className="border border-green-100 rounded bg-green-50/50 py-2">
-              <div className="text-[9px] sm:text-[10px] font-black uppercase text-green-700 tracking-wider">Sav. D</div>
-              <div className="text-xs sm:text-sm font-bold text-green-600">+{formatAmount(totalSavingsDeposits)}</div>
+            <div className="border border-green-50 rounded bg-green-50/40 py-1 px-1">
+              <div className="text-[8px] sm:text-[9px] font-black uppercase text-green-700 tracking-wider">Sav. D</div>
+              <div className="text-xs font-bold text-green-600">+{formatAmount(totalSavingsDeposits)}</div>
             </div>
-            <div className="border border-green-100 rounded bg-green-50/50 py-2">
-              <div className="text-[9px] sm:text-[10px] font-black uppercase text-green-700 tracking-wider">Cap. In</div>
-              <div className="text-xs sm:text-sm font-bold text-green-600">+{formatAmount(totalCapitalIn)}</div>
+            <div className="border border-green-50 rounded bg-green-50/40 py-1 px-1">
+              <div className="text-[8px] sm:text-[9px] font-black uppercase text-green-700 tracking-wider">Cap. In</div>
+              <div className="text-xs font-bold text-green-600">+{formatAmount(totalCapitalIn)}</div>
             </div>
-             <div className="border border-green-100 rounded bg-green-50/50 py-2">
-              <div className="text-[9px] sm:text-[10px] font-black uppercase text-green-700 tracking-wider">Bank W.</div>
-              <div className="text-xs sm:text-sm font-bold text-green-600">+{formatAmount(totalBankWithdrawals)}</div>
+             <div className="border border-green-50 rounded bg-green-50/40 py-1 px-1">
+              <div className="text-[8px] sm:text-[9px] font-black uppercase text-green-700 tracking-wider">Bank W.</div>
+              <div className="text-xs font-bold text-green-600">+{formatAmount(totalBankWithdrawals)}</div>
             </div>
-            <div className="border border-orange-100 rounded bg-orange-50/50 py-2">
-              <div className="text-[9px] sm:text-[10px] font-black uppercase text-orange-700 tracking-wider">Loans</div>
-              <div className="text-xs sm:text-sm font-bold text-orange-600">-{formatAmount(totalDisbursements)}</div>
+            <div className="border border-orange-50 rounded bg-orange-50/40 py-1 px-1">
+              <div className="text-[8px] sm:text-[9px] font-black uppercase text-orange-700 tracking-wider">Loans</div>
+              <div className="text-xs font-bold text-orange-600">-{formatAmount(totalDisbursements)}</div>
             </div>
-            <div className="border border-orange-100 rounded bg-orange-50/50 py-2">
-              <div className="text-[9px] sm:text-[10px] font-black uppercase text-orange-700 tracking-wider">Sav. W</div>
-              <div className="text-xs sm:text-sm font-bold text-orange-600">-{formatAmount(totalSavingsWithdrawals)}</div>
+            <div className="border border-orange-50 rounded bg-orange-50/40 py-1 px-1">
+              <div className="text-[8px] sm:text-[9px] font-black uppercase text-orange-700 tracking-wider">Sav. W</div>
+              <div className="text-xs font-bold text-orange-600">-{formatAmount(totalSavingsWithdrawals)}</div>
             </div>
-            <div className="border border-orange-100 rounded bg-orange-50/50 py-2">
-              <div className="text-[9px] sm:text-[10px] font-black uppercase text-orange-700 tracking-wider">Exp.</div>
-              <div className="text-xs sm:text-sm font-bold text-orange-600">-{formatAmount(totalExpensesPaid + totalSalaries)}</div>
+            <div className="border border-orange-50 rounded bg-orange-50/40 py-1 px-1">
+              <div className="text-[8px] sm:text-[9px] font-black uppercase text-orange-700 tracking-wider">Exp.</div>
+              <div className="text-xs font-bold text-orange-600">-{formatAmount(totalExpensesPaid + totalSalaries)}</div>
             </div>
-            <div className="border border-blue-100 rounded bg-blue-50/50 py-2">
-              <div className="text-[9px] sm:text-[10px] font-black uppercase text-blue-700 tracking-wider">Bank D.</div>
-              <div className="text-xs sm:text-sm font-bold text-blue-600">-{formatAmount(totalBankDeposits)}</div>
+            <div className="border border-blue-50 rounded bg-blue-50/40 py-1 px-1">
+              <div className="text-[8px] sm:text-[9px] font-black uppercase text-blue-700 tracking-wider">Bank D.</div>
+              <div className="text-xs font-bold text-blue-600">-{formatAmount(totalBankDeposits)}</div>
             </div>
           </div>
         </div>
 
         {/* Detailed Table view */}
-        <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden mt-4">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mt-1 max-h-[350px] overflow-y-auto">
            <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead>
+                <thead className="sticky top-0 z-10 shadow-sm">
                   <tr className="bg-[#e83e8c] text-white">
-                    <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest border-r border-[#c2286e] w-24">Type</th>
-                    <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest border-r border-[#c2286e]">Entity / Name</th>
-                    <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest border-r border-[#c2286e]">Details</th>
-                    <th className="px-3 py-3 text-[10px] font-black uppercase tracking-widest bg-[#c2286e] text-right">Amount</th>
+                    <th className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest border-r border-[#c2286e] w-24">Type</th>
+                    <th className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest border-r border-[#c2286e]">Entity / Name</th>
+                    <th className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest border-r border-[#c2286e]">Details</th>
+                    <th className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest bg-[#c2286e] text-right">Amount</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {ledger.map((item, i) => (
                     <tr key={i} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-3 py-3 tracking-wider text-[11px] font-bold">
-                        <span className={`px-2 py-1 rounded inline-block ${item.type === 'inflow' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      <td className="px-3 py-1.5 tracking-wider text-[10px] font-bold">
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] inline-block ${item.type === 'inflow' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                           {item.type === 'inflow' ? 'CR (+)' : 'DR (-)'}
                         </span>
-                        <div className="text-[9px] text-slate-400 mt-1">{format(new Date(item.time), 'hh:mm a')}</div>
+                        <div className="text-[9px] text-slate-400 mt-0.5">{format(new Date(item.time), 'hh:mm a')}</div>
                       </td>
-                      <td className="px-3 py-3">
-                         <div className="text-[12px] font-black text-slate-800 uppercase leading-snug">
+                      <td className="px-3 py-1.5">
+                         <div className="text-[11px] font-black text-slate-800 uppercase leading-snug">
                            {item.description.split(' - ')[1] || item.description}
                          </div>
                       </td>
-                      <td className="px-3 py-3">
-                         <div className="text-[10px] font-bold text-slate-500 uppercase">
+                      <td className="px-3 py-1.5">
+                         <div className="text-[9px] font-bold text-slate-500 uppercase">
                            {item.description.split(' - ')[0]}
                          </div>
                       </td>
-                      <td className={`px-3 py-3 text-right text-sm font-black ${item.type === 'inflow' ? 'text-green-600' : 'text-red-500'}`}>
+                      <td className={`px-3 py-1.5 text-right text-xs font-black ${item.type === 'inflow' ? 'text-green-600' : 'text-red-500'}`}>
                         {item.type === 'inflow' ? '+' : '-'}₹{formatAmount(item.amount)}
                       </td>
                     </tr>
                   ))}
                   {ledger.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="py-10 text-center text-slate-400 font-bold uppercase tracking-widest text-[11px]">
+                      <td colSpan={4} className="py-6 text-center text-slate-400 font-bold uppercase tracking-widest text-[10px]">
                         No Transactions Found
                       </td>
                     </tr>
