@@ -98,23 +98,15 @@ export default function CreateBranch() {
     try {
       console.log('Starting pincode lookup for:', formData.pincode);
       
-      let data: any = null;
-      let mappedLocations: any[] = [];
+      const response = await fetch(`/api/pincode/${formData.pincode}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch pincode details from proxy');
+      }
+      const data = await response.json();
       
-      try {
-        // Primary search using provided API Key
-        const response = await fetch(`https://api.apitier.com/v1/pincode?pincode=${formData.pincode}`, {
-          headers: { 'x-api-key': PINCODE_API_KEY }
-        });
-        
-        const respText = await response.text();
-        
-        if (respText && respText.trim().startsWith('{') || respText.trim().startsWith('[')) {
-          data = JSON.parse(respText);
-        }
-
-        // Flexible mapping for various API response shapes
-        if (data && (data.success || data.Status === 'Success') && (data.data || data.PostOffice)) {
+      let mappedLocations: any[] = [];
+      if (data) {
+        if ((data.success || data.Status === 'Success') && (data.data || data.PostOffice)) {
           const sourceData = data.data || data.PostOffice;
           const sourceArray = Array.isArray(sourceData) ? sourceData : [sourceData];
           mappedLocations = sourceArray.map((loc: any) => ({
@@ -122,29 +114,13 @@ export default function CreateBranch() {
             district: loc.district || loc.District || loc.city || loc.division,
             state: loc.state || loc.State
           })).filter((loc: any) => loc.post_office_name);
-        }
-      } catch (e) {
-        console.warn('Primary API fetch failed', e);
-      }
-
-      // Fallback: Use direct postalpincode.in as secondary
-      if (mappedLocations.length === 0) {
-        console.log('Trying fallback API...');
-        const fallRes = await fetch(`https://api.postalpincode.in/pincode/${formData.pincode}`);
-        const fallText = await fallRes.text();
-        
-        try {
-          const fallData = JSON.parse(fallText);
-          if (fallData && fallData[0] && fallData[0].Status === 'Success') {
-            const poList = fallData[0].PostOffice || [];
-            mappedLocations = poList.map((po: any) => ({
-              post_office_name: po.Name,
-              district: po.District,
-              state: po.State
-            }));
-          }
-        } catch (e) {
-          console.error('Fallback API failed', e);
+        } else if (Array.isArray(data) && data[0] && data[0].Status === 'Success') {
+          const poList = data[0].PostOffice || [];
+          mappedLocations = poList.map((po: any) => ({
+            post_office_name: po.Name,
+            district: po.District,
+            state: po.State
+          }));
         }
       }
 

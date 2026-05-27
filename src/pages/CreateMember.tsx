@@ -150,15 +150,20 @@ export default function CreateMember() {
 
   useEffect(() => {
     if (pinCode?.length === 6) {
-      fetch(`https://api.postalpincode.in/pincode/${pinCode}`)
+      fetch(`/api/pincode/${pinCode}`)
         .then(res => res.json())
         .then(data => {
-          if (data[0].Status === 'Success') {
+          if (data && data[0] && data[0].Status === 'Success') {
             const pos = data[0].PostOffice;
-            setValue('state', pos[0].State);
-            setValue('district', pos[0].District);
-            setPoList(pos.map((p: any) => p.Name));
+            if (pos && pos.length > 0) {
+              setValue('state', pos[0].State);
+              setValue('district', pos[0].District);
+              setPoList(pos.map((p: any) => p.Name));
+            }
           }
+        })
+        .catch(err => {
+          console.error('Error auto-fetching pin code details:', err);
         });
     }
   }, [pinCode, setValue]);
@@ -639,16 +644,19 @@ export default function CreateMember() {
               <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
                 Post Office (পোস্ট অফিস) <span className="text-rose-500 font-black">*</span>
               </label>
-              <select 
+              <input 
                 {...register('post_office')}
+                list="pincode-pos"
                 className={cn(
-                  "w-full bg-slate-50 focus:bg-white border text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-sm focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500",
-                  errors.post_office ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200"
+                  "w-full bg-slate-50 focus:bg-white border text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-inner uppercase",
+                  errors.post_office ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500"
                 )}
-              >
-                <option value="">-- SELECT PO --</option>
-                {poList.map(po => <option key={po} value={po}>{po.toUpperCase()}</option>)}
-              </select>
+                placeholder="TYPE OR SELECT PO"
+                autoComplete="off"
+              />
+              <datalist id="pincode-pos">
+                {poList.map(po => <option key={po} value={po.toUpperCase()} />)}
+              </datalist>
               {errors.post_office?.message && (
                 <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-rose-500 uppercase ml-1 bg-rose-50 p-2 rounded-lg border border-rose-100">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0" />

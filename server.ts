@@ -5,6 +5,7 @@ import mysql from "mysql2/promise";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import { Resend } from 'resend';
+import https from "https";
 
 dotenv.config({ override: true });
 
@@ -2637,6 +2638,122 @@ async function startServer() {
       res.json(data);
     } catch (err) {
       res.status(500).json({ error: 'Failed to fetch IFSC details' });
+    }
+  });
+
+  // --- Pincode Proxy Routes ---
+  app.get("/api/pincode/:pincode", async (req, res) => {
+    try {
+      const pinCodeRegex = /^[0-9]{6}$/;
+      const pincode = req.params.pincode;
+      
+      if (!pinCodeRegex.test(pincode)) {
+        return res.status(400).json({ error: 'Invalid pincode format' });
+      }
+
+      const fetchWithBypassedSSL = (url: string, headers?: any): Promise<any> => {
+        return new Promise((resolve, reject) => {
+          const agent = new https.Agent({
+            rejectUnauthorized: false
+          });
+          const urlObj = new URL(url);
+          const options: any = {
+            hostname: urlObj.hostname,
+            path: urlObj.pathname + urlObj.search,
+            method: 'GET',
+            agent: agent,
+            headers: headers || {}
+          };
+          const request = https.request(options, (response) => {
+            let data = '';
+            response.on('data', (chunk) => {
+              data += chunk;
+            });
+            response.on('end', () => {
+              try {
+                if (response.statusCode && response.statusCode >= 400) {
+                  reject(new Error(`HTTP status ${response.statusCode}`));
+                } else {
+                  resolve(JSON.parse(data));
+                }
+              } catch (e) {
+                reject(e);
+              }
+            });
+          });
+          request.on('error', (err) => {
+            reject(err);
+          });
+          request.setTimeout(6000, () => {
+            request.destroy();
+            reject(new Error('Timeout'));
+          });
+          request.end();
+        });
+      };
+
+      const urlsToTry = [
+        {
+          url: `https://apitier.com/v1/pincode?pincode=${pincode}`,
+          headers: { 'x-api-key': '8f901ff3-7f5f-4fd4-97c4-af65bda70cac' },
+          isApitier: true
+        },
+        {
+          url: `https://api.apitier.com/v1/pincode?pincode=${pincode}`,
+          headers: { 'x-api-key': '8f901ff3-7f5f-4fd4-97c4-af65bda70cac' },
+          isApitier: true
+        },
+        {
+          url: `https://api.postalpincode.in/pincode/${pincode}`,
+          isApitier: false
+        }
+      ];
+
+      for (const entry of urlsToTry) {
+        try {
+          console.log(`[PINCODE PROXY] Trying URL: ${entry.url}`);
+          const data = await fetchWithBypassedSSL(entry.url, entry.headers);
+          
+          if (entry.isApitier) {
+            if (data && (data.success || data.Status === 'Success') && (data.data || data.PostOffice)) {
+              console.log(`[PINCODE PROXY] Successfully fetched and parsed from Apitier: ${entry.url}`);
+              const rawList = data.data || data.PostOffice || [];
+              const normalizedPostOffices = rawList.map((item: any) => ({
+                Name: item.post_office_name || item.office_name || item.place_name || item.Name || '',
+                District: item.district || item.District || item.city || '',
+                State: item.state || item.State || '',
+                Pincode: item.pincode || pincode
+              }));
+              
+              return res.json([
+                {
+                  Status: 'Success',
+                  PostOffice: normalizedPostOffices
+                }
+              ]);
+            }
+          } else {
+            if (data && data[0] && data[0].Status === 'Success') {
+              console.log(`[PINCODE PROXY] Successfully fetched from PostalPincode fallback`);
+              return res.json(data);
+            }
+          }
+        } catch (err: any) {
+          console.warn(`[PINCODE PROXY] Failed to fetch pincode ${pincode} from ${entry.url}: ${err.message || err}`);
+        }
+      }
+
+      console.error(`[PINCODE PROXY] All APIs failed to fetch location details for pincode ${pincode}`);
+      return res.json([
+        {
+          Status: 'Error',
+          Message: 'Could not fetch geographic details. Please type post office details manually.',
+          PostOffice: []
+        }
+      ]);
+    } catch (err) {
+      console.error('Error fetching pincode on server:', err);
+      res.status(555).json({ error: 'Failed to fetch pincode details' });
     }
   });
 
