@@ -429,39 +429,39 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
              className="fixed inset-0 z-[110] bg-slate-950 flex flex-col h-[100dvh] w-screen overflow-hidden"
            >
               {/* Header */}
-              <div className="p-4 flex items-center justify-between text-white bg-slate-900/80 border-b border-white/5 absolute top-0 left-0 right-0 z-10 backdrop-blur-sm">
+              <div className="p-5 flex items-center justify-between text-white bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0 z-20">
                 <div className="flex items-center gap-2">
                    <div className="w-2.5 h-2.5 bg-rose-500 rounded-full animate-pulse" />
-                   <h3 className="text-xs font-black uppercase tracking-widest">Live: {label}</h3>
+                   <h3 className="text-xs font-bold uppercase tracking-widest drop-shadow-md">লাইভ: {label}</h3>
                 </div>
                 <button 
                   type="button" 
                   onClick={stopCamera} 
-                  className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-all"
+                  className="p-2.5 bg-black/40 hover:bg-black/60 rounded-full transition-all border border-white/10"
                 >
                   <X className="w-5 h-5 text-white" />
                 </button>
               </div>
 
               {/* Viewport */}
-              <div className="flex-1 flex items-center justify-center relative w-full h-full pt-16 pb-28">
+              <div className="absolute inset-0 w-full h-full z-0 bg-neutral-950">
                  {cameraLoading && (
-                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-3 text-white">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white z-10 bg-neutral-950/80">
                        <span className="w-10 h-10 border-4 border-indigo-500 border-t-white rounded-full animate-spin" />
-                       <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Loading Lens...</span>
+                       <span className="text-xs font-bold tracking-widest text-slate-300">ক্যামেরা চালু হচ্ছে...</span>
                     </div>
                  )}
 
                  {cameraError ? (
-                    <div className="p-6 max-w-sm text-center flex flex-col items-center gap-4 text-white">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center gap-4 text-white z-10 bg-neutral-950">
                        <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-500 flex items-center justify-center mb-2">
                           <Info className="w-6 h-6" />
                        </div>
-                       <p className="text-xs font-bold leading-relaxed">{cameraError}</p>
+                       <p className="text-sm font-bold leading-relaxed">{cameraError}</p>
                        <button 
                          type="button"
                          onClick={handleGallerySelect}
-                         className="px-6 py-3 bg-indigo-600 rounded-xl font-bold uppercase text-[10px] tracking-widest text-white shadow-lg active:scale-95 transition-all"
+                         className="px-6 py-3 bg-indigo-600 rounded-xl font-bold uppercase text-xs tracking-widest text-white shadow-lg active:scale-95 transition-all"
                        >
                           গ্যালারি থেকে ফাইল সিলেক্ট করুন
                        </button>
@@ -472,13 +472,13 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
                       playsInline
                       autoPlay
                       muted
-                      className="w-full h-full object-cover max-h-[80vh] md:max-w-xl md:rounded-3xl shadow-2xl"
+                      className="w-full h-full object-cover"
                     />
                  )}
               </div>
 
               {/* Shutter panel at the bottom */}
-              <div className="absolute bottom-0 left-0 right-0 p-6 bg-slate-900/90 border-t border-white/5 flex items-center justify-between z-10 backdrop-blur-sm text-white px-8">
+              <div className="absolute bottom-0 left-0 right-0 p-8 pb-12 bg-gradient-to-t from-black/95 via-black/70 to-transparent flex items-center justify-between z-20 text-white px-10">
                  <button 
                    type="button"
                    onClick={toggleCameraDirection}
