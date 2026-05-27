@@ -2280,6 +2280,12 @@ async function startServer() {
         }
       }
 
+      const finalDateStr = startDate.toISOString().split('T')[0];
+      const checkStatus = await verifyDayBookActive(data.branch_id, finalDateStr);
+      if (!checkStatus.active) {
+         return res.status(400).json({ error: checkStatus.error });
+      }
+
       const [result]: any = await pool.query(
         `INSERT INTO loans (
           customer_id, scheme_id, amount, duration_weeks,
@@ -2514,6 +2520,75 @@ async function startServer() {
     }
   });
 
+  // Helper to find unclosed days before target date
+  async function findUnclosedDaysBefore(branchId: number | null, dateStr: string): Promise<string[]> {
+    if (!branchId) return [];
+    
+    const query = `
+      SELECT DISTINCT DATE_FORMAT(activities.activity_date, '%Y-%m-%d') AS unclosed_date
+      FROM (
+        SELECT DATE(payment_date) AS activity_date FROM collections WHERE branch_id = ? AND DATE(payment_date) < ? UNION
+        SELECT DATE(start_date) AS activity_date FROM loans WHERE branch_id = ? AND DATE(start_date) < ? UNION
+        SELECT DATE(date) AS activity_date FROM expenses WHERE branch_id = ? AND DATE(date) < ? UNION
+        SELECT DATE(st.date) AS activity_date FROM savings_transactions st JOIN savings_accounts sa ON st.savings_account_id = sa.id JOIN members m ON sa.member_id = m.id WHERE m.branch_id = ? AND DATE(st.date) < ? UNION
+        SELECT DATE(payment_date) AS activity_date FROM salaries WHERE branch_id = ? AND DATE(payment_date) < ? UNION
+        SELECT DATE(date) AS activity_date FROM daily_cash_balances WHERE branch_id = ? AND DATE(date) < ?
+      ) AS activities
+      LEFT JOIN daily_cash_balances dcb 
+        ON dcb.branch_id = ? AND DATE(dcb.date) = DATE(activities.activity_date)
+      WHERE dcb.status IS NULL OR dcb.status != 'closed'
+      ORDER BY activities.activity_date ASC
+      LIMIT 5
+    `;
+    const params = [
+      branchId, dateStr,
+      branchId, dateStr,
+      branchId, dateStr,
+      branchId, dateStr,
+      branchId, dateStr,
+      branchId, dateStr,
+      branchId
+    ];
+    
+    try {
+      const [rows]: any = await pool.query(query, params);
+      return rows.map((r: any) => r.unclosed_date);
+    } catch (err) {
+      console.error('Error finding unclosed days:', err);
+      return [];
+    }
+  }
+
+  // Helper to verify if we can do entries for a branch on a given date
+  async function verifyDayBookActive(branchId: number | null, dateStr: string): Promise<{ active: boolean; error?: string }> {
+    if (!branchId) return { active: true };
+    
+    try {
+      const [currentStatus]: any = await pool.query(
+        `SELECT status FROM daily_cash_balances WHERE branch_id = ? AND date = ?`,
+        [branchId, dateStr]
+      );
+      if (currentStatus && currentStatus.length > 0 && currentStatus[0].status === 'closed') {
+        return { 
+          active: false, 
+          error: `এই তারিখের (${dateStr}) ডে বুক ইতিমধ্যে ক্লোজ করা হয়েছে! নতুন এন্ট্রি করা বা তথ্য পরিবর্তন করা সম্ভব নয়।` 
+        };
+      }
+    } catch (err) {
+      console.error('Error checking current day status:', err);
+    }
+
+    const unclosed = await findUnclosedDaysBefore(branchId, dateStr);
+    if (unclosed.length > 0) {
+      return {
+        active: false,
+        error: `আগের দিনের ডে বুক ক্লোজ করা হয়নি! দয়া করে পূর্বের ডে বুক ক্লোজ করুন। অমীমাংসিত তারিখ: ${unclosed.join(', ')}`
+      };
+    }
+
+    return { active: true };
+  }
+
   app.post("/api/collections", verifyToken, async (req: any, res) => {
     try {
       const data = req.body;
@@ -2528,10 +2603,16 @@ async function startServer() {
          }
       } catch (err) {}
 
+      const txDate = data.payment_date || new Date().toISOString().split('T')[0];
+      const checkStatus = await verifyDayBookActive(branch_id, txDate);
+      if (!checkStatus.active) {
+         return res.status(400).json({ error: checkStatus.error });
+      }
+
       const [result]: any = await pool.query(
         `INSERT INTO collections (loan_id, amount_paid, payment_date, collected_by, branch_id, status)
          VALUES (?, ?, ?, ?, ?, 'pending')`,
-        [data.loan_id, data.amount_paid, data.payment_date || new Date().toISOString().split('T')[0], userId, branch_id]
+        [data.loan_id, data.amount_paid, txDate, userId, branch_id]
       );
       res.status(201).json({ id: result.insertId });
     } catch (err: any) {
@@ -2543,6 +2624,24 @@ async function startServer() {
   app.put("/api/collections/:id", async (req, res) => {
     try {
       const data = req.body;
+      
+      const [collRows]: any = await pool.query('SELECT branch_id, DATE_FORMAT(payment_date, "%Y-%m-%d") as original_date FROM collections WHERE id = ?', [req.params.id]);
+      if (collRows && collRows.length > 0) {
+         const existingBranchId = collRows[0].branch_id;
+         const existingDate = collRows[0].original_date;
+         
+         const originalStatus = await verifyDayBookActive(existingBranchId, existingDate);
+         if (!originalStatus.active) {
+            return res.status(400).json({ error: originalStatus.error });
+         }
+         
+         const newDate = data.payment_date || existingDate;
+         const newStatus = await verifyDayBookActive(existingBranchId, newDate);
+         if (!newStatus.active) {
+            return res.status(400).json({ error: newStatus.error });
+         }
+      }
+
       await pool.query(
         'UPDATE collections SET loan_id=?, amount_paid=?, payment_date=?, payment_method=?, remarks=? WHERE id=?',
         [data.loan_id, data.amount_paid, data.payment_date, data.payment_method || null, data.remarks || null, req.params.id]
@@ -2556,6 +2655,14 @@ async function startServer() {
 
   app.delete("/api/collections/:id", async (req, res) => {
     try {
+      const [collRows]: any = await pool.query('SELECT branch_id, DATE_FORMAT(payment_date, "%Y-%m-%d") as payment_date FROM collections WHERE id = ?', [req.params.id]);
+      if (collRows && collRows.length > 0) {
+         const checkStatus = await verifyDayBookActive(collRows[0].branch_id, collRows[0].payment_date);
+         if (!checkStatus.active) {
+            return res.status(400).json({ error: checkStatus.error });
+         }
+      }
+
       await pool.query('DELETE FROM collections WHERE id = ?', [req.params.id]);
       res.json({ success: true });
     } catch (err) {
@@ -3621,10 +3728,17 @@ async function startServer() {
   app.post("/api/expenses", verifyToken, async (req: any, res) => {
     try {
       const data = req.body;
+
+      const txDate = (data.date ? new Date(data.date) : new Date()).toISOString().split('T')[0];
+      const checkStatus = await verifyDayBookActive(data.branch_id, txDate);
+      if (!checkStatus.active) {
+         return res.status(400).json({ error: checkStatus.error });
+      }
+
       const [result]: any = await pool.query(
         `INSERT INTO expenses (branch_id, category, amount, date, description, payment_method, bank_id) 
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [data.branch_id || null, data.category, data.amount, data.date, data.description || '', data.payment_method, data.bank_id || null]
+        [data.branch_id || null, data.category, data.amount, txDate, data.description || '', data.payment_method, data.bank_id || null]
       );
       res.status(201).json({ id: result.insertId });
     } catch (err: any) {
@@ -3708,12 +3822,30 @@ async function startServer() {
       const savings_account_id = req.params.id;
       const { type, amount, date, remarks } = req.body;
       
+      // Determine branch_id of the savings owner member
+      let branch_id = null;
+      try {
+         const [saRows]: any = await pool.query(
+           `SELECT m.branch_id FROM savings_accounts sa JOIN members m ON sa.member_id = m.id WHERE sa.id = ?`,
+           [savings_account_id]
+         );
+         if (saRows && saRows.length > 0) {
+            branch_id = saRows[0].branch_id;
+         }
+      } catch (err) {}
+
+      const txDate = (date ? new Date(date) : new Date()).toISOString().split('T')[0];
+      const checkStatus = await verifyDayBookActive(branch_id, txDate);
+      if (!checkStatus.active) {
+         return res.status(400).json({ error: checkStatus.error });
+      }
+
       const conn = await pool.getConnection();
       try {
         await conn.beginTransaction();
         await conn.query(
           'INSERT INTO savings_transactions (savings_account_id, type, amount, date, remarks) VALUES (?, ?, ?, ?, ?)',
-          [savings_account_id, type, amount, date, remarks || '']
+          [savings_account_id, type, amount, txDate, remarks || '']
         );
         
         let updateQuery = '';
