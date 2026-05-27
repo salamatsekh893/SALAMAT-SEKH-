@@ -23,6 +23,68 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
   const [showOptions, setShowOptions] = useState(false);
   const [showCropper, setShowCropper] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [aspect, setAspect] = useState<number | undefined>(undefined);
+
+  const handleAspectChange = (newAspect: number | undefined) => {
+    setAspect(newAspect);
+    if (!imgRef.current) return;
+    
+    const { width, height } = imgRef.current;
+    
+    if (newAspect === undefined) {
+      const initialCrop: Crop = {
+        unit: '%',
+        width: 85,
+        height: 85,
+        x: 7.5,
+        y: 7.5
+      };
+      setCrop(initialCrop);
+    } else {
+      let cropWidth = 85;
+      let cropHeight = 85;
+      const imageAspect = width / height;
+      
+      if (newAspect > imageAspect) {
+        cropWidth = 85;
+        cropHeight = (85 / newAspect) * imageAspect;
+      } else {
+        cropHeight = 85;
+        cropWidth = (85 * newAspect) / imageAspect;
+      }
+      
+      const newCrop: Crop = {
+        unit: '%',
+        width: cropWidth,
+        height: cropHeight,
+        x: (100 - cropWidth) / 2,
+        y: (100 - cropHeight) / 2,
+      };
+      setCrop(newCrop);
+    }
+  };
+
+  const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { width, height } = e.currentTarget;
+    const defaultPixelCrop: PixelCrop = {
+      unit: 'px',
+      x: width * 0.075,
+      y: height * 0.075,
+      width: width * 0.85,
+      height: height * 0.85
+    };
+    setCompletedCrop(defaultPixelCrop);
+
+    const defaultCrop: Crop = {
+      unit: '%',
+      width: 85,
+      height: 85,
+      x: 7.5,
+      y: 7.5
+    };
+    setCrop(defaultCrop);
+    setAspect(undefined); // Reset aspect ratio selector on load
+  };
 
   // Modern HTML5 Inline Camera States
   const [showLiveCamera, setShowLiveCamera] = useState(false);
@@ -143,14 +205,32 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
 
   const handleCropDone = async () => {
     try {
-      if (!completedCrop || !image) {
+      if (!image) {
+        setShowCropper(false);
+        setImage(null);
+        return;
+      }
+      
+      let pixelCrop = completedCrop;
+      if ((!pixelCrop || pixelCrop.width === 0 || pixelCrop.height === 0) && imgRef.current) {
+        const { width, height } = imgRef.current;
+        pixelCrop = {
+          unit: 'px',
+          x: width * 0.075,
+          y: height * 0.075,
+          width: width * 0.85,
+          height: height * 0.85
+        };
+      }
+      
+      if (!pixelCrop || pixelCrop.width === 0 || pixelCrop.height === 0) {
         setShowCropper(false);
         setImage(null);
         return;
       }
       
       setIsProcessing(true);
-      const croppedImage = await getCroppedImg(image, completedCrop);
+      const croppedImage = await getCroppedImg(image, pixelCrop);
       if (croppedImage) {
         onImageCaptured(croppedImage);
         setShowCropper(false);
@@ -443,43 +523,131 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[120] bg-black flex flex-col h-[100dvh] w-screen"
+            className="fixed inset-0 z-[120] bg-zinc-950 flex flex-col h-[100dvh] w-screen select-none overflow-hidden text-white"
           >
-            <div className="p-4 flex items-center justify-between text-white bg-black/50 absolute top-0 left-0 right-0 z-10">
-              <h3 className="text-sm font-black uppercase tracking-widest">Crop {label}</h3>
-              <button type="button" onClick={() => setShowCropper(false)} className="p-2 hover:bg-white/10 rounded-full">
-                <X className="w-6 h-6" />
+            {/* Top Navigation Bar resembling Android Toolbar */}
+            <div className="p-4 flex items-center justify-between bg-zinc-900/90 border-b border-zinc-800 absolute top-0 left-0 right-0 z-10 backdrop-blur-md">
+              <button 
+                type="button" 
+                onClick={() => {
+                  setShowCropper(false);
+                  setImage(null);
+                }} 
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-800 hover:bg-zinc-700 transition-colors"
+                title="Cancel"
+              >
+                <X className="w-5 h-5 text-zinc-300" />
               </button>
+              <div className="text-center">
+                <h3 className="text-sm font-bold tracking-wide">ছবি রিসাইজ ও ক্রপ করুন</h3>
+                <p className="text-[10px] text-zinc-400">Android Style Fast Document Scanner</p>
+              </div>
+              <div className="w-10 h-10 flex items-center justify-center text-zinc-400 bg-zinc-800/40 rounded-full text-xs font-bold font-mono">
+                HD
+              </div>
             </div>
             
-            <div className="flex-1 bg-slate-950 flex items-center justify-center overflow-hidden w-full h-full pt-16 pb-24">
+            {/* Viewport Canvas area */}
+            <div className="flex-1 bg-zinc-950 flex items-center justify-center overflow-hidden w-full h-full pt-20 pb-44 px-4">
                {image && (
                  <ReactCrop
                     crop={crop}
-                    onChange={(_, percentCrop) => setCrop(percentCrop)}
+                    aspect={aspect}
+                    onChange={(c, percentCrop) => setCrop(percentCrop)}
                     onComplete={(c) => setCompletedCrop(c)}
-                    className="max-w-full max-h-full h-full flex items-center justify-center"
+                    className="max-w-full max-h-full flex items-center justify-center"
                  >
                     <img 
                       ref={imgRef} 
                       src={image} 
                       alt="Crop" 
+                      onLoad={onImageLoad}
                       className="max-w-full max-h-full object-contain"
-                      style={{ maxHeight: 'calc(100dvh - 160px)' }}
+                      style={{ maxHeight: 'calc(100dvh - 240px)' }}
                     />
                  </ReactCrop>
                )}
             </div>
 
-            <div className="absolute bottom-0 left-0 right-0 p-6 bg-slate-900 border-t border-white/10 z-10">
+            {/* Bottom Panel containing Android Lightroom style presets and Primary Action Button */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-zinc-900 border-t border-zinc-800 z-10 flex flex-col gap-4">
+              
+              {/* Preset Aspect Ratios Slider */}
+              <div className="w-full">
+                <p className="text-[10px] text-zinc-400 uppercase tracking-widest text-center mb-2.5 font-bold">ক্রপ সাইজ সিলেক্ট করুন (Aspect Ratio)</p>
+                <div className="flex items-center justify-start sm:justify-center gap-2 overflow-x-auto pb-1 no-scrollbar scroll-smooth">
+                  <button
+                    type="button"
+                    onClick={() => handleAspectChange(undefined)}
+                    className={cn(
+                      "px-4 py-2 rounded-full font-bold text-xs whitespace-nowrap transition-all border shrink-0",
+                      aspect === undefined 
+                        ? "bg-indigo-600 border-indigo-500 text-white shadow-lg"
+                        : "bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-750"
+                    )}
+                  >
+                    মুক্ত ক্রপ (Free)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAspectChange(1)}
+                    className={cn(
+                      "px-4 py-2 rounded-full font-bold text-xs whitespace-nowrap transition-all border shrink-0",
+                      aspect === 1 
+                        ? "bg-indigo-600 border-indigo-500 text-white shadow-lg"
+                        : "bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-750"
+                    )}
+                  >
+                    প্রোফাইল (1:1)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAspectChange(3 / 4)}
+                    className={cn(
+                      "px-4 py-2 rounded-full font-bold text-xs whitespace-nowrap transition-all border shrink-0",
+                      aspect === (3 / 4) 
+                        ? "bg-indigo-600 border-indigo-500 text-white shadow-lg"
+                        : "bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-750"
+                    )}
+                  >
+                    ডকুমেন্ট (3:4)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAspectChange(4 / 3)}
+                    className={cn(
+                      "px-4 py-2 rounded-full font-bold text-xs whitespace-nowrap transition-all border shrink-0",
+                      aspect === (4 / 3) 
+                        ? "bg-indigo-600 border-indigo-500 text-white shadow-lg"
+                        : "bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-750"
+                    )}
+                  >
+                    আইডি কার্ড (4:3)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAspectChange(1 / 1.414)}
+                    className={cn(
+                      "px-4 py-2 rounded-full font-bold text-xs whitespace-nowrap transition-all border shrink-0",
+                      Math.abs((aspect || 0) - (1 / 1.414)) < 0.01
+                        ? "bg-indigo-600 border-indigo-500 text-white shadow-lg"
+                        : "bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-750"
+                    )}
+                  >
+                    A4 কাগজ (1:√2)
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Button */}
               <button
                 type="button"
                 onClick={handleCropDone}
                 disabled={isProcessing}
-                className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold uppercase text-xs tracking-[0.2em] shadow-xl shadow-indigo-500/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3.5 rounded-2xl font-bold uppercase text-xs tracking-[0.15em] shadow-xl shadow-emerald-950/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 disabled:opacity-50"
               >
-                <Check className="w-5 h-5" />
-                {isProcessing ? 'Processing Stamp...' : 'Apply Free Crop'}
+                <Check className="w-5 h-5 text-white" />
+                {isProcessing ? 'প্রসেসিং হচ্ছে...' : 'ক্রপ সম্পন্ন করুন (Apply)'}
               </button>
             </div>
           </motion.div>
