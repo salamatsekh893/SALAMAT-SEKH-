@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import { Resend } from 'resend';
 import https from "https";
+import http from "http";
 
 dotenv.config({ override: true });
 
@@ -2653,18 +2654,24 @@ async function startServer() {
 
       const fetchWithBypassedSSL = (url: string, headers?: any): Promise<any> => {
         return new Promise((resolve, reject) => {
-          const agent = new https.Agent({
-            rejectUnauthorized: false
-          });
           const urlObj = new URL(url);
+          const isHttps = urlObj.protocol === 'https:';
+          const lib = isHttps ? https : http;
+          
           const options: any = {
             hostname: urlObj.hostname,
-            path: urlObj.pathname + urlObj.search,
+            path: urlObj.pathname + (urlObj.search || ''),
             method: 'GET',
-            agent: agent,
             headers: headers || {}
           };
-          const request = https.request(options, (response) => {
+
+          if (isHttps) {
+            options.agent = new https.Agent({
+              rejectUnauthorized: false
+            });
+          }
+
+          const request = lib.request(options, (response) => {
             let data = '';
             response.on('data', (chunk) => {
               data += chunk;
@@ -2694,6 +2701,14 @@ async function startServer() {
 
       const urlsToTry = [
         {
+          url: `http://api.postalpincode.in/pincode/${pincode}`,
+          isApitier: false
+        },
+        {
+          url: `https://api.postalpincode.in/pincode/${pincode}`,
+          isApitier: false
+        },
+        {
           url: `https://apitier.com/v1/pincode?pincode=${pincode}`,
           headers: { 'x-api-key': '8f901ff3-7f5f-4fd4-97c4-af65bda70cac' },
           isApitier: true
@@ -2702,10 +2717,6 @@ async function startServer() {
           url: `https://api.apitier.com/v1/pincode?pincode=${pincode}`,
           headers: { 'x-api-key': '8f901ff3-7f5f-4fd4-97c4-af65bda70cac' },
           isApitier: true
-        },
-        {
-          url: `https://api.postalpincode.in/pincode/${pincode}`,
-          isApitier: false
         }
       ];
 
@@ -2734,7 +2745,7 @@ async function startServer() {
             }
           } else {
             if (data && data[0] && data[0].Status === 'Success') {
-              console.log(`[PINCODE PROXY] Successfully fetched from PostalPincode fallback`);
+              console.log(`[PINCODE PROXY] Successfully fetched from PostalPincode: ${entry.url}`);
               return res.json(data);
             }
           }
