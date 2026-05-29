@@ -104,11 +104,11 @@ export default function LoanCardView() {
   const rows = [];
   let currentDate = loan.start_date ? new Date(loan.start_date) : new Date();
 
-  const totalPrincipal = Math.floor(Number(loan.amount) || 0);
-  const totalRepayment = Math.floor(Number(loan.total_repayment || (totalPrincipal + Number(loan.interest || 0))));
+  const totalPrincipal = Math.round(Number(loan.amount) || 0);
+  const totalRepayment = Math.round(Number(loan.total_repayment || (totalPrincipal + Number(loan.interest || 0))));
   
-  const baseEMI = loan.installment ? Math.floor(Number(loan.installment)) : Math.floor(totalRepayment / numInstallments);
-  const basePrincipal = Math.floor(totalPrincipal / numInstallments);
+  const baseEMI = loan.installment ? Math.round(Number(loan.installment)) : Math.round(totalRepayment / numInstallments);
+  const basePrincipal = Math.round(totalPrincipal / numInstallments);
   
   let remainingPrincipal = totalPrincipal;
   let remainingOutstanding = totalRepayment;
