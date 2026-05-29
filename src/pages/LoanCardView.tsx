@@ -97,8 +97,8 @@ export default function LoanCardView() {
   const totalPrincipal = Math.floor(Number(loan.amount) || 0);
   const totalRepayment = Math.floor(Number(loan.total_repayment || (totalPrincipal + Number(loan.interest || 0))));
   
+  const baseEMI = loan.installment ? Math.floor(Number(loan.installment)) : Math.floor(totalRepayment / numInstallments);
   const basePrincipal = Math.floor(totalPrincipal / numInstallments);
-  const baseEMI = Math.floor(totalRepayment / numInstallments);
   
   let remainingPrincipal = totalPrincipal;
   let remainingOutstanding = totalRepayment;
@@ -123,9 +123,12 @@ export default function LoanCardView() {
       outstanding: remainingOutstanding
     });
 
-    if (loan.emi_frequency === 'daily') {
+    const freq = (loan.emi_frequency || 'weekly').toLowerCase();
+    if (freq === 'daily') {
       currentDate = addDays(currentDate, 1);
-    } else if (loan.emi_frequency === 'monthly') {
+    } else if (freq.includes('bi')) {
+      currentDate = addWeeks(currentDate, 2);
+    } else if (freq === 'monthly') {
       currentDate = addMonths(currentDate, 1);
     } else {
       // Default weekly
