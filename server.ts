@@ -2553,7 +2553,8 @@ async function startServer() {
         ON dcb.branch_id = ? AND DATE(dcb.date) = DATE(activities.activity_date)
       WHERE (dcb.status IS NULL OR dcb.status != 'closed')
         AND activities.activity_date IS NOT NULL
-        AND activities.activity_date >= '2026-05-29'
+        AND activities.activity_date > '2026-05-29'
+        AND activities.activity_date < CURDATE()
       ORDER BY activities.activity_date ASC
       LIMIT 5
     `;
