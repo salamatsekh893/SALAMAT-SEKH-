@@ -17,6 +17,8 @@ export default function LoanCardView() {
   const [viewMode, setViewMode] = useState<'cover' | 'schedule'>('cover'); // Default to cover so the beautiful cover page is shown first!
   const printRef = useRef<HTMLDivElement>(null);
 
+  const [collections, setCollections] = useState<any[]>([]);
+
   useEffect(() => {
     loadData();
   }, [id]);
@@ -24,13 +26,18 @@ export default function LoanCardView() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [loanData, companiesData] = await Promise.all([
+      const [loanData, companiesData, collectionsData] = await Promise.all([
         fetchWithAuth(`/loans/${id}`),
-        fetchWithAuth('/companies')
+        fetchWithAuth('/companies'),
+        fetchWithAuth(`/collections?loan_id=${id}`).catch(() => [])
       ]);
       setLoan(loanData);
       if (companiesData && companiesData.length > 0) {
         setCompany(companiesData[0]);
+      }
+      if (collectionsData) {
+        // collections endpoint might return { data: [...] } or just [...]
+        setCollections(Array.isArray(collectionsData) ? collectionsData : collectionsData.data || []);
       }
     } catch (err: any) {
       console.error('Failed to load agreement:', err);
@@ -103,6 +110,15 @@ export default function LoanCardView() {
   let remainingPrincipal = totalPrincipal;
   let remainingOutstanding = totalRepayment;
 
+  // Distribute collections across EMIs
+  let collectionPool = collections
+    .filter(c => c.status !== 'rejected')
+    .map(c => ({
+       date: format(new Date(c.payment_date), 'dd-MMM-yy'),
+       avail: Number(c.amount_paid)
+    }))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
   for (let i = 1; i <= numInstallments; i++) {
     const isLast = i === numInstallments;
     
@@ -113,6 +129,31 @@ export default function LoanCardView() {
     
     remainingPrincipal -= emiPrincipal;
     remainingOutstanding -= emiAmount;
+    
+    // Fill from collectionPool
+    let collectedForThisEmi = 0;
+    let recvDate = '';
+    let amountNeeded = emiAmount;
+
+    while (amountNeeded > 0 && collectionPool.length > 0) {
+      let currentColl = collectionPool[0];
+      if (currentColl.avail <= 0) {
+        collectionPool.shift();
+        continue;
+      }
+
+      recvDate = currentColl.date; // Mark the date of the payment that covered this
+      if (currentColl.avail >= amountNeeded) {
+        collectedForThisEmi += amountNeeded;
+        currentColl.avail -= amountNeeded;
+        amountNeeded = 0;
+      } else {
+        collectedForThisEmi += currentColl.avail;
+        amountNeeded -= currentColl.avail;
+        currentColl.avail = 0;
+        collectionPool.shift();
+      }
+    }
 
     rows.push({
       instNo: i,
@@ -120,7 +161,10 @@ export default function LoanCardView() {
       amount: emiAmount,
       principal: emiPrincipal,
       interest: emiInterest,
-      outstanding: remainingOutstanding
+      outstanding: remainingOutstanding,
+      recvDate: collectedForThisEmi > 0 ? recvDate : '',
+      collectedAmt: collectedForThisEmi > 0 ? formatAmount(collectedForThisEmi) : '',
+      isPaid: collectedForThisEmi >= emiAmount
     });
 
     const freq = (loan.emi_frequency || 'weekly').toLowerCase();
@@ -195,15 +239,21 @@ export default function LoanCardView() {
         </div>
       </div>
 
-      <div className="w-full flex-1 overflow-x-auto bg-slate-900 print:bg-white print:overflow-visible py-8">
+      <div className="w-full h-full flex-1 overflow-auto bg-slate-900 print:bg-white print:overflow-visible py-8">
         <div className="w-fit min-w-full mx-auto px-4 print:p-0">
           
-          {/* Landscape A4 Page Container */}
+          {/* Print Ready Container */}
           <div 
             id="loan-card-print-area"
             ref={printRef}
-            className="bg-white shadow-2xl print:shadow-none mx-auto rounded-[24px] overflow-hidden"
-            style={{ width: '297mm', height: '210mm', fontFamily: 'sans-serif', color: '#000' }}
+            className="bg-white shadow-2xl print:shadow-none mx-auto rounded-[2px]"
+            style={{ 
+              width: '297mm', 
+              height: '210mm', 
+              minHeight: '210mm',
+              fontFamily: 'sans-serif', 
+              color: '#000' 
+            }}
           >
             <style>{`
               @media print {
@@ -228,9 +278,9 @@ export default function LoanCardView() {
                   padding: 0 !important;
                   width: 297mm !important;
                   height: 210mm !important;
+                  min-height: 210mm !important;
                   border: none !important;
                   box-shadow: none !important;
-                  border-radius: 0 !important;
                   background-color: #fff !important;
                   -webkit-print-color-adjust: exact !important;
                   print-color-adjust: exact !important;
@@ -452,129 +502,159 @@ export default function LoanCardView() {
               </div>
             ) : (
               /* ========================================================================= */
-              /* DETAILED EMI PAYMENT SCHEDULE TABLE LAYOUT - PINK/ROSE THEME              */
+              /* DETAILED EMI PAYMENT SCHEDULE TABLE LAYOUT - LANDSCAPE DOUBLE COLUMN      */
               /* ========================================================================= */
-              <div className="flex w-full h-[210mm] p-[10mm] relative bg-white flex-row overflow-hidden box-border">
+              <div className="flex w-full h-[210mm] p-[10mm] gap-6 select-none relative bg-white overflow-hidden box-border">
                 
-                {/* Left Side: Information Card */}
-                <div className="w-[38%] border-r-2 border-pink-950 pr-[8mm] flex flex-col justify-between pt-1 h-full box-border">
-                  <div>
-                    <div className="text-center mb-3">
-                      <div className="flex items-center justify-center gap-1.5 mb-1">
-                        {company?.logo_url ? (
-                          <img src={company.logo_url} className="w-6 h-6 object-contain" alt="" />
-                        ) : (
-                          <Landmark className="w-5 h-5 text-pink-950" />
-                        )}
-                        <h1 className="font-black text-lg uppercase tracking-wider text-pink-950 leading-tight">{c_name}</h1>
+                {/* LEFT CONVOLUTION: Part 1 - Installments 1 to Math.ceil(rows.length / 2) */}
+                <div className="w-[48.5%] h-full border-2 border-slate-300 rounded-3xl p-4 flex flex-col justify-between bg-slate-50/15 relative">
+                  
+                  {/* Outer Frame Accents */}
+                  <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-slate-450"></div>
+                  <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-slate-450"></div>
+                  <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-slate-450"></div>
+                  <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-slate-450"></div>
+
+                  <div className="flex flex-col h-full justify-between">
+                    <div>
+                      {/* Header */}
+                      <div className="text-center mb-2">
+                        <h2 className="text-[12px] font-black text-slate-900 uppercase tracking-wider">{company?.company_name || 'ALJOOYA SUBIDHA SERVICES'}</h2>
+                        <span className="text-[8px] font-extrabold text-pink-600 uppercase tracking-widest block leading-none">কিস্তি আদায়পত্র (গ্রাহক কপি) / Payment Schedule Records</span>
                       </div>
-                      <p className="font-bold text-[10px] uppercase tracking-widest text-[9px] text-pink-600 leading-none">Loan Passbook Profile</p>
+
+                      {/* Client Brief Profile - Real information from database */}
+                      <div className="grid grid-cols-4 gap-1.5 bg-slate-100 rounded-xl p-2 text-[8.5px] font-semibold text-slate-700 border border-slate-200 mb-2">
+                        <div className="col-span-2 truncate">👤 নাম: <span className="font-extrabold text-slate-900">{loan.member_name}</span></div>
+                        <div className="col-span-2 font-mono text-right truncate">🆔 ঋণ নং: <span className="font-extrabold text-slate-900">{loan.loan_no || `L${loan.id}`}</span></div>
+                        <div className="col-span-2 truncate">📱 মোবাইল: <span className="font-bold text-slate-900">{loan.mobile_no || 'N/A'}</span></div>
+                        <div className="col-span-2 text-right truncate">🏢 শাখা: <span className="font-bold text-slate-900">{loan.branch_name || 'N/A'}</span></div>
+                        <div className="col-span-2">💰 ঋণ টাকা: <span className="font-bold text-slate-900">₹{formatAmount(totalPrincipal)}</span></div>
+                        <div className="col-span-2 text-right">💵 কিস্তি: <span className="font-bold text-pink-700 font-sans">₹{formatAmount(baseEMI)}</span></div>
+                      </div>
+
+                      {/* Left Table Panel */}
+                      <div className="overflow-hidden">
+                        <table className="w-full border-collapse border border-slate-300 text-[8px]">
+                          <thead>
+                            <tr className="bg-slate-800 text-white font-black uppercase text-[7.5px]">
+                              <th className="border border-slate-450 p-1 text-center w-6">নং</th>
+                              <th className="border border-slate-450 p-1 text-center w-16">নির্ধারিত তারিখ</th>
+                              <th className="border border-slate-450 p-1 text-right w-12">কিস্তি টাকা</th>
+                              <th className="border border-slate-450 p-1 text-center w-16">আদায় তারিখ</th>
+                              <th className="border border-slate-450 p-1 text-right w-14">আদায় টাকা</th>
+                              <th className="border border-slate-450 p-1 text-center w-12">কর্মী সই</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rows.slice(0, Math.ceil(rows.length / 2)).map((row) => (
+                              <tr key={row.instNo} className="bg-white hover:bg-slate-50">
+                                <td className="border border-slate-300 p-0.5 text-center font-bold text-slate-500">{row.instNo}</td>
+                                <td className="border border-slate-300 p-0.5 text-center font-bold font-mono text-slate-750">{row.date}</td>
+                                <td className="border border-slate-300 p-0.5 text-right font-black font-mono text-slate-900">₹{formatAmount(row.amount)}</td>
+                                <td className="border border-slate-300 p-0.5 text-center text-[7.5px] font-bold text-emerald-700 font-mono">
+                                  {row.collectedAmt ? row.recvDate : <span className="text-slate-300 block text-center font-light leading-none">..........</span>}
+                                </td>
+                                <td className="border border-slate-300 p-0.5 text-right text-[7.5px] font-black text-emerald-700 font-mono">
+                                  {row.collectedAmt ? `₹${row.collectedAmt}` : <span className="text-slate-300 block text-center font-light leading-none">..........</span>}
+                                </td>
+                                <td className="border border-slate-300 p-0.5 text-center text-[7px] font-extrabold text-emerald-600">
+                                  {row.isPaid ? '✓ Paid' : <span className="text-slate-300 block text-center font-light leading-none">..........</span>}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                    
-                    <div className="flex justify-center mb-3">
-                      <div className="w-[80px] h-[90px] border-2 border-pink-950 p-1 bg-white shadow-sm rounded-md overflow-hidden">
-                        {loan.profile_image ? (
-                          <img src={loan.profile_image} className="w-full h-full object-cover rounded-sm" alt="Profile" />
-                        ) : (
-                          <div className="w-full h-full bg-slate-50 flex flex-col items-center justify-center text-[9px] text-pink-300 font-bold text-center border border-dashed border-pink-200 rounded-sm leading-tight">
-                            Customer<br/>Profile<br/>Photo
-                          </div>
-                        )}
-                      </div>
+
+                    <div className="flex justify-between items-center pt-1 border-t border-slate-200 text-[7px] text-slate-400 font-bold uppercase mt-1 tracking-wider">
+                      <div>Member ID: {loan.member_code || 'N/A'}</div>
+                      <div>ALJOOYA SYSTEM • PAGE 1</div>
                     </div>
-
-                    <div className="space-y-2 text-[10.5px]">
-                      <div className="bg-pink-50/30 p-2 rounded-lg border border-pink-50">
-                        <h3 className="text-[9px] font-black text-pink-600 uppercase mb-1 tracking-wider border-b border-pink-100 pb-0.5">Member details</h3>
-                        <div className="space-y-1">
-                          <div className="flex items-end"><span className="w-22 font-bold text-pink-800">Name:</span> <span className="font-bold border-b border-slate-300 flex-1 uppercase pb-0.5 text-slate-900 truncate">{loan.member_name}</span></div>
-                          <div className="flex items-end"><span className="w-22 font-bold text-pink-800">{loan.guardian_type || 'C/o'}:</span> <span className="font-bold border-b border-slate-300 flex-1 uppercase pb-0.5 text-slate-900 truncate">{loan.guardian_name || loan.husband_name || loan.father_name || 'N/A'}</span></div>
-                          <div className="flex items-end"><span className="w-22 font-bold text-pink-800">Member ID:</span> <span className="font-bold border-b border-slate-300 flex-1 pb-0.5 text-slate-900 font-mono">{loan.member_code || `CID: ${loan.customer_id}`}</span></div>
-                          <div className="flex items-end"><span className="w-22 font-bold text-pink-800">Group:</span> <span className="font-bold border-b border-slate-300 flex-1 pb-0.5 text-slate-900 truncate uppercase font-sans">{loan.group_name || 'INDIVIDUAL'}</span></div>
-                          <div className="flex items-end"><span className="w-22 font-bold text-pink-800">Nominee:</span> <span className="font-bold border-b border-slate-300 flex-1 pb-0.5 text-slate-900 truncate uppercase">{loan.nominee_name || 'N/A'} ({loan.nominee_relation || ''})</span></div>
-                          <div className="flex items-end"><span className="w-22 font-bold text-pink-800">Address:</span> <span className="font-bold border-b border-slate-300 flex-1 pb-0.5 text-slate-900 truncate">{loan.village || loan.district || 'N/A'}</span></div>
-                        </div>
-                      </div>
-
-                      <div className="bg-rose-50/20 p-2 rounded-lg border border-rose-100/45">
-                        <h3 className="text-[9px] font-black text-pink-700 uppercase mb-1 tracking-wider border-b border-pink-100 pb-0.5">Loan agreement</h3>
-                        <div className="space-y-1">
-                          <div className="flex items-end"><span className="w-22 font-bold text-pink-800">Loan A/C:</span> <span className="font-bold border-b border-slate-300 flex-1 pb-0.5 text-slate-900 font-mono">{loan.loan_no || `L${loan.id}`}</span></div>
-                          <div className="flex items-end"><span className="w-22 font-bold text-pink-800">Interest:</span> <span className="font-bold border-b border-slate-300 flex-1 pb-0.5 text-slate-900">{loan.interest_rate || loan.interest}% FIXED</span></div>
-                          <div className="flex items-end"><span className="w-22 font-bold text-pink-800">Scheme:</span> <span className="font-bold border-b border-slate-300 flex-1 pb-0.5 text-slate-900 truncate uppercase">{loan.scheme_name}</span></div>
-                          <div className="flex items-end"><span className="w-22 font-bold text-pink-800">Amount:</span> <span className="font-bold border-b border-slate-300 flex-1 pb-0.5 text-slate-900 font-mono">₹ {formatAmount(totalPrincipal)}</span></div>
-                          <div className="flex items-end"><span className="w-22 font-bold text-pink-800">Total Repay:</span> <span className="font-bold border-b border-slate-300 flex-1 pb-0.5 text-slate-900 font-mono">₹ {formatAmount(totalRepayment)}</span></div>
-                          <div className="flex items-end"><span className="w-22 font-bold text-pink-800">Term Mode:</span> <span className="font-bold border-b border-slate-300 flex-1 pb-0.5 text-slate-900 uppercase">{loan.duration_weeks} {loan.emi_frequency || 'weeks'}</span></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-1 border border-dashed border-pink-200 rounded-lg text-center bg-pink-50/20 text-[8px] font-bold text-pink-600 uppercase tracking-wider my-2">
-                    Keep this card safe. Bring it during every EMI payment.
-                  </div>
-
-                  <div className="border-t-2 border-pink-950 pt-3 flex justify-between px-2 pb-1">
-                    <div className="text-center w-24 border-t border-slate-400 pt-0.5 text-[8.5px] font-black text-slate-600">Verified By</div>
-                    <div className="text-center w-24 border-t border-slate-400 pt-0.5 text-[8.5px] font-black text-slate-600">Auth. Signatory</div>
                   </div>
                 </div>
 
-                {/* Right Side: Installment Ledger Schedule */}
-                <div className="w-[62%] pl-[8mm] flex flex-col justify-between pt-1 h-full box-border">
-                  <div>
-                    <h2 className="text-[14px] font-black text-pink-950 uppercase tracking-wider mb-2.5 border-b-2 border-pink-100 pb-1.5 flex justify-between items-center">
-                      <span>EMI payment schedule</span>
-                      <span className="text-[11px] text-pink-700 font-black font-mono">EMI: ₹ {formatAmount(baseEMI)}</span>
-                    </h2>
-
-                    <table className="w-full border-collapse select-none text-[9.5px]">
-                      <thead>
-                        <tr className="bg-pink-950 text-white border border-pink-400 uppercase font-black">
-                          <th className="border border-pink-300 p-1 text-center w-8">No</th>
-                          <th className="border border-pink-300 p-1 text-center w-18">Date</th>
-                          <th className="border border-pink-300 p-1 text-right w-14">Prin (₹)</th>
-                          <th className="border border-pink-300 p-1 text-right w-12">Int (₹)</th>
-                          <th className="border border-pink-300 p-1 text-right w-14">EMI (₹)</th>
-                          <th className="border border-pink-300 p-1 text-right w-16">Bal (₹)</th>
-                          <th className="border border-pink-300 p-1 text-center w-18">Recv Date</th>
-                          <th className="border border-pink-300 p-1 text-right w-14">Coll (₹)</th>
-                          <th className="border border-pink-300 p-1 text-center min-w-[50px]">Sign</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rows.slice(0, 16).map((row, idx) => (
-                          <tr key={row.instNo} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-pink-50/10'}`}>
-                            <td className="border border-pink-100 p-0.5 text-center font-bold text-slate-700">{row.instNo}</td>
-                            <td className="border border-pink-100 p-0.5 text-center whitespace-nowrap text-slate-600 font-mono">{row.date}</td>
-                            <td className="border border-pink-100 p-0.5 text-semibold text-right text-slate-500 font-mono">{formatAmount(row.principal)}</td>
-                            <td className="border border-pink-100 p-0.5 text-semibold text-right text-slate-500 font-mono">{formatAmount(row.interest)}</td>
-                            <td className="border border-pink-100 p-0.5 text-right font-bold text-pink-700 font-mono">{formatAmount(row.amount)}</td>
-                            <td className="border border-pink-100 p-0.5 text-right font-black text-pink-950 font-mono">{formatAmount(row.outstanding)}</td>
-                            <td className="border border-pink-100 p-0.5"></td>
-                            <td className="border border-pink-100 p-0.5"></td>
-                            <td className="border border-pink-100 p-0.5"></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                {/* MIDDLE SEPARATOR: FOLD HERE */}
+                <div className="w-[3%] h-full flex flex-col items-center justify-center relative select-none">
+                  <div className="h-full border-l-[2px] border-dashed border-slate-300"></div>
+                  <div className="absolute bg-white px-2 py-4 text-[8px] font-black text-slate-400 rotate-90 whitespace-nowrap tracking-[0.25em] uppercase flex items-center gap-1.5 rounded-full border border-slate-200 shadow-sm">
+                    ✂️ Fold Booklet / ভাঁজ করার রেখা
                   </div>
+                </div>
 
-                  {rows.length > 16 && (
-                    <div className="text-[8px] italic text-rose-600 font-bold tracking-tight text-center bg-rose-50 border border-rose-100 p-1 rounded-md">
-                      ⚠️ displaying first 16 installments only, download PDF or print to check entire ledger list.
+                {/* RIGHT CONVOLUTION: Part 2 - Installments Math.ceil(rows.length / 2) to end */}
+                <div className="w-[48.5%] h-full border-2 border-slate-300 rounded-3xl p-4 flex flex-col justify-between bg-slate-50/15 relative">
+                  
+                  {/* Outer Frame Accents */}
+                  <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-slate-450"></div>
+                  <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-slate-450"></div>
+                  <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-slate-450"></div>
+                  <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-slate-450"></div>
+
+                  <div className="flex flex-col h-full justify-between">
+                    <div>
+                      {/* Header */}
+                      <div className="text-center mb-2">
+                        <span className="text-[12px] font-black text-slate-900 uppercase tracking-wider">{company?.company_name || 'ALJOOYA SUBIDHA SERVICES'}</span>
+                        <span className="text-[8px] font-extrabold text-pink-600 block leading-none mt-0.5">পরিশোধ কিস্তি সূচী ২য় ভাগ / Repayment Records Part 2</span>
+                      </div>
+
+                      {/* Client Brief Profile Part 2 - More real information from database */}
+                      <div className="grid grid-cols-4 gap-1.5 bg-rose-50/40 rounded-xl p-2 text-[8.5px] font-semibold text-slate-700 border border-pink-100 mb-2">
+                        <div className="col-span-2 truncate">🆔 সদস্য কোড: <span className="font-extrabold text-slate-900">{loan.member_code || `CID-${loan.customer_id}`}</span></div>
+                        <div className="col-span-2 text-right truncate">👥 সমিতি/গ্রুপ: <span className="font-bold text-slate-900">{loan.group_name || 'Individual'}</span></div>
+                        <div className="col-span-2 truncate">👨‍👩‍👦 অভিভাবক: <span className="font-bold text-slate-900">{loan.guardian_name || 'N/A'}</span></div>
+                        <div className="col-span-2 text-right truncate">📈 স্কিম: <span className="font-bold text-slate-900">{loan.scheme_name || 'N/A'}</span></div>
+                        <div className="col-span-2">📅 চক্র: <span className="font-extrabold text-pink-700 uppercase">{loan.emi_frequency || 'weekly'}</span></div>
+                        <div className="col-span-2 text-right">🕒 মোট কিস্তি: <span className="font-bold text-slate-900">{loan.duration_weeks} টি</span></div>
+                      </div>
+
+                      {/* Right Table Panel */}
+                      <div className="overflow-hidden">
+                        <table className="w-full border-collapse border border-slate-300 text-[8px]">
+                          <thead>
+                            <tr className="bg-slate-800 text-white font-black uppercase text-[7.5px]">
+                              <th className="border border-slate-450 p-1 text-center w-6">নং</th>
+                              <th className="border border-slate-450 p-1 text-center w-16">নির্ধারিত তারিখ</th>
+                              <th className="border border-slate-450 p-1 text-right w-12">কিস্তি টাকা</th>
+                              <th className="border border-slate-450 p-1 text-center w-16">আদায় তারিখ</th>
+                              <th className="border border-slate-450 p-1 text-right w-14">আদায় টাকা</th>
+                              <th className="border border-slate-450 p-1 text-center w-12">কর্মী সই</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rows.slice(Math.ceil(rows.length / 2)).map((row) => (
+                              <tr key={row.instNo} className="bg-white hover:bg-slate-50">
+                                <td className="border border-slate-300 p-0.5 text-center font-bold text-slate-500">{row.instNo}</td>
+                                <td className="border border-slate-300 p-0.5 text-center font-bold font-mono text-slate-750">{row.date}</td>
+                                <td className="border border-slate-300 p-0.5 text-right font-black font-mono text-slate-900">₹{formatAmount(row.amount)}</td>
+                                <td className="border border-slate-300 p-0.5 text-center text-[7.5px] font-bold text-emerald-700 font-mono">
+                                  {row.collectedAmt ? row.recvDate : <span className="text-slate-300 block text-center font-light leading-none">..........</span>}
+                                </td>
+                                <td className="border border-slate-300 p-0.5 text-right text-[7.5px] font-black text-emerald-700 font-mono">
+                                  {row.collectedAmt ? `₹${row.collectedAmt}` : <span className="text-slate-300 block text-center font-light leading-none">..........</span>}
+                                </td>
+                                <td className="border border-slate-300 p-0.5 text-center text-[7px] font-extrabold text-emerald-600">
+                                  {row.isPaid ? '✓ Paid' : <span className="text-slate-300 block text-center font-light leading-none">..........</span>}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  )}
 
-                  <div className="py-2 border-t border-pink-100 flex justify-between items-center text-[8.5px] font-bold text-pink-400">
-                    <div>RECORD ID: {loan.id}</div>
-                    <div>PAGE 1 OF 1</div>
+                    <div className="flex justify-between items-center pt-1 border-t border-slate-200 text-[7px] text-slate-400 font-bold uppercase mt-1 tracking-wider">
+                      <div>Generated: {new Date().toLocaleDateString()}</div>
+                      <div>ALJOOYA SYSTEM • PAGE 2</div>
+                    </div>
                   </div>
                 </div>
 
               </div>
             )}
-
+            
           </div>
         </div>
       </div>

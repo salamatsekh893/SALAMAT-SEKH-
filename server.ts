@@ -2482,6 +2482,7 @@ async function startServer() {
   app.get("/api/collections", verifyToken, async (req: any, res) => {
     try {
       const { role, userId, branchId } = req.user;
+      const { loan_id } = req.query;
       let query = `
         SELECT c.*, l.customer_id, m.full_name as customer_name, u.name as collected_by_name, u2.name as approved_by_name, u2.role as approved_by_role, g.group_name
         FROM collections c
@@ -2493,6 +2494,11 @@ async function startServer() {
       `;
       let whereClauses: string[] = [];
       let params: any[] = [];
+
+      if (loan_id) {
+        whereClauses.push('c.loan_id = ?');
+        params.push(loan_id);
+      }
 
       if (role === 'branch_manager') {
         whereClauses.push('(u.branch_id = ? OR g.branch_id = ?)');
