@@ -53,10 +53,10 @@ export default function Layout({ user, onLogout }: LayoutProps) {
     // Only superadmin and manager need to know about pending approvals
     if (user && ['superadmin', 'manager'].includes(user?.role)) {
       const fetchLoans = () => {
-        fetchWithAuth('/loans')
+        fetchWithAuth('/loans?status=pending')
           .then(data => {
             if (Array.isArray(data)) {
-              setPendingApprovals(data.filter((l: any) => l.status === 'pending').length);
+              setPendingApprovals(data.length);
             }
           })
           .catch(() => {});
@@ -305,7 +305,7 @@ export default function Layout({ user, onLogout }: LayoutProps) {
                animate={{ opacity: 1, y: 0 }}
                exit={{ opacity: 0, y: -10 }}
                transition={{ duration: 0.2, ease: "easeOut" }}
-               className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8"
+               className="max-w-none w-full px-4 sm:px-6 lg:px-8"
              >
                 <Outlet />
              </motion.div>

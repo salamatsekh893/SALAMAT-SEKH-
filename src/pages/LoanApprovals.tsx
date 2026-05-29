@@ -24,10 +24,10 @@ export default function LoanApprovals() {
     try {
       setLoading(true);
       const [loanData, branchData] = await Promise.all([
-        fetchWithAuth('/loans'),
+        fetchWithAuth('/loans?status=pending'),
         fetchWithAuth('/branches').catch(() => []) 
       ]);
-      setLoans(loanData.filter((l: any) => l.status === 'pending'));
+      setLoans(loanData);
       setBranches(branchData || []);
     } catch (err: any) {
       console.error(err);

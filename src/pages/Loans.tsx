@@ -19,8 +19,8 @@ export default function Loans() {
 
   const loadData = () => {
     setLoading(true);
-    fetchWithAuth('/loans')
-      .then((loanData) => setLoans(loanData.filter((l: any) => l.status === 'active')))
+    fetchWithAuth('/loans?status=active')
+      .then((loanData) => setLoans(loanData))
       .finally(() => setLoading(false));
   };
 

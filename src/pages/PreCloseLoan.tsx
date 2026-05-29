@@ -20,9 +20,9 @@ export default function PreCloseLoan() {
 
   const fetchLoans = () => {
     setLoading(true);
-    fetchWithAuth('/loans')
+    fetchWithAuth('/loans?status=active')
       .then((loanData) => {
-        setLoans(loanData.filter((l: any) => l.status === 'active'));
+        setLoans(loanData);
       })
       .finally(() => setLoading(false));
   };

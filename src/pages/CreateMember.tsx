@@ -75,6 +75,7 @@ export default function CreateMember() {
   const [groups, setGroups] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
   const [poList, setPoList] = useState<string[]>([]);
+  const [poDropdownOpen, setPoDropdownOpen] = useState(false);
   const [images, setImages] = useState<Record<string, string | null>>({
     profile: null,
     house: null,
@@ -543,7 +544,7 @@ export default function CreateMember() {
             {/* Category */}
             <div className="col-span-1">
               <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
-                Category <span className="text-rose-500 font-black">*</span>
+                Category (শ্রেণী) <span className="text-rose-500 font-black">*</span>
               </label>
               <select 
                 {...register('category')}
@@ -555,6 +556,160 @@ export default function CreateMember() {
                 <option value="OBC-A">OBC-A</option>
                 <option value="OBC-B">OBC-B</option>
               </select>
+            </div>
+
+            {/* Monthly Income */}
+            <div className="col-span-1">
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Monthly Income (মাসিক আয়) <span className="text-rose-500 font-black">*</span>
+              </label>
+              <input 
+                type="number"
+                {...register('monthly_income', { valueAsNumber: true })}
+                className={cn(
+                  "w-full bg-slate-50 focus:bg-white border text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-inner",
+                  errors.monthly_income ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200 focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500"
+                )}
+                placeholder="MONTHLY INCOME (MIN 500)"
+              />
+              {errors.monthly_income?.message && (
+                <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-rose-500 uppercase ml-1 bg-rose-50 p-2 rounded-lg border border-rose-100">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{String(errors.monthly_income?.message)}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Occupation */}
+            <div className="col-span-1">
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Occupation (পেশা) <span className="text-rose-500 font-black">*</span>
+              </label>
+              <select 
+                {...register('occupation')}
+                className="w-full bg-slate-50 focus:bg-white border border-slate-200 text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-sm focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500"
+              >
+                <option value="Housewife">HOUSEWIFE / গৃহিনী</option>
+                <option value="Business">BUSINESS / ব্যবসা</option>
+                <option value="Service">SERVICE / চাকুরী</option>
+                <option value="Agriculture">AGRICULTURE / কৃষি</option>
+                <option value="Labour">LABOUR / শ্রমিক</option>
+                <option value="Retired">RETIRED / অবসরপ্রাপ্ত</option>
+                <option value="Student">STUDENT / ছাত্র</option>
+                <option value="Other">OTHER / অন্যান্য</option>
+              </select>
+            </div>
+
+            {/* Education */}
+            <div className="col-span-1">
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Education (শিক্ষা) <span className="text-rose-500 font-black">*</span>
+              </label>
+              <select 
+                {...register('education')}
+                className="w-full bg-slate-50 focus:bg-white border border-slate-200 text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-sm focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500"
+              >
+                <option value="Illiterate">ILLITERATE / অশিক্ষিত</option>
+                <option value="Primary">PRIMARY / প্রাথমিক</option>
+                <option value="Secondary">SECONDARY / মাধ্যমিক</option>
+                <option value="Higher Secondary">HIGHER SECONDARY / উচ্চ মাধ্যমিক</option>
+                <option value="Graduate">GRADUATE / স্নাতক</option>
+                <option value="Post Graduate">POST GRADUATE / স্নাতকোত্তর</option>
+              </select>
+            </div>
+
+            {/* Religion */}
+            <div className="col-span-1">
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Religion (ধর্ম) <span className="text-rose-500 font-black">*</span>
+              </label>
+              <select 
+                {...register('religion')}
+                className="w-full bg-slate-50 focus:bg-white border border-slate-200 text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-sm focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500"
+              >
+                <option value="Islam">ISLAM / ইসলাম</option>
+                <option value="Hinduism">HINDUISM / হিন্দু</option>
+                <option value="Christianity">CHRISTIANITY / খ্রিষ্টান</option>
+                <option value="Sikhism">SIKHISM / শিখ</option>
+                <option value="Buddhism">BUDDHISM / বৌদ্ধ</option>
+                <option value="Other">OTHER / অন্যান্য</option>
+              </select>
+            </div>
+
+            {/* Family Members */}
+            <div className="col-span-1">
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Family Members (পরিবারের সদস্য) <span className="text-rose-500 font-black">*</span>
+              </label>
+              <input 
+                type="number"
+                {...register('family_members', { valueAsNumber: true })}
+                className={cn(
+                  "w-full bg-slate-50 focus:bg-white border text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-inner",
+                  errors.family_members ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200 focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500"
+                )}
+                placeholder="NO OF FAMILY MEMBERS"
+              />
+              {errors.family_members?.message && (
+                <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-rose-500 uppercase ml-1 bg-rose-50 p-2 rounded-lg border border-rose-100">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{String(errors.family_members?.message)}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Earning Members */}
+            <div className="col-span-1">
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Earning Members (উপার্জনকারী সদস্য) <span className="text-rose-500 font-black">*</span>
+              </label>
+              <input 
+                type="number"
+                {...register('earning_members', { valueAsNumber: true })}
+                className={cn(
+                  "w-full bg-slate-50 focus:bg-white border text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-inner",
+                  errors.earning_members ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200 focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500"
+                )}
+                placeholder="NO OF EARNING MEMBERS"
+              />
+              {errors.earning_members?.message && (
+                <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-rose-500 uppercase ml-1 bg-rose-50 p-2 rounded-lg border border-rose-100">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{String(errors.earning_members?.message)}</span>
+                </div>
+              )}
+            </div>
+
+            {/* House Type */}
+            <div className="col-span-1">
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                House Type (বাড়ির ধরণ) <span className="text-rose-500 font-black">*</span>
+              </label>
+              <select 
+                {...register('house_type')}
+                className="w-full bg-slate-50 focus:bg-white border border-slate-200 text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-sm focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500"
+              >
+                <option value="Owned">OWNED / নিজস্ব</option>
+                <option value="Rented">RENTED / ভাড়া</option>
+                <option value="Company">COMPANY / কোম্পানী</option>
+                <option value="Other">OTHER / অন্যান্য</option>
+              </select>
+            </div>
+
+            {/* Residence Years */}
+            <div className="col-span-1">
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Residence Years (কত বছর বাস করছেন)
+              </label>
+              <input 
+                type="number"
+                {...register('residence_years', { valueAsNumber: true })}
+                className={cn(
+                  "w-full bg-slate-50 focus:bg-white border text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-inner",
+                  errors.residence_years ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200 focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500"
+                )}
+                placeholder="Ex. 5"
+              />
             </div>
           </div>
         </motion.div>
@@ -640,23 +795,49 @@ export default function CreateMember() {
             </div>
 
             {/* Post Office */}
-            <div className="col-span-1">
+            <div className="col-span-1 relative">
               <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
                 Post Office (পোস্ট অফিস) <span className="text-rose-500 font-black">*</span>
               </label>
-              <input 
-                {...register('post_office')}
-                list="pincode-pos"
-                className={cn(
-                  "w-full bg-slate-50 focus:bg-white border text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-inner uppercase",
-                  errors.post_office ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500"
+              <div className="relative">
+                <input 
+                  {...register('post_office')}
+                  onFocus={() => setPoDropdownOpen(true)}
+                  className={cn(
+                    "w-full bg-slate-50 focus:bg-white border text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all shadow-inner uppercase",
+                    errors.post_office ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500"
+                  )}
+                  placeholder="TYPE OR SELECT PO"
+                  autoComplete="off"
+                />
+                
+                {poDropdownOpen && poList.length > 0 && (
+                  <div className="absolute left-0 right-0 z-50 mt-2 max-h-60 overflow-y-auto bg-white border border-slate-250 shadow-2xl rounded-2xl p-1 animate-in fade-in slide-in-from-top-2 duration-200">
+                    {poList.map((po) => (
+                      <button
+                        key={po}
+                        type="button"
+                        onClick={() => {
+                          setValue('post_office', po.toUpperCase());
+                          setPoDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-xs sm:text-[13px] font-bold text-slate-800 rounded-xl transition-all hover:translate-x-1"
+                      >
+                        {po.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
                 )}
-                placeholder="TYPE OR SELECT PO"
-                autoComplete="off"
-              />
-              <datalist id="pincode-pos">
-                {poList.map(po => <option key={po} value={po.toUpperCase()} />)}
-              </datalist>
+              </div>
+              
+              {/* Invisible overlay to close dropdown on click outside */}
+              {poDropdownOpen && (
+                <div 
+                  className="fixed inset-0 z-45" 
+                  onClick={() => setPoDropdownOpen(false)} 
+                />
+              )}
+              
               {errors.post_office?.message && (
                 <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-rose-500 uppercase ml-1 bg-rose-50 p-2 rounded-lg border border-rose-100">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0" />

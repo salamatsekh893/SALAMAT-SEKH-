@@ -26,9 +26,9 @@ export default function ClosedLoans() {
 
   const fetchLoans = () => {
     setLoading(true);
-    fetchWithAuth('/loans')
+    fetchWithAuth('/loans?status=closed')
       .then((loanData) => {
-        setClosedLoans(loanData.filter((l: any) => l.status === 'closed'));
+        setClosedLoans(loanData);
       })
       .finally(() => setLoading(false));
   };

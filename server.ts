@@ -2177,6 +2177,12 @@ async function startServer() {
         params.push(userId);
       }
 
+      const statusQuery = req.query.status as string;
+      if (statusQuery) {
+        whereClauses.push('l.status = ?');
+        params.push(statusQuery);
+      }
+
       const whereSql = whereClauses.length > 0 ? 'WHERE ' + whereClauses.join(' AND ') : '';
 
       // Optimized query: Moved collections sum to a pre-aggregated subquery joined once
