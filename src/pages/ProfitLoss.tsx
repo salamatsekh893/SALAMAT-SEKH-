@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import * as XLSX from 'xlsx';
-import { formatAmount } from '../lib/utils';
+import { formatAmount, cn } from '../lib/utils';
 import { fetchWithAuth } from '../lib/api';
 import { 
   ResponsiveContainer, 
@@ -47,6 +47,7 @@ export default function ProfitLoss() {
   const [branches, setBranches] = useState<any[]>([]);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'overview' | 'ledger'>('overview');
 
   useEffect(() => {
     loadBranches();
@@ -212,51 +213,51 @@ export default function ProfitLoss() {
   return (
     <div className="flex-1 flex flex-col h-full bg-slate-50 min-h-screen text-slate-800 antialiased font-sans">
       
-      {/* Premium Navigation and Dynamic Filter Header */}
-      <div className="bg-white border-b border-slate-100 px-6 py-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 sticky top-0 z-30 shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-tr from-slate-900 to-indigo-950 text-[#38bdf8] p-3 rounded-2xl shadow-xl shadow-slate-100 border border-slate-800">
-            <Calculator className="w-6 h-6 animate-pulse" />
+      {/* Premium Navigation and Dynamic Filter Header - Compact Style */}
+      <div className="bg-white border-b border-slate-100 px-6 py-2.5 flex flex-col lg:flex-row lg:items-center justify-between gap-3 sticky top-0 z-30 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="bg-gradient-to-tr from-slate-900 to-indigo-950 text-[#38bdf8] p-2 rounded-xl shadow-md border border-slate-800">
+            <Calculator className="w-5 h-5 animate-pulse" />
           </div>
           <div>
-            <h1 className="text-2.5 font-black text-slate-950 tracking-tight flex items-center gap-2">
+            <h1 className="text-lg font-black text-slate-950 tracking-tight flex items-center gap-2 leading-none">
               Profit & Loss Account
-              <span className="text-[10px] bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-black px-2.5 py-1 rounded-full uppercase tracking-wider">
+              <span className="text-[9px] bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
                 Live Audit Stream
               </span>
             </h1>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
               Financial performance analysis and balance sheet tracking
             </p>
           </div>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Quick Date Selectors with labels */}
-          <div className="flex items-center gap-2 bg-slate-50 px-3.5 py-2.5 rounded-2xl border border-slate-100 shadow-inner">
-            <Calendar className="w-4 h-4 text-slate-400" />
+          <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 shadow-inner">
+            <Calendar className="w-3.5 h-3.5 text-slate-400" />
             <input 
               type="date" 
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="bg-transparent text-xs font-black text-slate-700 outline-none w-[115px] focus:ring-0 cursor-pointer"
+              className="bg-transparent text-xs font-black text-slate-700 outline-none w-[110px] focus:ring-0 cursor-pointer"
             />
-            <span className="text-slate-300 font-black text-[10px] uppercase tracking-wider px-1">to</span>
+            <span className="text-slate-300 font-black text-[9px] uppercase tracking-wider">to</span>
             <input 
               type="date" 
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="bg-transparent text-xs font-black text-slate-700 outline-none w-[115px] focus:ring-0 cursor-pointer"
+              className="bg-transparent text-xs font-black text-slate-700 outline-none w-[110px] focus:ring-0 cursor-pointer"
             />
           </div>
 
           {(user?.role === 'superadmin' || user?.role === 'manager' || user?.role === 'dm' || user?.role === 'am') && (
-            <div className="flex items-center gap-2 bg-slate-50 px-3.5 py-2.5 rounded-2xl border border-slate-100 shadow-inner">
-              <Filter className="w-4 h-4 text-slate-400" />
+            <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 shadow-inner">
+              <Filter className="w-3.5 h-3.5 text-slate-400" />
               <select 
                 value={branchId}
                 onChange={(e) => setBranchId(e.target.value)}
-                className="bg-transparent text-xs font-black text-slate-700 outline-none max-w-[130px] truncate cursor-pointer bg-none"
+                className="bg-transparent text-xs font-black text-slate-700 outline-none max-w-[120px] truncate cursor-pointer bg-none"
               >
                 <option value="">All Branches</option>
                 {branches.map(b => (
@@ -268,17 +269,17 @@ export default function ProfitLoss() {
 
           <button 
             onClick={exportToExcel}
-            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-2xl text-xs font-black tracking-wider uppercase transition-all shadow-lg hover:shadow-xl shadow-slate-200 active:scale-98"
+            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-1.5 rounded-xl text-[11px] font-black tracking-wider uppercase transition-all shadow-md active:scale-98"
           >
-            <Download className="w-4 h-4 text-teal-400" /> Export Sheet
+            <Download className="w-3.5 h-3.5 text-teal-400" /> Export
           </button>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex-1 flex flex-col justify-center items-center py-32 gap-4">
-          <div className="w-14 h-14 border-4 border-slate-100 border-t-slate-800 rounded-full animate-spin"></div>
-          <p className="text-xs font-black uppercase text-slate-400 tracking-widest leading-none">
+        <div className="flex-1 flex flex-col justify-center items-center py-20 gap-3">
+          <div className="w-10 h-10 border-4 border-slate-100 border-t-slate-800 rounded-full animate-spin"></div>
+          <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">
             Recalculating ledger records, please wait...
           </p>
         </div>
@@ -287,40 +288,40 @@ export default function ProfitLoss() {
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          className="p-6 space-y-8 w-full"
+          className="p-4 space-y-4 w-full"
         >
 
-          {/* Premium Showcase Glossy Fluid Interactive Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Premium Showcase Compact KPI Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
             {/* Income Card with Glowing Elements */}
             <motion.div 
               variants={cardVariants}
-              whileHover={{ y: -6, scale: 1.015, transition: { duration: 0.2 } }}
-              className="bg-white border border-slate-150/80 rounded-[2rem] p-7 shadow-xl shadow-slate-100/40 overflow-hidden relative group/income cursor-pointer"
+              whileHover={{ y: -3, scale: 1.01, transition: { duration: 0.2 } }}
+              className="bg-white border border-slate-150 rounded-2xl p-4 shadow-sm overflow-hidden relative group/income cursor-pointer"
             >
-              <div className="absolute top-0 right-0 w-36 h-36 bg-gradient-to-br from-emerald-400/10 to-teal-400/20 rounded-full filter blur-3xl -mr-8 -mt-8 transition-transform group-hover/income:scale-125 duration-500"></div>
-              <div className="relative z-10 flex flex-col justify-between h-full space-y-4">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-emerald-400/10 to-teal-400/20 rounded-full filter blur-2xl -mr-6 -mt-6 transition-transform group-hover/income:scale-125 duration-500"></div>
+              <div className="relative z-10 flex flex-col justify-between h-full space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-emerald-700 tracking-wider bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
+                  <span className="text-[9px] font-black uppercase text-emerald-700 tracking-wider bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
                     Gross Revenue
                   </span>
-                  <div className="p-2.5 bg-emerald-50/50 text-emerald-600 rounded-2xl group-hover/income:bg-emerald-100 transition-colors">
-                    <ArrowUpRight className="w-5 h-5 transition-transform group-hover/income:translate-x-0.5 group-hover/income:-translate-y-0.5" />
+                  <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                    <ArrowUpRight className="w-4 h-4" />
                   </div>
                 </div>
                 <div>
-                  <div className="text-4xl font-black text-slate-950 tracking-tight font-mono">
+                  <div className="text-2xl font-black text-slate-950 tracking-tight font-mono">
                     ₹{formatAmount(totalIncome)}
                   </div>
-                  <div className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mt-1">
+                  <div className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mt-0.5">
                     TOTAL OPERATIONAL INFLOWS
                   </div>
                 </div>
-                <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-semibold">
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-semibold">
                   <span>Interest & Commissions</span>
                   <span className="font-extrabold text-emerald-600">
-                    {incomeComposition.length} Revenue Sources
+                    {incomeComposition.length} Sources
                   </span>
                 </div>
               </div>
@@ -329,31 +330,31 @@ export default function ProfitLoss() {
             {/* Expense Card with Glowing Elements */}
             <motion.div 
               variants={cardVariants}
-              whileHover={{ y: -6, scale: 1.015, transition: { duration: 0.2 } }}
-              className="bg-white border border-slate-150/80 rounded-[2rem] p-7 shadow-xl shadow-slate-100/40 overflow-hidden relative group/expense cursor-pointer"
+              whileHover={{ y: -3, scale: 1.01, transition: { duration: 0.2 } }}
+              className="bg-white border border-slate-150 rounded-2xl p-4 shadow-sm overflow-hidden relative group/expense cursor-pointer"
             >
-              <div className="absolute top-0 right-0 w-36 h-36 bg-gradient-to-br from-rose-400/10 to-red-400/20 rounded-full filter blur-3xl -mr-8 -mt-8 transition-transform group-hover/expense:scale-125 duration-500"></div>
-              <div className="relative z-10 flex flex-col justify-between h-full space-y-4">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-rose-400/10 to-red-400/20 rounded-full filter blur-2xl -mr-6 -mt-6 transition-transform group-hover/expense:scale-125 duration-500"></div>
+              <div className="relative z-10 flex flex-col justify-between h-full space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-rose-700 tracking-wider bg-rose-50 px-3 py-1 rounded-full border border-rose-100">
+                  <span className="text-[9px] font-black uppercase text-rose-700 tracking-wider bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">
                     Gross Outflow
                   </span>
-                  <div className="p-2.5 bg-rose-50/50 text-rose-600 rounded-2xl group-hover/expense:bg-rose-100 transition-colors">
-                    <ArrowDownRight className="w-5 h-5 transition-transform group-hover/expense:translate-x-0.5 group-hover/expense:translate-y-0.5" />
+                  <div className="p-1.5 bg-rose-50 text-rose-600 rounded-xl">
+                    <ArrowDownRight className="w-4 h-4" />
                   </div>
                 </div>
                 <div>
-                  <div className="text-4xl font-black text-slate-950 tracking-tight font-mono">
+                  <div className="text-2xl font-black text-slate-950 tracking-tight font-mono">
                     ₹{formatAmount(totalExpenses)}
                   </div>
-                  <div className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mt-1">
+                  <div className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mt-0.5">
                     TOTAL EXPENDITURES PAID
                   </div>
                 </div>
-                <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-semibold">
-                  <span>Staffing, Savings & Operations</span>
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-semibold">
+                  <span>Staff, Savings & Operations</span>
                   <span className="font-extrabold text-rose-600">
-                    {activeExpenses.length} Outbound Debits
+                    {activeExpenses.length} Debits
                   </span>
                 </div>
               </div>
@@ -362,40 +363,40 @@ export default function ProfitLoss() {
             {/* Profit & Loss Card with Ultra Glow Premium Gradients */}
             <motion.div 
               variants={cardVariants}
-              whileHover={{ y: -6, scale: 1.015, transition: { duration: 0.2 } }}
-              className={`border rounded-[2rem] p-7 shadow-2xl overflow-hidden relative group/net cursor-pointer ${
+              whileHover={{ y: -3, scale: 1.01, transition: { duration: 0.2 } }}
+              className={`border rounded-2xl p-4 shadow-md overflow-hidden relative group/net cursor-pointer ${
                 isProfit 
-                  ? 'bg-gradient-to-br from-slate-900 to-indigo-950 border-slate-950 text-white shadow-indigo-105-30' 
-                  : 'bg-gradient-to-br from-red-950 to-rose-950 border-red-950 text-white shadow-rose-950/20'
+                  ? 'bg-gradient-to-br from-slate-905 to-indigo-950 border-slate-900 text-white' 
+                  : 'bg-gradient-to-br from-red-950 to-rose-950 border-red-950 text-white'
               }`}
             >
-              <div className="absolute top-0 right-0 w-36 h-36 bg-white/5 rounded-full filter blur-2xl -mr-8 -mt-8 transition-transform group-hover/net:scale-125 duration-500"></div>
-              <div className="relative z-10 flex flex-col justify-between h-full space-y-4">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full filter blur-xl -mr-6 -mt-6 transition-transform group-hover/net:scale-125 duration-500"></div>
+              <div className="relative z-10 flex flex-col justify-between h-full space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full ${
+                  <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
                     isProfit 
                       ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' 
                       : 'bg-rose-500/10 text-rose-300 border border-rose-500/20'
                   }`}>
                     {isProfit ? 'Net Operating Profit' : 'Net Operating Loss'}
                   </span>
-                  <div className={`p-2.5 rounded-2xl ${
+                  <div className={`p-1.5 rounded-xl ${
                     isProfit ? 'bg-indigo-900/60 text-indigo-300' : 'bg-rose-900/60 text-rose-300'
                   }`}>
-                    {isProfit ? <TrendingUp className="w-5 h-5 animate-bounce" /> : <TrendingDown className="w-5 h-5 animate-bounce" />}
+                    {isProfit ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                   </div>
                 </div>
                 <div>
-                  <div className="text-4xl font-black tracking-tight font-mono">
+                  <div className="text-2xl font-black tracking-tight font-mono">
                     ₹{formatAmount(Math.abs(netProfit))}
                   </div>
-                  <div className="text-[11px] font-extrabold text-slate-300 uppercase tracking-widest mt-1">
+                  <div className="text-[9px] font-extrabold text-slate-300 uppercase tracking-widest mt-0.5">
                     {isProfit ? 'NET INTERNAL BALANCE' : 'NET DEFICIT BALANCE'}
                   </div>
                 </div>
-                <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-300 font-semibold">
-                  <span className="opacity-80">Operating Margin (Earnings to Capital ratio)</span>
-                  <span className={`font-black tracking-wide px-2.5 py-0.5 rounded-lg ${
+                <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-300 font-semibold">
+                  <span className="opacity-80">Profit Margin</span>
+                  <span className={`font-black tracking-wide px-2 py-0.5 rounded-md text-[10px] ${
                     isProfit ? 'bg-emerald-400/20 text-[#34d399]' : 'bg-rose-400/20 text-[#fca5a5]'
                   }`}>
                     {operatingMargin}%
@@ -406,308 +407,326 @@ export default function ProfitLoss() {
 
           </div>
 
-          {/* Premium Comparative Charts & Analytics Panel */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            
-            {/* Left Box: Comparative ledger chart */}
-            <motion.div 
-              variants={cardVariants}
-              className="lg:col-span-7 bg-white border border-slate-150/80 rounded-3xl p-6 shadow-sm flex flex-col"
-            >
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
-                <div>
-                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
-                    Ledger Comparison Analytics
-                  </h3>
-                  <p className="text-[11px] font-bold text-slate-400 mt-0.5">
-                    Comparative visualization of inflows, outflows, and net earnings.
-                  </p>
-                </div>
-                <Activity className="w-4 h-4 text-indigo-500" />
-              </div>
-
-              <div className="h-[280px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={comparisonData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" stroke="#94a3b8" tickLine={false} style={{ fontSize: '11px', fontWeight: 'bold' }} />
-                    <YAxis stroke="#94a3b8" tickLine={false} style={{ fontSize: '10px' }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="amount" radius={[8, 8, 0, 0]} barSize={55}>
-                      {comparisonData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </motion.div>
-
-            {/* Right Box: Pie chart composition */}
-            <motion.div 
-              variants={cardVariants}
-              className="lg:col-span-5 bg-white border border-slate-150/80 rounded-3xl p-6 shadow-sm flex flex-col"
-            >
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
-                <div>
-                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
-                    Revenue Composition
-                  </h3>
-                  <p className="text-[11px] font-bold text-slate-400 mt-0.5">
-                    Percentage composition of total revenue streams.
-                  </p>
-                </div>
-                <LucidePieChart className="w-4 h-4 text-indigo-500" />
-              </div>
-
-              {incomeComposition.length === 0 ? (
-                <div className="flex-1 flex flex-col justify-center items-center py-12 text-center text-slate-400">
-                  <HelpCircle className="w-10 h-10 text-slate-300 mb-2" />
-                  <p className="text-xs font-bold uppercase tracking-wider">
-                    No revenue data matches the selected period.
-                  </p>
-                </div>
-              ) : (
-                <div className="flex-1 flex flex-col sm:flex-row justify-around items-center gap-4">
-                  <div className="w-[150px] h-[150px] relative">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RechartsPieChart>
-                        <Pie
-                          data={incomeComposition}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={45}
-                          outerRadius={65}
-                          paddingAngle={3}
-                          dataKey="value"
-                        >
-                          {incomeComposition.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip content={<CustomTooltip />} />
-                      </RechartsPieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Sources</p>
-                      <p className="text-[11px] font-black text-slate-800 mt-1 uppercase leading-none">Inflows</p>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 flex flex-col justify-center gap-2">
-                    {incomeComposition.map((item, idx) => {
-                      const percent = totalIncome > 0 ? ((item.value / totalIncome) * 100).toFixed(0) : 0;
-                      return (
-                        <div key={idx} className="flex justify-between items-center text-xs pb-1.5 border-b border-slate-50 last:border-b-0">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: item.color }} />
-                            <span className="text-slate-600 font-extrabold max-w-[125px] truncate">
-                              {item.name}
-                            </span>
-                          </div>
-                          <span className="font-extrabold text-slate-900 text-right font-mono min-w-[50px]">
-                            {percent}%
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+          {/* Compact Section Switcher Tabs to avoid vertical scroll completely */}
+          <div className="flex items-center gap-1 bg-slate-200/50 p-1 rounded-xl w-fit border border-slate-200/30">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={cn(
+                "flex items-center gap-2 px-5 py-2 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all",
+                activeTab === 'overview'
+                  ? "bg-slate-900 text-white shadow-md scale-100"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
               )}
-            </motion.div>
-
+            >
+              <Activity className="w-3.5 h-3.5" />
+              Overview / সারসংক্ষেপ
+            </button>
+            <button
+              onClick={() => setActiveTab('ledger')}
+              className={cn(
+                "flex items-center gap-2 px-5 py-2 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all",
+                activeTab === 'ledger'
+                  ? "bg-slate-900 text-white shadow-md scale-100"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+              )}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              Detailed Ledger / লেজার রেজিস্টার
+            </button>
           </div>
 
-          {/* Double Entry Ledger Balance Sheets with Premium Style */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:divide-x lg:divide-slate-200 bg-white border border-slate-150/80 rounded-[2.5rem] p-6 lg:p-8 shadow-sm">
-            
-            {/* CREDIT (CR) GENERAL LEDGER */}
-            <div className="space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center justify-center font-black text-sm font-mono">
-                    CR
-                  </div>
+          {/* Tab Content 1: Overview and Charts */}
+          {activeTab === 'overview' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+              
+              {/* Comparative Chart */}
+              <div className="lg:col-span-7 bg-white border border-slate-150 rounded-2xl p-4 shadow-sm flex flex-col">
+                <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
                   <div>
-                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
-                      Income Items (Credit Ledger)
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                      Ledger Comparison Analytics
                     </h3>
-                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider mt-0.5">
-                      Earnings and operational inflows
+                    <p className="text-[10px] font-bold text-slate-400">
+                      Inflows, outflows, and net earnings compared.
                     </p>
                   </div>
-                </div>
-                <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-800 border border-emerald-100 px-2.5 py-1 rounded-full font-mono">
-                  Credit In
-                </span>
-              </div>
-
-              <div className="divide-y divide-slate-100">
-                {/* 1. Interest Collected */}
-                <div className="py-4 flex justify-between items-start hover:bg-slate-50/50 p-2 rounded-xl transition-all">
-                  <div className="space-y-1">
-                    <p className="text-xs font-black text-slate-800 uppercase tracking-wider">Interest Collected on Loans</p>
-                    <p className="text-[11px] font-bold text-slate-500">Gross interest collected on outstanding loan portfolios</p>
-                    <p className="text-[9px] text-slate-400 font-mono">Formula: (Collections EMI) x (Interest Rate Weighting factor)</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-black text-slate-800 font-mono">₹{formatAmount(income.interest_collected || 0)}</p>
-                    <span className="text-[10px] text-emerald-600 font-extrabold block mt-0.5">Credit (+)</span>
-                  </div>
+                  <Activity className="w-3.5 h-3.5 text-indigo-500" />
                 </div>
 
-                {/* 2. Processing Fees */}
-                <div className="py-4 flex justify-between items-start hover:bg-slate-50/50 p-2 rounded-xl transition-all">
-                  <div className="space-y-1">
-                    <p className="text-xs font-black text-slate-800 uppercase tracking-wider">Loan Processing Fees</p>
-                    <p className="text-[11px] font-bold text-slate-500">Standard administrative file and processing charges</p>
-                    <p className="text-[9px] text-slate-400 font-mono">Assessed directly at disbursement phase</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-black text-slate-800 font-mono">₹{formatAmount(income.processing_fees || 0)}</p>
-                    <span className="text-[10px] text-emerald-600 font-extrabold block mt-0.5">Credit (+)</span>
-                  </div>
-                </div>
-
-                {/* 3. Insurance Fees */}
-                <div className="py-4 flex justify-between items-start hover:bg-slate-50/50 p-2 rounded-xl transition-all">
-                  <div className="space-y-1">
-                    <p className="text-xs font-black text-slate-800 uppercase tracking-wider">Loan Insurance Fees</p>
-                    <p className="text-[11px] font-bold text-slate-500">Protective insurance cover and credit life fund premiums</p>
-                    <p className="text-[9px] text-slate-400 font-mono">Direct deduction from active lending products</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-black text-slate-800 font-mono">₹{formatAmount(income.insurance_fees || 0)}</p>
-                    <span className="text-[10px] text-emerald-600 font-extrabold block mt-0.5">Credit (+)</span>
-                  </div>
-                </div>
-
-                {/* 4. Product Sales Revenue */}
-                <div className="py-4 flex justify-between items-start hover:bg-slate-50/50 p-2 rounded-xl transition-all">
-                  <div className="space-y-1">
-                    <p className="text-xs font-black text-slate-800 uppercase tracking-wider">Product Sales Revenue</p>
-                    <p className="text-[11px] font-bold text-slate-500">Direct revenue from product sales and support services</p>
-                    <p className="text-[9px] text-slate-400 font-mono">Cash accounts inventory ledger</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-black text-slate-800 font-mono">₹{formatAmount(income.product_sales || 0)}</p>
-                    <span className="text-[10px] text-emerald-600 font-extrabold block mt-0.5">Credit (+)</span>
-                  </div>
+                <div className="h-[200px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={comparisonData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" stroke="#94a3b8" tickLine={false} style={{ fontSize: '10px', fontWeight: 'bold' }} />
+                      <YAxis stroke="#94a3b8" tickLine={false} style={{ fontSize: '9px' }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="amount" radius={[6, 6, 0, 0]} barSize={45}>
+                        {comparisonData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
 
-              {/* Total Income Ledger Summary Footer */}
-              <div className="pt-4 border-t border-slate-100 flex justify-between items-center bg-slate-50 p-4 rounded-3xl">
-                <span className="text-xs font-black uppercase text-slate-400 tracking-widest pl-1">CR Cash Balance Sum</span>
-                <span className="text-xl font-black text-emerald-600 font-mono">₹{formatAmount(totalIncome)}</span>
-              </div>
-            </div>
-
-            {/* DEBIT (DR) GENERAL LEDGER */}
-            <div className="space-y-6 lg:pl-8 mt-8 lg:mt-0">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-2xl bg-rose-50 text-rose-700 border border-rose-100 flex items-center justify-center font-black text-sm font-mono">
-                    DR
-                  </div>
+              {/* Composition Chart */}
+              <div className="lg:col-span-5 bg-white border border-slate-150 rounded-2xl p-4 shadow-sm flex flex-col">
+                <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
                   <div>
-                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
-                      Expense Ledger (Debit Entries)
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                      Revenue Composition
                     </h3>
-                    <p className="text-[10px] font-black text-rose-600 uppercase tracking-wider mt-0.5">
-                      Capital outflows and general operational expenditures
+                    <p className="text-[10px] font-bold text-slate-400">
+                      Breakdown percentage of active revenue channels.
                     </p>
                   </div>
-                </div>
-                <span className="text-[9px] font-black uppercase tracking-widest bg-rose-50 text-rose-800 border border-rose-100 px-2.5 py-1 rounded-full font-mono">
-                  Debit Out
-                </span>
-              </div>
-
-              <div className="divide-y divide-slate-100">
-                {/* 1. Salaries Paid */}
-                <div className="py-4 flex justify-between items-start hover:bg-slate-50/50 p-2 rounded-xl transition-all">
-                  <div className="space-y-1">
-                    <p className="text-xs font-black text-slate-800 uppercase tracking-wider">Staff Salaries Paid</p>
-                    <p className="text-[11px] font-bold text-slate-500">Monthly employee remunerations and field executive salaries</p>
-                    <p className="text-[9px] text-slate-400 font-mono">Standard staff salary accounting</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-black text-slate-800 font-mono">₹{formatAmount(expenses.salary_expenses || 0)}</p>
-                    <span className="text-[10px] text-rose-600 font-extrabold block mt-0.5">Debit (-)</span>
-                  </div>
+                  <LucidePieChart className="w-3.5 h-3.5 text-indigo-500" />
                 </div>
 
-                {/* 2. Member Savings Interest */}
-                <div className="py-4 flex justify-between items-start hover:bg-slate-50/50 p-2 rounded-xl transition-all">
-                  <div className="space-y-1">
-                    <p className="text-xs font-black text-slate-800 uppercase tracking-wider">Savings Interest Credited</p>
-                    <p className="text-[11px] font-bold text-slate-500">Interest dividends credited to active savings accounts</p>
-                    <p className="text-[9px] text-slate-400 font-mono">Interest transaction entries generated on accounts</p>
+                {incomeComposition.length === 0 ? (
+                  <div className="flex-1 flex flex-col justify-center items-center py-8 text-center text-slate-400">
+                    <HelpCircle className="w-8 h-8 text-slate-300 mb-1" />
+                    <p className="text-xs font-bold uppercase tracking-wider">
+                      No revenue data for selection.
+                    </p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-black text-slate-800 font-mono">₹{formatAmount(expenses.savings_interest || 0)}</p>
-                    <span className="text-[10px] text-rose-600 font-extrabold block mt-0.5">Debit (-)</span>
-                  </div>
-                </div>
+                ) : (
+                  <div className="flex-1 flex flex-col sm:flex-row justify-around items-center gap-3">
+                    <div className="w-[110px] h-[110px] relative">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsPieChart>
+                          <Pie
+                            data={incomeComposition}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={35}
+                            outerRadius={48}
+                            paddingAngle={3}
+                            dataKey="value"
+                          >
+                            {incomeComposition.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip content={<CustomTooltip />} />
+                        </RechartsPieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Sources</p>
+                        <p className="text-[9px] font-black text-slate-850 mt-0.5 uppercase leading-none">Inflows</p>
+                      </div>
+                    </div>
 
-                {/* 3. Expense breakdowns from database mapping */}
-                {(expenses.expense_breakdown || []).map((e: any, idx: number) => (
-                  <div key={idx} className="py-4 flex justify-between items-start hover:bg-slate-50/50 p-2 rounded-xl transition-all">
-                    <div className="space-y-1">
-                      <p className="text-xs font-black text-slate-800 uppercase tracking-wider">{e.category || 'Office'} Overhead</p>
-                      <p className="text-[11px] font-bold text-slate-500">Branch operations overhead and administration</p>
-                      <p className="text-[9px] text-slate-400 font-mono">Category itemization: {e.category || 'General'}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-black text-slate-800 font-mono">₹{formatAmount(e.amount || 0)}</p>
-                      <span className="text-[10px] text-rose-600 font-extrabold block mt-0.5">Debit (-)</span>
-                    </div>
-                  </div>
-                ))}
-
-                {/* 4. Default general expenses if list is empty */}
-                {(!expenses.expense_breakdown || expenses.expense_breakdown.length === 0) && (
-                  <div className="py-4 flex justify-between items-start hover:bg-slate-50/50 p-2 rounded-xl transition-all">
-                    <div className="space-y-1">
-                      <p className="text-xs font-black text-slate-800 uppercase tracking-wider">General Petty Expenses</p>
-                      <p className="text-[11px] font-bold text-slate-500">Standard branch petty cash and operational spendings</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-black text-slate-800 font-mono">₹{formatAmount(expenses.other_expenses || 0)}</p>
-                      <span className="text-[10px] text-rose-600 font-extrabold block mt-0.5">Debit (-)</span>
+                    <div className="flex-1 flex flex-col justify-center gap-1.5">
+                      {incomeComposition.map((item, idx) => {
+                        const percent = totalIncome > 0 ? ((item.value / totalIncome) * 100).toFixed(0) : 0;
+                        return (
+                          <div key={idx} className="flex justify-between items-center text-[10px] pb-1 border-b border-slate-50 last:border-b-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: item.color }} />
+                              <span className="text-slate-600 font-extrabold max-w-[110px] truncate">
+                                {item.name}
+                              </span>
+                            </div>
+                            <span className="font-extrabold text-slate-900 text-right font-mono min-w-[35px]">
+                              {percent}%
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Total Expenses Ledger Summary Footer */}
-              <div className="pt-4 border-t border-slate-100 flex justify-between items-center bg-slate-50 p-4 rounded-3xl">
-                <span className="text-xs font-black uppercase text-slate-400 tracking-widest pl-1">DR Cash Balance Sum</span>
-                <span className="text-xl font-black text-rose-600 font-mono">₹{formatAmount(totalExpenses)}</span>
-              </div>
             </div>
+          )}
 
-          </div>
+          {/* Tab Content 2: Raw CR/DR Ledgers */}
+          {activeTab === 'ledger' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:divide-x lg:divide-slate-200 bg-white border border-slate-150 rounded-2xl p-5 shadow-sm">
+              
+              {/* CREDIT GENERAL LEDGER */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center justify-center font-black text-xs font-mono">
+                      CR
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                        Income Items (Credit Ledger)
+                      </h3>
+                      <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider">
+                        Earnings & Collections
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-800 border border-emerald-100 px-2 py-0.5 rounded-full font-mono">
+                    Credit In
+                  </span>
+                </div>
 
-          {/* Premium Audit Reconciled Stamp */}
+                <div className="divide-y divide-slate-100 text-xs text-slate-700">
+                  {/* 1. Interest Collected */}
+                  <div className="py-2.5 flex justify-between items-start hover:bg-slate-50/50 px-1 rounded-lg transition-all">
+                    <div>
+                      <p className="font-black text-slate-800 uppercase text-[11px]">Interest Collected on Loans</p>
+                      <p className="text-[10px] font-bold text-slate-400">Total collection emi interest portions (Approved only)</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-black text-slate-800 font-mono">₹{formatAmount(income.interest_collected || 0)}</p>
+                      <span className="text-[9px] text-emerald-600 font-black block mt-0.5">Credit (+)</span>
+                    </div>
+                  </div>
+
+                  {/* 2. Processing Fees */}
+                  <div className="py-2.5 flex justify-between items-start hover:bg-slate-50/50 px-1 rounded-lg transition-all">
+                    <div>
+                      <p className="font-black text-slate-800 uppercase text-[11px]">Loan Processing Fees</p>
+                      <p className="text-[10px] font-bold text-slate-400">Standard file charges collected on disbursal date</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-black text-slate-800 font-mono">₹{formatAmount(income.processing_fees || 0)}</p>
+                      <span className="text-[9px] text-emerald-600 font-black block mt-0.5">Credit (+)</span>
+                    </div>
+                  </div>
+
+                  {/* 3. Insurance Fees */}
+                  <div className="py-2.5 flex justify-between items-start hover:bg-slate-50/50 px-1 rounded-lg transition-all">
+                    <div>
+                      <p className="font-black text-slate-800 uppercase text-[11px]">Loan Insurance Fees</p>
+                      <p className="text-[10px] font-bold text-slate-400">Mandatory premium charges gathered on disbursal</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-black text-slate-800 font-mono">₹{formatAmount(income.insurance_fees || 0)}</p>
+                      <span className="text-[9px] text-emerald-600 font-black block mt-0.5">Credit (+)</span>
+                    </div>
+                  </div>
+
+                  {/* 4. Product Sales */}
+                  <div className="py-2.5 flex justify-between items-start hover:bg-slate-50/50 px-1 rounded-lg transition-all">
+                    <div>
+                      <p className="font-black text-slate-800 uppercase text-[11px]">Product Sales Revenue</p>
+                      <p className="text-[10px] font-bold text-slate-400">Direct secondary revenue from cash products</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-black text-slate-800 font-mono">₹{formatAmount(income.product_sales || 0)}</p>
+                      <span className="text-[9px] text-emerald-600 font-black block mt-0.5">Credit (+)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* CR Balance Sum */}
+                <div className="pt-2 border-t border-slate-100 flex justify-between items-center bg-slate-50 px-3 py-2 rounded-xl">
+                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">CR Cash Balance Sum</span>
+                  <span className="text-sm font-black text-emerald-600 font-mono">₹{formatAmount(totalIncome)}</span>
+                </div>
+              </div>
+
+              {/* DEBIT GENERAL LEDGER */}
+              <div className="space-y-4 lg:pl-6">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-700 border border-rose-100 flex items-center justify-center font-black text-xs font-mono">
+                      DR
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                        Expense Ledger (Debit Entries)
+                      </h3>
+                      <p className="text-[9px] font-bold text-rose-600 uppercase tracking-wider">
+                        Outflows & Office Bills
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-widest bg-rose-50 text-rose-800 border border-rose-100 px-2 py-0.5 rounded-full font-mono">
+                    Debit Out
+                  </span>
+                </div>
+
+                <div className="divide-y divide-slate-100 text-xs text-slate-700">
+                  {/* 1. Salaries Paid */}
+                  <div className="py-2.5 flex justify-between items-start hover:bg-slate-50/50 px-1 rounded-lg transition-all">
+                    <div>
+                      <p className="font-black text-slate-800 uppercase text-[11px]">Staff Salaries Paid</p>
+                      <p className="text-[10px] font-bold text-slate-400 font-medium">Internal payroll and office staffing payouts</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-black text-slate-800 font-mono">₹{formatAmount(expenses.salary_expenses || 0)}</p>
+                      <span className="text-[9px] text-rose-600 font-black block mt-0.5">Debit (-)</span>
+                    </div>
+                  </div>
+
+                  {/* 2. Savings Interest Paid */}
+                  <div className="py-2.5 flex justify-between items-start hover:bg-slate-50/50 px-1 rounded-lg transition-all">
+                    <div>
+                      <p className="font-black text-slate-800 uppercase text-[11px]">Savings Interest Credited</p>
+                      <p className="text-[10px] font-bold text-slate-400">Dividends credited to members' savings balances</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-black text-slate-800 font-mono">₹{formatAmount(expenses.savings_interest || 0)}</p>
+                      <span className="text-[9px] text-rose-600 font-black block mt-0.5">Debit (-)</span>
+                    </div>
+                  </div>
+
+                  {/* Office expense breakdowns */}
+                  {(expenses.expense_breakdown || []).map((e: any, idx: number) => (
+                    <div key={idx} className="py-2.5 flex justify-between items-start hover:bg-slate-50/50 px-1 rounded-lg transition-all">
+                      <div>
+                        <p className="font-black text-slate-800 uppercase text-[11px]">{e.category || 'Office'} Overheads</p>
+                        <p className="text-[10px] font-bold text-slate-400">Category-specific branch expenditures</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-black text-slate-800 font-mono">₹{formatAmount(e.amount || 0)}</p>
+                        <span className="text-[9px] text-rose-600 font-black block mt-0.5">Debit (-)</span>
+                      </div>
+                    </div>
+                  ))}
+
+                  {(!expenses.expense_breakdown || expenses.expense_breakdown.length === 0) && (
+                    <div className="py-2.5 flex justify-between items-start hover:bg-slate-50/50 px-1 rounded-lg transition-all">
+                      <div>
+                        <p className="font-black text-slate-800 uppercase text-[11px]">General Petty Expenses</p>
+                        <p className="text-[10px] font-bold text-slate-400">Regular petty and branch overhead charges</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-black text-slate-800 font-mono">₹{formatAmount(expenses.other_expenses || 0)}</p>
+                        <span className="text-[9px] text-rose-600 font-black block mt-0.5">Debit (-)</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* DR Balance Sum */}
+                <div className="pt-2 border-t border-slate-100 flex justify-between items-center bg-slate-50 px-3 py-2 rounded-xl">
+                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">DR Cash Balance Sum</span>
+                  <span className="text-sm font-black text-rose-600 font-mono">₹{formatAmount(totalExpenses)}</span>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* Compact Verified Stamp Footer */}
           <motion.div 
             variants={cardVariants}
-            className="bg-[#0f172a] text-slate-400 p-6 rounded-[2.5rem] border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl"
+            className="bg-[#0f172a] text-slate-400 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md"
           >
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 flex items-center justify-center text-indigo-400 border border-indigo-500/10 flex-shrink-0 animate-ping">
-                <CheckCircle className="w-5 h-5" />
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/10 shrink-0">
+                <CheckCircle className="w-4 h-4" />
               </div>
-              <div className="text-xs font-bold leading-relaxed space-y-1">
-                <p className="text-white text-sm font-black tracking-wide">Financial Statement Audit Integrity Verification</p>
-                <p className="text-[#94a3b8] opacity-85">
-                  All processing fee collectables, protective loan insurance payouts, outstanding collection interests, and product cash revenues are reconciled in real-time.
-                </p>
+              <div className="text-[10px] font-bold leading-normal">
+                <p className="text-white text-xs font-black tracking-wide">Financial Statement Audit Integrity Verification</p>
+                <span className="text-[#94a3b8] opacity-85 block mt-0.5">
+                  All disbursal fees, approved repayments, local staffing expenditures and savings interest allocations are audited and reconciled.
+                </span>
               </div>
             </div>
-            <div className="text-[10px] font-black uppercase bg-slate-800 text-slate-300 tracking-widest px-4 py-2 rounded-2xl border border-slate-700 font-mono text-center">
-              System Auditor v1.5 [Signed]
+            <div className="text-[9px] font-black uppercase bg-slate-800 text-slate-300 tracking-widest px-3 py-1.5 rounded-xl border border-slate-700 font-mono shrink-0">
+              Auditor v1.5 [Signed]
             </div>
           </motion.div>
 

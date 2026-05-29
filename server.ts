@@ -3684,7 +3684,7 @@ async function startServer() {
       const [feesResult]: any = await pool.query(
         `SELECT SUM(processing_fee) as processing_fees, SUM(insurance_fee) as insurance_fees 
          FROM loans 
-         WHERE DATE(start_date) BETWEEN ? AND ? AND status IN ('active', 'closed') ${branchFilterLoans}`,
+         WHERE DATE(COALESCE(disbursement_date, start_date)) BETWEEN ? AND ? AND status IN ('active', 'closed') ${branchFilterLoans}`,
         params
       );
 
@@ -3693,7 +3693,7 @@ async function startServer() {
         `SELECT SUM(c.amount_paid * (l.interest / NULLIF(l.total_repayment, 0))) as interest_collected 
          FROM collections c
          JOIN loans l ON c.loan_id = l.id
-         WHERE DATE(c.payment_date) BETWEEN ? AND ? AND c.status != 'rejected' ${branchFilterColl}`,
+         WHERE DATE(c.payment_date) BETWEEN ? AND ? AND c.status = 'approved' ${branchFilterColl}`,
         params
       );
 
