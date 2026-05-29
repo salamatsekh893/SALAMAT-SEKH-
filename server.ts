@@ -3454,7 +3454,7 @@ async function startServer() {
          FROM loans l
          LEFT JOIN branches b ON l.branch_id = b.id
          LEFT JOIN members m ON l.customer_id = m.id
-         WHERE DATE(l.start_date) = ? AND l.status IN ('active', 'closed') ${branch_id ? 'AND l.branch_id = ?' : ''}`,
+         WHERE DATE(COALESCE(l.disbursement_date, l.start_date)) = ? AND l.status IN ('active', 'closed') ${branch_id ? 'AND l.branch_id = ?' : ''}`,
         params
       );
 
@@ -3507,6 +3507,17 @@ async function startServer() {
         params
       );
 
+      // 7.5. Product Sales Transactions
+      const [sales]: any = await pool.query(
+        `SELECT s.*, p.product_name, p.product_code, m.full_name as member_name, b.branch_name
+         FROM sales s
+         LEFT JOIN products p ON s.product_id = p.id
+         LEFT JOIN members m ON s.member_id = m.id
+         LEFT JOIN branches b ON m.branch_id = b.id
+         WHERE DATE(s.sale_date) = ? ${branch_id ? 'AND m.branch_id = ?' : ''}`,
+        params
+      );
+
       // 8. Day Book Status & Opening Balance
       const bId = branch_id ? parseInt(branch_id, 10) : null;
       const [cbResult]: any = await pool.query(
@@ -3530,7 +3541,7 @@ async function startServer() {
         }
       }
 
-      res.json({ date, collections, disbursements, salaries, capital, bankTxns, expenses, savingsTxns, dayBookStatus, opening_balance });
+      res.json({ date, collections, disbursements, salaries, capital, bankTxns, expenses, savingsTxns, sales, dayBookStatus, opening_balance });
     } catch (err: any) {
       console.error(err);
       res.status(500).json({ error: 'Failed to fetch daybook data' });
