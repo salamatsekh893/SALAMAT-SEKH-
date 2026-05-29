@@ -41,11 +41,11 @@ export default function Sidebar({ user, isOpen, setIsOpen, onLogout, navigation 
 
       {/* Sidebar Container */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-[280px] bg-gradient-to-b from-[#db2777] via-[#be185d] to-[#9d174d] text-white transform transition-all duration-300 ease-in-out flex flex-col overflow-hidden h-screen shadow-[10px_0_30px_rgba(219,39,119,0.25)]",
+        "fixed inset-y-0 left-0 z-50 w-[280px] bg-gradient-to-b from-[#a21caf] to-[#701a75] text-white transform transition-all duration-300 ease-in-out flex flex-col overflow-hidden h-screen shadow-[10px_0_30px_rgba(162,28,175,0.25)]",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         {/* Sidebar Header (Matches .sidebar-header) */}
-        <div className="p-[25px_20px] text-center bg-[#be185d]/40 border-b border-white/10 flex items-center justify-center gap-2">
+        <div className="p-[25px_20px] text-center bg-white/5 border-b border-white/10 flex items-center justify-center gap-2">
             <span className="text-xl font-[900] uppercase tracking-wider text-white flex items-center gap-2 drop-shadow-sm">
                 <svg className="w-5 h-5 text-pink-100" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7v2h20V7L12 2zm0 18c-4.41 0-8-3.59-8-8 0-4.41 3.59-8 8-8s8 3.59 8 8c0 4.41-3.59 8-8 8z" /></svg>
                 ALJOOYA SUBIDHA
@@ -53,7 +53,7 @@ export default function Sidebar({ user, isOpen, setIsOpen, onLogout, navigation 
         </div>
 
         {/* Profile Info (Minimal integration for staff) */}
-        <div className="px-5 py-3 bg-[#9d174d]/40 border-b border-white/10 flex items-center gap-3">
+        <div className="px-5 py-3 bg-black/10 border-b border-white/10 flex items-center gap-3">
             <Link 
               to="/profile" 
               className="flex items-center gap-3 flex-1 min-w-0 group"
@@ -93,7 +93,7 @@ export default function Sidebar({ user, isOpen, setIsOpen, onLogout, navigation 
                       )}
                     >
                       <div className="flex items-center">
-                        <item.icon className="mr-3 h-[18px] w-[18px] text-pink-100 saturate-150 font-extrabold" />
+                        <item.icon className="mr-3 h-[18px] w-[18px] text-fuchsia-100 saturate-150 font-extrabold" />
                         {item.name}
                       </div>
                       <ChevronRight className={cn(
@@ -107,7 +107,7 @@ export default function Sidebar({ user, isOpen, setIsOpen, onLogout, navigation 
                           initial={{ height: 0 }}
                           animate={{ height: 'auto' }}
                           exit={{ height: 0 }}
-                          className="overflow-hidden bg-[#9d174d]/30"
+                          className="overflow-hidden bg-black/20"
                         >
                           {item.children?.map((child: any) => {
                             const isChildActive = location.pathname === child.href;
@@ -116,8 +116,8 @@ export default function Sidebar({ user, isOpen, setIsOpen, onLogout, navigation 
                                 key={child.name}
                                 to={child.href}
                                 className={cn(
-                                  "flex items-center px-10 py-[12px] text-[13px] font-[800] tracking-[0.5px] text-pink-100 hover:text-white hover:bg-white/5 transition-all whitespace-nowrap",
-                                  isChildActive && 'bg-white/20 text-white font-black border-r-4 border-white'
+                                  "flex items-center px-10 py-[12px] text-[13px] font-[800] tracking-[0.5px] text-fuchsia-100 hover:text-white hover:bg-white/5 transition-all whitespace-nowrap",
+                                  isChildActive && 'text-white font-black border-r-4 border-white'
                                 )}
                                 onClick={() => {
                                   setIsOpen(false);
@@ -144,14 +144,14 @@ export default function Sidebar({ user, isOpen, setIsOpen, onLogout, navigation 
                     className={({ isActive }) => cn(
                       "flex items-center px-5 py-[15px] text-[14px] font-[800] uppercase tracking-[0.5px] transition-all outline-none border-l-4 border-transparent text-white",
                       isActive 
-                        ? 'bg-white/20 text-white font-black border-l-4 border-white shadow-inner' 
+                        ? 'text-white font-black border-l-4 border-white' 
                         : 'hover:bg-white/5'
                     )}
                     onClick={() => {
                       setIsOpen(false);
                     }}
                   >
-                    <item.icon className="mr-3 h-[18px] w-[18px] text-pink-100 font-extrabold" />
+                    <item.icon className="mr-3 h-[18px] w-[18px] text-fuchsia-100 font-extrabold" />
                     {item.name}
                   </NavLink>
                 )}
