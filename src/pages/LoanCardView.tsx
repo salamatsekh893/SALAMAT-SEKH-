@@ -266,7 +266,7 @@ export default function LoanCardView() {
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider">বাম কলাম পরিমাণ (Left Rows Max):</span>
               <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 animate-fade-in">
-                {[15, 18, 20, 22, 24, 25, 26, 28, 30].map((val) => (
+                {[8, 12, 15, 18, 20, 22, 24, 25, 26, 28, 30].map((val) => (
                   <button
                     key={val}
                     type="button"
