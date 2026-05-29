@@ -298,31 +298,37 @@ export default function ProfitLoss() {
             <motion.div 
               variants={cardVariants}
               whileHover={{ y: -3, scale: 1.01, transition: { duration: 0.2 } }}
-              className="bg-white border border-slate-150 rounded-2xl p-4 shadow-sm overflow-hidden relative group/income cursor-pointer"
+              className="card-glowing-wrapper rounded-2xl cursor-pointer shadow-md shadow-emerald-500/10"
+              style={{
+                '--glow-color-1': '#34d399',
+                '--glow-color-2': '#0ea5e9'
+              } as React.CSSProperties}
             >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-emerald-400/10 to-teal-400/20 rounded-full filter blur-2xl -mr-6 -mt-6 transition-transform group-hover/income:scale-125 duration-500"></div>
-              <div className="relative z-10 flex flex-col justify-between h-full space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-black uppercase text-emerald-700 tracking-wider bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                    Gross Revenue
-                  </span>
-                  <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-xl">
-                    <ArrowUpRight className="w-4 h-4" />
+              <div className="card-glowing-inner bg-gradient-to-br from-emerald-600 via-emerald-750 to-teal-800 text-white p-4 overflow-hidden relative group/income flex flex-col justify-between h-full space-y-2 rounded-[14px]">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full filter blur-2xl -mr-6 -mt-6 transition-transform group-hover/income:scale-125 duration-500"></div>
+                <div className="relative z-10 flex flex-col justify-between h-full space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-black uppercase text-white tracking-wider bg-white/15 px-2 py-0.5 rounded-full border border-white/20">
+                      Gross Revenue / মোট রাজস্ব
+                    </span>
+                    <div className="p-1.5 bg-white/10 text-emerald-100 rounded-xl">
+                      <ArrowUpRight className="w-4 h-4" />
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <div className="text-2xl font-black text-slate-950 tracking-tight font-mono">
-                    ₹{formatAmount(totalIncome)}
+                  <div>
+                    <div className="text-2xl font-black text-white tracking-tight font-mono">
+                      ₹{formatAmount(totalIncome)}
+                    </div>
+                    <div className="text-[9px] font-extrabold text-emerald-100/90 uppercase tracking-widest mt-0.5">
+                      TOTAL OPERATIONAL INFLOWS
+                    </div>
                   </div>
-                  <div className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mt-0.5">
-                    TOTAL OPERATIONAL INFLOWS
+                  <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-emerald-100/80 font-semibold">
+                    <span>Interest & Commissions</span>
+                    <span className="font-extrabold text-white">
+                      {incomeComposition.length} Sources / সোর্স
+                    </span>
                   </div>
-                </div>
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-semibold">
-                  <span>Interest & Commissions</span>
-                  <span className="font-extrabold text-emerald-600">
-                    {incomeComposition.length} Sources
-                  </span>
                 </div>
               </div>
             </motion.div>
@@ -331,31 +337,37 @@ export default function ProfitLoss() {
             <motion.div 
               variants={cardVariants}
               whileHover={{ y: -3, scale: 1.01, transition: { duration: 0.2 } }}
-              className="bg-white border border-slate-150 rounded-2xl p-4 shadow-sm overflow-hidden relative group/expense cursor-pointer"
+              className="card-glowing-wrapper rounded-2xl cursor-pointer shadow-md shadow-rose-500/10"
+              style={{
+                '--glow-color-1': '#f43f5e',
+                '--glow-color-2': '#f97316'
+              } as React.CSSProperties}
             >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-rose-400/10 to-red-400/20 rounded-full filter blur-2xl -mr-6 -mt-6 transition-transform group-hover/expense:scale-125 duration-500"></div>
-              <div className="relative z-10 flex flex-col justify-between h-full space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-black uppercase text-rose-700 tracking-wider bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">
-                    Gross Outflow
-                  </span>
-                  <div className="p-1.5 bg-rose-50 text-rose-600 rounded-xl">
-                    <ArrowDownRight className="w-4 h-4" />
+              <div className="card-glowing-inner bg-gradient-to-br from-rose-600 via-rose-700 to-red-800 text-white p-4 overflow-hidden relative group/expense flex flex-col justify-between h-full space-y-2 rounded-[14px]">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full filter blur-2xl -mr-6 -mt-6 transition-transform group-hover/expense:scale-125 duration-500"></div>
+                <div className="relative z-10 flex flex-col justify-between h-full space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-black uppercase text-white tracking-wider bg-white/15 px-2 py-0.5 rounded-full border border-white/20">
+                      Gross Outflow / মোট ব্যয়
+                    </span>
+                    <div className="p-1.5 bg-white/10 text-rose-100 rounded-xl">
+                      <ArrowDownRight className="w-4 h-4" />
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <div className="text-2xl font-black text-slate-950 tracking-tight font-mono">
-                    ₹{formatAmount(totalExpenses)}
+                  <div>
+                    <div className="text-2xl font-black text-white tracking-tight font-mono">
+                      ₹{formatAmount(totalExpenses)}
+                    </div>
+                    <div className="text-[9px] font-extrabold text-rose-100/90 uppercase tracking-widest mt-0.5">
+                      TOTAL EXPENDITURES PAID
+                    </div>
                   </div>
-                  <div className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mt-0.5">
-                    TOTAL EXPENDITURES PAID
+                  <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-rose-100/80 font-semibold">
+                    <span>Staff, Savings & Operations</span>
+                    <span className="font-extrabold text-white">
+                      {activeExpenses.length} Debits / ডেবিট
+                    </span>
                   </div>
-                </div>
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-semibold">
-                  <span>Staff, Savings & Operations</span>
-                  <span className="font-extrabold text-rose-600">
-                    {activeExpenses.length} Debits
-                  </span>
                 </div>
               </div>
             </motion.div>
@@ -364,43 +376,49 @@ export default function ProfitLoss() {
             <motion.div 
               variants={cardVariants}
               whileHover={{ y: -3, scale: 1.01, transition: { duration: 0.2 } }}
-              className={`border rounded-2xl p-4 shadow-md overflow-hidden relative group/net cursor-pointer ${
-                isProfit 
-                  ? 'bg-gradient-to-br from-slate-905 to-indigo-950 border-slate-900 text-white' 
-                  : 'bg-gradient-to-br from-red-950 to-rose-950 border-red-950 text-white'
-              }`}
+              className="card-glowing-wrapper rounded-2xl cursor-pointer shadow-md"
+              style={{
+                '--glow-color-1': isProfit ? '#3b82f6' : '#dc2626',
+                '--glow-color-2': isProfit ? '#a855f7' : '#f43f5e'
+              } as React.CSSProperties}
             >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full filter blur-xl -mr-6 -mt-6 transition-transform group-hover/net:scale-125 duration-500"></div>
-              <div className="relative z-10 flex flex-col justify-between h-full space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                    isProfit 
-                      ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' 
-                      : 'bg-rose-500/10 text-rose-300 border border-rose-500/20'
-                  }`}>
-                    {isProfit ? 'Net Operating Profit' : 'Net Operating Loss'}
-                  </span>
-                  <div className={`p-1.5 rounded-xl ${
-                    isProfit ? 'bg-indigo-900/60 text-indigo-300' : 'bg-rose-900/60 text-rose-300'
-                  }`}>
-                    {isProfit ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+              <div className={`card-glowing-inner p-4 overflow-hidden relative group/net flex flex-col justify-between h-full space-y-2 rounded-[14px] ${
+                isProfit 
+                  ? 'bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-950 text-white' 
+                  : 'bg-gradient-to-br from-red-950 via-rose-950 to-slate-950 text-white'
+              }`}>
+                <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full filter blur-xl -mr-6 -mt-6 transition-transform group-hover/net:scale-125 duration-500"></div>
+                <div className="relative z-10 flex flex-col justify-between h-full space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                      isProfit 
+                        ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' 
+                        : 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
+                    }`}>
+                      {isProfit ? 'Net Profit / নীট লাভ' : 'Net Loss / নীট লোকসান'}
+                    </span>
+                    <div className={`p-1.5 rounded-xl ${
+                      isProfit ? 'bg-indigo-900/60 text-indigo-300' : 'bg-rose-900/60 text-rose-300'
+                    }`}>
+                      {isProfit ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <div className="text-2xl font-black tracking-tight font-mono">
-                    ₹{formatAmount(Math.abs(netProfit))}
+                  <div>
+                    <div className="text-2xl font-black tracking-tight font-mono text-white">
+                      ₹{formatAmount(Math.abs(netProfit))}
+                    </div>
+                    <div className="text-[9px] font-extrabold text-slate-300 uppercase tracking-widest mt-0.5">
+                      {isProfit ? 'NET OPERATING BALANCE' : 'NET OPERATING DEFICIT'}
+                    </div>
                   </div>
-                  <div className="text-[9px] font-extrabold text-slate-300 uppercase tracking-widest mt-0.5">
-                    {isProfit ? 'NET INTERNAL BALANCE' : 'NET DEFICIT BALANCE'}
+                  <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-300 font-semibold">
+                    <span className="opacity-80">Profit Margin / মার্জিন</span>
+                    <span className={`font-black tracking-wide px-2 py-0.5 rounded-md text-[10px] ${
+                      isProfit ? 'bg-emerald-400/20 text-[#34d399]' : 'bg-rose-400/20 text-[#fca5a5]'
+                    }`}>
+                      {operatingMargin}%
+                    </span>
                   </div>
-                </div>
-                <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-300 font-semibold">
-                  <span className="opacity-80">Profit Margin</span>
-                  <span className={`font-black tracking-wide px-2 py-0.5 rounded-md text-[10px] ${
-                    isProfit ? 'bg-emerald-400/20 text-[#34d399]' : 'bg-rose-400/20 text-[#fca5a5]'
-                  }`}>
-                    {operatingMargin}%
-                  </span>
                 </div>
               </div>
             </motion.div>

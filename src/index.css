@@ -66,3 +66,49 @@ th {
   color: #475569;
   font-weight: 700;
 }
+
+@keyframes spin-border {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-spin-border {
+  animation: spin-border 6s linear infinite;
+}
+
+.card-glowing-wrapper {
+  position: relative;
+  padding: 2.5px;
+  overflow: hidden;
+  display: flex;
+}
+
+.card-glowing-wrapper::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    var(--glow-color-1, #10b981) 40deg,
+    transparent 80deg,
+    transparent 180deg,
+    var(--glow-color-2, #3b82f6) 220deg,
+    transparent 260deg,
+    transparent 360deg
+  );
+  animation: spin-border 5s linear infinite;
+  z-index: 0;
+}
+
+.card-glowing-inner {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+

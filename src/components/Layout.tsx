@@ -67,7 +67,7 @@ export default function Layout({ user, onLogout }: LayoutProps) {
       const interval = setInterval(fetchLoans, 120000);
       return () => clearInterval(interval);
     }
-  }, [user?.role, location.pathname]);
+  }, [user?.role]);
 
   const navigation = [
     { name: 'DASHBOARD', href: '/', icon: LayoutDashboard, roles: ['superadmin', 'branch_manager', 'fo', 'am', 'dm', 'manager'], permissionId: 'module_dashboard' },
