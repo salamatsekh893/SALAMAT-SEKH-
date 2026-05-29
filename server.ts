@@ -3716,15 +3716,38 @@ async function startServer() {
          params
       );
 
+      // Income 3: Product Sales Revenue
+      const branchFilterSales = branch_id ? 'AND m.branch_id = ?' : '';
+      const [salesResult]: any = await pool.query(
+        `SELECT SUM(s.total_amount) as product_sales_revenue 
+         FROM sales s
+         LEFT JOIN members m ON s.member_id = m.id
+         WHERE DATE(s.sale_date) BETWEEN ? AND ? ${branchFilterSales}`,
+        params
+      );
+
+      // Expenses 3: Savings Interest Paid
+      const branchFilterSavings = branch_id ? 'AND m.branch_id = ?' : '';
+      const [savingsInterestResult]: any = await pool.query(
+        `SELECT SUM(st.amount) as savings_interest_expenses
+         FROM savings_transactions st
+         JOIN savings_accounts sa ON st.savings_account_id = sa.id
+         JOIN members m ON sa.member_id = m.id
+         WHERE st.type = 'interest' AND DATE(st.date) BETWEEN ? AND ? ${branchFilterSavings}`,
+        params
+      );
+
       res.json({
         income: {
           processing_fees: feesResult[0]?.processing_fees || 0,
           insurance_fees: feesResult[0]?.insurance_fees || 0,
           interest_collected: interestResult[0]?.interest_collected || 0,
+          product_sales: salesResult[0]?.product_sales_revenue || 0,
         },
         expenses: {
           salary_expenses: salariesResult[0]?.salary_expenses || 0,
           other_expenses: expensesResult[0]?.other_expenses || 0,
+          savings_interest: savingsInterestResult[0]?.savings_interest_expenses || 0,
           expense_breakdown: expenseList
         }
       });
