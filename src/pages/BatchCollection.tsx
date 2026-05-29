@@ -89,11 +89,13 @@ const calculateOverdueInfo = (loan: any, selectedDate: string, totalPaid: number
   
   const expectedDemand = expectedEmis * installment;
   const overdue = Math.max(0, expectedDemand - totalPaid);
+  const advance = Math.max(0, totalPaid - expectedDemand);
   
   return { 
     overdue: roundVal(overdue), 
     expected: roundVal(expectedDemand),
-    emisDue: expectedEmis
+    emisDue: expectedEmis,
+    advance: roundVal(advance)
   };
 };
 
@@ -529,6 +531,7 @@ export default function BatchCollection() {
                       <th className="py-2 px-2 text-right">PAID</th>
                       <th className="py-2 px-2 text-center">EMI</th>
                       <th className="py-2 px-2 text-center">OD / DUE</th>
+                      <th className="py-2 px-2 text-right">ADVANCE</th>
                       <th className="py-2 px-2 text-right">BALANCE</th>
                       <th className="py-2 px-2 text-center">MODE / CLOSE</th>
                       <th className="py-2 px-2 text-center w-[140px]">COLLECT</th>
@@ -611,6 +614,18 @@ export default function BatchCollection() {
                                  <span className="bg-emerald-50 text-emerald-600 text-[9px] font-black px-1.5 py-0.5 rounded border border-emerald-100 uppercase italic leading-none">
                                    OK
                                  </span>
+                               );
+                             })()}
+                          </td>
+                          <td className="py-2 px-2 text-right">
+                             {(() => {
+                               const { advance } = calculateOverdueInfo(loan, date, totalPaidSum);
+                               return advance > 0 ? (
+                                 <span className="text-[11px] font-black text-indigo-500 whitespace-nowrap">
+                                   {formatAmount(advance)}
+                                 </span>
+                               ) : (
+                                 <span className="text-[11px] font-black text-slate-300 whitespace-nowrap">-</span>
                                );
                              })()}
                           </td>
@@ -709,9 +724,12 @@ export default function BatchCollection() {
                             <span className="bg-slate-50 text-slate-500 text-[9px] font-black px-2 py-1 rounded-md border border-slate-100 uppercase">P: {formatAmount(principalAmt)}</span>
                             <span className="bg-emerald-50 text-emerald-700 text-[9px] font-black px-2 py-1 rounded-md border border-emerald-100 uppercase">Paid: {formatAmount(totalPaidSum)}</span>
                             {(() => {
-                              const { overdue } = calculateOverdueInfo(loan, date, totalPaidSum);
-                              return overdue > 0 && (
-                                <span className="bg-rose-50 text-rose-600 text-[9px] font-black px-2 py-1 rounded-md border border-rose-100 uppercase">OD: {formatAmount(overdue)}</span>
+                              const { overdue, advance } = calculateOverdueInfo(loan, date, totalPaidSum);
+                              return (
+                                <>
+                                  {overdue > 0 && <span className="bg-rose-50 text-rose-600 text-[9px] font-black px-2 py-1 rounded-md border border-rose-100 uppercase">OD: {formatAmount(overdue)}</span>}
+                                  {advance > 0 && <span className="bg-indigo-50 text-indigo-600 text-[9px] font-black px-2 py-1 rounded-md border border-indigo-100 uppercase">ADV: {formatAmount(advance)}</span>}
+                                </>
                               );
                             })()}
                           </div>
