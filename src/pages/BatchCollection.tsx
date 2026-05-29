@@ -322,25 +322,20 @@ export default function BatchCollection() {
           await fetchWithAuth("/collections", {
             method: "POST",
             body: JSON.stringify({
-              loan_id: loanId,
-              amount_paid: amount,
-              payment_date: date,
-              payment_mode: paymentModes[loanId],
+               loan_id: loanId,
+               amount_paid: amount,
+               payment_date: date,
+               payment_method: paymentModes[loanId], // Changed to payment_method to match backend
             }),
           });
           successCount++;
-        } catch (e) {
+        } catch (e: any) {
           console.error(`Failed to submit for loan ${loanId}`, e);
+          toast.error(e.message || `Failed to submit for loan ${loanId}`);
+          break; // Stop submitting further if one fails (especially for DayBook restrictions)
         }
       }
 
-      // Submit penalty as a separate entry or note? 
-      // Assuming server supports a comment or separate type? 
-      // For now, let's just stick to principal/interest combined as logged above.
-      // If server doesn't have a penalty field, we might need to add it to server.ts or just add it to amount_paid.
-      // Let's add it to amount_paid if user just wants it logged, or assume server might need it.
-      // If we add it to amount_paid, it will mess up the balance calculation if its a "Fine".
-      // Let's assume we want a separate collection entry with a note.
       if (penalty > 0) {
         try {
           await fetchWithAuth("/collections", {
@@ -349,12 +344,14 @@ export default function BatchCollection() {
               loan_id: loanId,
               amount_paid: penalty,
               payment_date: date,
-              payment_mode: paymentModes[loanId],
-              comment: "Late Payment Penalty/Fine"
+              payment_method: paymentModes[loanId],
+              remarks: "Late Payment Penalty/Fine" // Server expects 'remarks' not 'comment'
             }),
           });
-        } catch (e) {
+        } catch (e: any) {
           console.error(`Failed to submit penalty for loan ${loanId}`, e);
+          toast.error(e.message || `Failed to submit penalty for loan ${loanId}`);
+          break;
         }
       }
     }
