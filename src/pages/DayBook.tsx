@@ -154,9 +154,9 @@ export default function DayBook() {
   };
 
   const handleOpenDayBook = async () => {
-    if (user?.role !== 'superadmin') {
+    if (user?.role !== 'superadmin' && user?.role !== 'admin' && user?.role !== 'manager') {
       voiceFeedback.error();
-      alert("Only superadmin can re-open a closed Day Book");
+      alert("Only an admin can re-open a closed Day Book");
       return;
     }
     if (!branchId) {
@@ -394,7 +394,7 @@ export default function DayBook() {
                   className="w-full py-1.5 bg-transparent text-slate-800 font-bold text-xs sm:text-sm focus:outline-none"
                 />
              </div>
-             {(user?.role === 'superadmin' || user?.role === 'manager') && (
+             {(user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'manager') && (
                <div className="flex-1 flex items-center bg-white border border-slate-200 rounded-lg px-2.5 overflow-hidden shadow-sm">
                   <Building2 className="w-4 h-4 text-blue-500 mr-1.5 flex-shrink-0" />
                   <select 
@@ -423,7 +423,7 @@ export default function DayBook() {
                  <RefreshCw className="w-3.5 h-3.5" /> Transfer
                </button>
                {isClosed ? (
-                 user?.role === 'superadmin' && (
+                 (user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'manager') && (
                    <button onClick={handleOpenDayBook} disabled={closing} className="flex-1 md:flex-none flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-colors shadow-sm disabled:opacity-50 text-nowrap">
                      <Unlock className="w-3.5 h-3.5" /> Re-Open
                    </button>

@@ -2536,7 +2536,9 @@ async function startServer() {
       ) AS activities
       LEFT JOIN daily_cash_balances dcb 
         ON dcb.branch_id = ? AND DATE(dcb.date) = DATE(activities.activity_date)
-      WHERE dcb.status IS NULL OR dcb.status != 'closed'
+      WHERE (dcb.status IS NULL OR dcb.status != 'closed')
+        AND activities.activity_date IS NOT NULL
+        AND activities.activity_date >= '2026-05-29'
       ORDER BY activities.activity_date ASC
       LIMIT 5
     `;
@@ -3519,7 +3521,10 @@ async function startServer() {
     }
   });
 
-  app.post("/api/daybook/close", async (req, res) => {
+  app.post("/api/daybook/close", verifyToken, async (req: any, res) => {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin' && req.user.role !== 'manager' && req.user.role !== 'branch_manager') {
+       return res.status(403).json({ error: 'Access denied' });
+    }
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
@@ -3594,7 +3599,10 @@ async function startServer() {
     }
   });
 
-  app.post("/api/daybook/open", async (req, res) => {
+  app.post("/api/daybook/open", verifyToken, async (req: any, res) => {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin' && req.user.role !== 'manager') {
+       return res.status(403).json({ error: 'Access denied' });
+    }
     try {
       const { date, branch_id } = req.body;
       const bId = branch_id ? parseInt(branch_id, 10) : null;
