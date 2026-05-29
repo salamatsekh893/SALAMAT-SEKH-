@@ -2480,9 +2480,9 @@ async function startServer() {
   });
 
   app.get("/api/collections", verifyToken, async (req: any, res) => {
+    const { loan_id } = req.query;
     try {
       const { role, userId, branchId } = req.user;
-      const { loan_id } = req.query;
       let query = `
         SELECT c.*, l.customer_id, m.full_name as customer_name, u.name as collected_by_name, u2.name as approved_by_name, u2.role as approved_by_role, g.group_name
         FROM collections c
@@ -2516,11 +2516,20 @@ async function startServer() {
       const [rows] = await pool.query(query, params);
       res.json(rows);
     } catch (err) {
+      console.error("API collections error:", err);
       // Fallback if joins fail
       try {
-        const [rows] = await pool.query('SELECT * FROM collections ORDER BY created_at DESC');
+        let fallbackQuery = 'SELECT * FROM collections';
+        let fallbackParams = [];
+        if (loan_id) {
+          fallbackQuery += ' WHERE loan_id = ?';
+          fallbackParams.push(loan_id);
+        }
+        fallbackQuery += ' ORDER BY created_at DESC';
+        const [rows] = await pool.query(fallbackQuery, fallbackParams);
         res.json(rows);
       } catch (fallbackErr) {
+        console.error("API collections fallback error:", fallbackErr);
         res.status(500).json({ error: 'Database error' });
       }
     }

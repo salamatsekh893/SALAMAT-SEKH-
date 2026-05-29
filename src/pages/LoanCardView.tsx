@@ -18,6 +18,9 @@ export default function LoanCardView() {
   const printRef = useRef<HTMLDivElement>(null);
 
   const [collections, setCollections] = useState<any[]>([]);
+  const [leftSplitMax, setLeftSplitMax] = useState<number>(24);
+  const [passbookMode, setPassbookMode] = useState<'real' | 'blank'>('real');
+  const [signatureMode, setSignatureMode] = useState<'digital' | 'manual'>('digital');
 
   useEffect(() => {
     loadData();
@@ -180,6 +183,22 @@ export default function LoanCardView() {
     }
   }
 
+  const processedRows = rows.map(r => {
+    if (passbookMode === 'blank') {
+      return {
+        ...r,
+        recvDate: '',
+        collectedAmt: '',
+        isPaid: false
+      };
+    }
+    return r;
+  });
+
+  const leftSplitIndex = Math.min(leftSplitMax, processedRows.length);
+  const leftRows = processedRows.slice(0, leftSplitIndex);
+  const rightRows = processedRows.slice(leftSplitIndex);
+
   return (
     <div className="min-h-screen bg-slate-900 print:bg-white flex flex-col">
       {/* Controls & Mode Toggler - Hidden during print */}
@@ -238,6 +257,97 @@ export default function LoanCardView() {
           </button>
         </div>
       </div>
+
+      {viewMode === 'schedule' && (
+        <div className="print:hidden w-full px-4 py-3 bg-slate-900 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-6">
+            
+            {/* Split Selector */}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider">বাম কলাম পরিমাণ (Left Rows Max):</span>
+              <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 animate-fade-in">
+                {[15, 18, 20, 22, 24, 25, 26, 28, 30].map((val) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setLeftSplitMax(val)}
+                    className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all ${
+                      leftSplitMax === val
+                        ? 'bg-pink-600 text-white shadow-md'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                    }`}
+                  >
+                    {val}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Template Mode */}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider">ডাটা মোড (Data Type):</span>
+              <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setPassbookMode('real')}
+                  className={`px-3 py-1 text-[10px] font-black rounded-md uppercase transition-all ${
+                    passbookMode === 'real'
+                      ? 'bg-emerald-600 text-white shadow'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  📡 ডিজিটাল রিয়েল ডাটা
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPassbookMode('blank')}
+                  className={`px-3 py-1 text-[10px] font-black rounded-md uppercase transition-all ${
+                    passbookMode === 'blank'
+                      ? 'bg-amber-600 text-white shadow'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  ✍️ ফাঁকা খাতা তৈরি (Blank)
+                </button>
+              </div>
+            </div>
+
+            {/* Signature Indicator Toggle */}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider">কর্মী সই (Field Sign):</span>
+              <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setSignatureMode('digital')}
+                  className={`px-3 py-1 text-[10px] font-black rounded-md uppercase transition-all ${
+                    signatureMode === 'digital'
+                      ? 'bg-pink-600 text-white shadow'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  ✓ অটো "Paid" সই
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSignatureMode('manual')}
+                  className={`px-3 py-1 text-[10px] font-black rounded-md uppercase transition-all ${
+                    signatureMode === 'manual'
+                      ? 'bg-slate-800 text-white shadow'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  🖊️ ফাঁকা রাখুন (Sign Box)
+                </button>
+              </div>
+            </div>
+
+          </div>
+          
+          <div className="text-[9px] font-black bg-pink-950/45 text-pink-300 border border-pink-900/40 px-3 py-1.5 rounded-xl uppercase tracking-widest leading-none">
+            ✨ MAGIC CONTROLS ACTIVE
+          </div>
+        </div>
+      )}
 
       <div className="w-full h-full flex-1 overflow-auto bg-slate-900 print:bg-white print:overflow-visible py-8">
         <div className="w-fit min-w-full mx-auto px-4 print:p-0">
@@ -547,19 +657,23 @@ export default function LoanCardView() {
                             </tr>
                           </thead>
                           <tbody>
-                            {rows.slice(0, Math.ceil(rows.length / 2)).map((row) => (
+                            {leftRows.map((row) => (
                               <tr key={row.instNo} className="bg-white hover:bg-slate-50">
-                                <td className="border border-slate-300 p-0.5 text-center font-bold text-slate-500">{row.instNo}</td>
+                                <td className="border border-slate-300 p-0.5 text-center font-bold text-slate-550">{row.instNo}</td>
                                 <td className="border border-slate-300 p-0.5 text-center font-bold font-mono text-slate-750">{row.date}</td>
                                 <td className="border border-slate-300 p-0.5 text-right font-black font-mono text-slate-900">₹{formatAmount(row.amount)}</td>
-                                <td className="border border-slate-300 p-0.5 text-center text-[7.5px] font-bold text-emerald-700 font-mono">
+                                <td className="border border-slate-300 p-0.5 text-center text-[7.5px] font-bold text-emerald-700 font-mono text-slate-800">
                                   {row.collectedAmt ? row.recvDate : <span className="text-slate-300 block text-center font-light leading-none">..........</span>}
                                 </td>
-                                <td className="border border-slate-300 p-0.5 text-right text-[7.5px] font-black text-emerald-700 font-mono">
+                                <td className="border border-slate-300 p-0.5 text-right text-[7.5px] font-black text-emerald-700 font-mono text-slate-800">
                                   {row.collectedAmt ? `₹${row.collectedAmt}` : <span className="text-slate-300 block text-center font-light leading-none">..........</span>}
                                 </td>
                                 <td className="border border-slate-300 p-0.5 text-center text-[7px] font-extrabold text-emerald-600">
-                                  {row.isPaid ? '✓ Paid' : <span className="text-slate-300 block text-center font-light leading-none">..........</span>}
+                                  {row.isPaid && signatureMode === 'digital' ? (
+                                    <span className="text-emerald-700 font-black">✓ Paid</span>
+                                  ) : (
+                                    <span className="text-slate-300 block text-center font-light leading-none">..........</span>
+                                  )}
                                 </td>
                               </tr>
                             ))}
@@ -611,38 +725,72 @@ export default function LoanCardView() {
                       </div>
 
                       {/* Right Table Panel */}
-                      <div className="overflow-hidden">
-                        <table className="w-full border-collapse border border-slate-300 text-[8px]">
-                          <thead>
-                            <tr className="bg-slate-800 text-white font-black uppercase text-[7.5px]">
-                              <th className="border border-slate-450 p-1 text-center w-6">নং</th>
-                              <th className="border border-slate-450 p-1 text-center w-16">নির্ধারিত তারিখ</th>
-                              <th className="border border-slate-450 p-1 text-right w-12">কিস্তি টাকা</th>
-                              <th className="border border-slate-450 p-1 text-center w-16">আদায় তারিখ</th>
-                              <th className="border border-slate-450 p-1 text-right w-14">আদায় টাকা</th>
-                              <th className="border border-slate-450 p-1 text-center w-12">কর্মী সই</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {rows.slice(Math.ceil(rows.length / 2)).map((row) => (
-                              <tr key={row.instNo} className="bg-white hover:bg-slate-50">
-                                <td className="border border-slate-300 p-0.5 text-center font-bold text-slate-500">{row.instNo}</td>
-                                <td className="border border-slate-300 p-0.5 text-center font-bold font-mono text-slate-750">{row.date}</td>
-                                <td className="border border-slate-300 p-0.5 text-right font-black font-mono text-slate-900">₹{formatAmount(row.amount)}</td>
-                                <td className="border border-slate-300 p-0.5 text-center text-[7.5px] font-bold text-emerald-700 font-mono">
-                                  {row.collectedAmt ? row.recvDate : <span className="text-slate-300 block text-center font-light leading-none">..........</span>}
-                                </td>
-                                <td className="border border-slate-300 p-0.5 text-right text-[7.5px] font-black text-emerald-700 font-mono">
-                                  {row.collectedAmt ? `₹${row.collectedAmt}` : <span className="text-slate-300 block text-center font-light leading-none">..........</span>}
-                                </td>
-                                <td className="border border-slate-300 p-0.5 text-center text-[7px] font-extrabold text-emerald-600">
-                                  {row.isPaid ? '✓ Paid' : <span className="text-slate-300 block text-center font-light leading-none">..........</span>}
-                                </td>
+                      {rightRows.length > 0 ? (
+                        <div className="overflow-hidden">
+                          <table className="w-full border-collapse border border-slate-300 text-[8px]">
+                            <thead>
+                              <tr className="bg-slate-800 text-white font-black uppercase text-[7.5px]">
+                                <th className="border border-slate-450 p-1 text-center w-6">নং</th>
+                                <th className="border border-slate-450 p-1 text-center w-16">নির্ধারিত তারিখ</th>
+                                <th className="border border-slate-450 p-1 text-right w-12">কিস্তি টাকা</th>
+                                <th className="border border-slate-450 p-1 text-center w-16">আদায় তারিখ</th>
+                                <th className="border border-slate-450 p-1 text-right w-14">আদায় টাকা</th>
+                                <th className="border border-slate-450 p-1 text-center w-12">কর্মী সই</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                            </thead>
+                            <tbody>
+                              {rightRows.map((row) => (
+                                <tr key={row.instNo} className="bg-white hover:bg-slate-50">
+                                  <td className="border border-slate-300 p-0.5 text-center font-bold text-slate-500">{row.instNo}</td>
+                                  <td className="border border-slate-300 p-0.5 text-center font-bold font-mono text-slate-750">{row.date}</td>
+                                  <td className="border border-slate-300 p-0.5 text-right font-black font-mono text-slate-900">₹{formatAmount(row.amount)}</td>
+                                  <td className="border border-slate-300 p-0.5 text-center text-[7.5px] font-bold text-emerald-700 font-mono text-slate-800">
+                                    {row.collectedAmt ? row.recvDate : <span className="text-slate-300 block text-center font-light leading-none">..........</span>}
+                                  </td>
+                                  <td className="border border-slate-300 p-0.5 text-right text-[7.5px] font-black text-emerald-700 font-mono text-slate-800">
+                                    {row.collectedAmt ? `₹${row.collectedAmt}` : <span className="text-slate-300 block text-center font-light leading-none">..........</span>}
+                                  </td>
+                                  <td className="border border-slate-300 p-0.5 text-center text-[7px] font-extrabold text-emerald-600">
+                                    {row.isPaid && signatureMode === 'digital' ? (
+                                      <span className="text-emerald-700 font-black">✓ Paid</span>
+                                    ) : (
+                                      <span className="text-slate-300 block text-center font-light leading-none">..........</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-4 flex-1 h-[250px] flex flex-col justify-between text-slate-700 select-none">
+                          <div>
+                            <div className="text-center pb-1.5 border-b border-slate-200 mb-2.5">
+                              <span className="text-[10px] font-black text-pink-700 uppercase tracking-widest block mb-0.5">অফিসিয়াল নিরীক্ষণ ও সুপারভাইজার মন্তব্য</span>
+                              <span className="text-[7.5px] font-bold text-slate-400 uppercase tracking-wider block font-sans">Supervisor Official Audit & Field Inspection Notes</span>
+                            </div>
+                            
+                            <div className="space-y-3 pt-1">
+                              <div className="flex border-b border-slate-200 pb-1 text-[8px] font-bold">
+                                <span className="text-slate-500 w-24">পরিদর্শন তারিখ (Date):</span>
+                                <span className="text-slate-300 font-light">....................................................................</span>
+                              </div>
+                              <div className="flex border-b border-slate-200 pb-1 text-[8px] font-bold">
+                                <span className="text-slate-500 w-24">নিরীক্ষকের মন্তব্য (Remark):</span>
+                                <span className="text-slate-300 font-light">....................................................................</span>
+                              </div>
+                              <div className="flex border-b border-slate-200 pb-1 text-[8px] font-bold">
+                                <span className="text-slate-500 w-24">তদন্তকারী সুপারভাইজার সই:</span>
+                                <span className="text-slate-300 font-light">....................................................................</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="text-center border-t border-slate-200/60 pt-2 text-[7px] font-black text-slate-400 font-sans">
+                            📝 সংগৃহীত তথ্য ও ক্যাশ ব্যালেন্স মেলাবার জন্য এই স্থান সংরক্ষিত।
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex justify-between items-center pt-1 border-t border-slate-200 text-[7px] text-slate-400 font-bold uppercase mt-1 tracking-wider">
