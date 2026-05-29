@@ -30,6 +30,9 @@ export default function DayBook() {
   const [confirmBank, setConfirmBank] = useState(false);
   const [confirmSavings, setConfirmSavings] = useState(false);
   const [confirmProducts, setConfirmProducts] = useState(false);
+  const [confirmCapital, setConfirmCapital] = useState(false);
+  const [confirmProcessing, setConfirmProcessing] = useState(false);
+  const [confirmInsurance, setConfirmInsurance] = useState(false);
 
   useEffect(() => {
     loadBranches();
@@ -196,12 +199,19 @@ export default function DayBook() {
       alert(`There are ${pendingCollections.length} pending collections. Please approve them before closing the day.`);
       return;
     }
-    setConfirmCollections(false);
-    setConfirmDisbursements(false);
-    setConfirmExpenses(false);
-    setConfirmBank(false);
-    setConfirmSavings(false);
-    setConfirmProducts(false);
+    const disbs = data?.disbursements || [];
+    const totalProc = disbs.reduce((sum: number, d: any) => sum + parseFloat(d.processing_fee || 0), 0);
+    const totalInsu = disbs.reduce((sum: number, d: any) => sum + parseFloat(d.insurance_fee || 0), 0);
+
+    setConfirmCollections(collections.length === 0);
+    setConfirmDisbursements(disbursements.length === 0);
+    setConfirmProcessing(totalProc === 0);
+    setConfirmInsurance(totalInsu === 0);
+    setConfirmExpenses((expenses.length + salaries.length) === 0);
+    setConfirmBank(bankTxns.length === 0);
+    setConfirmSavings(savingsTxns.length === 0);
+    setConfirmProducts(sales.length === 0);
+    setConfirmCapital(capital.length === 0);
     setShowCloseModal(true);
   };
 
@@ -381,7 +391,24 @@ export default function DayBook() {
     }
   });
 
-  ledger.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+  const formatTimeSafe = (timeVal: any) => {
+    if (!timeVal) return '--:--';
+    const d = new Date(timeVal);
+    if (isNaN(d.getTime())) return '--:--';
+    try {
+      return format(d, 'hh:mm a');
+    } catch (e) {
+      return '--:--';
+    }
+  };
+
+  ledger.sort((a, b) => {
+    const timeA = a.time ? new Date(a.time).getTime() : 0;
+    const timeB = b.time ? new Date(b.time).getTime() : 0;
+    const valA = isNaN(timeA) ? 0 : timeA;
+    const valB = isNaN(timeB) ? 0 : timeB;
+    return valA - valB;
+  });
 
   const exportToExcel = () => {
     const wsData = [
@@ -397,7 +424,7 @@ export default function DayBook() {
 
     ledger.forEach(item => {
       wsData.push([
-        format(new Date(item.time), 'hh:mm a'),
+        formatTimeSafe(item.time),
         item.description,
         item.type.toUpperCase(),
         item.amount
@@ -635,7 +662,7 @@ export default function DayBook() {
                         <span className={`px-1.5 py-0.5 rounded text-[9px] inline-block ${item.type === 'inflow' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                           {item.type === 'inflow' ? 'CR (+)' : 'DR (-)'}
                         </span>
-                        <div className="text-[9px] text-slate-400 mt-0.5">{format(new Date(item.time), 'hh:mm a')}</div>
+                        <div className="text-[9px] text-slate-400 mt-0.5">{formatTimeSafe(item.time)}</div>
                       </td>
                       <td className="px-3 py-1.5">
                          <div className="text-[11px] font-black text-slate-800 uppercase leading-snug">
@@ -771,6 +798,30 @@ export default function DayBook() {
                        </td>
                      </tr>
                      <tr className="hover:bg-slate-50/50 transition-colors">
+                       <td className="px-6 py-4 text-sm font-bold text-slate-700">Processing Fee Collected</td>
+                       <td className="px-6 py-4 text-center text-lg font-black text-emerald-600">
+                         {disbursements.filter((d: any) => parseFloat(d.processing_fee || 0) > 0).length}
+                       </td>
+                       <td className="px-6 py-4 text-right text-base font-bold text-slate-800">₹{formatAmount(totalProcessingFees)}</td>
+                       <td className="px-6 py-4">
+                         <label className="flex items-center justify-center cursor-pointer">
+                           <input type="checkbox" checked={confirmProcessing} onChange={e=>setConfirmProcessing(e.target.checked)} className="w-5 h-5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-600" />
+                         </label>
+                       </td>
+                     </tr>
+                     <tr className="hover:bg-slate-50/50 transition-colors">
+                       <td className="px-6 py-4 text-sm font-bold text-slate-700">Insurance Fee Collected</td>
+                       <td className="px-6 py-4 text-center text-lg font-black text-emerald-600">
+                         {disbursements.filter((d: any) => parseFloat(d.insurance_fee || 0) > 0).length}
+                       </td>
+                       <td className="px-6 py-4 text-right text-base font-bold text-slate-800">₹{formatAmount(totalInsuranceFees)}</td>
+                       <td className="px-6 py-4">
+                         <label className="flex items-center justify-center cursor-pointer">
+                           <input type="checkbox" checked={confirmInsurance} onChange={e=>setConfirmInsurance(e.target.checked)} className="w-5 h-5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-600" />
+                         </label>
+                       </td>
+                     </tr>
+                     <tr className="hover:bg-slate-50/50 transition-colors">
                        <td className="px-6 py-4 text-sm font-bold text-slate-700">Expenses / Salary</td>
                        <td className="px-6 py-4 text-center text-lg font-black text-[#f97316]">{expenses.length + salaries.length}</td>
                        <td className="px-6 py-4 text-right text-base font-bold text-slate-800">₹{formatAmount(totalExpensesPaid + totalSalaries)}</td>
@@ -811,6 +862,23 @@ export default function DayBook() {
                        <td className="px-6 py-4">
                          <label className="flex items-center justify-center cursor-pointer">
                            <input type="checkbox" checked={confirmProducts} onChange={e=>setConfirmProducts(e.target.checked)} className="w-5 h-5 text-[#eab308] rounded border-slate-300 focus:ring-[#eab308]" />
+                          </label>
+                        </td>
+                      </tr>
+                      <tr className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-6 py-4 text-sm font-bold text-slate-700">Capital Introduced (Cash)</td>
+                        <td className="px-6 py-4 text-center text-lg font-black text-[#0284c7]">{capital.length}</td>
+                        <td className="px-6 py-4 text-right text-base font-bold text-slate-800">₹{formatAmount(totalCapitalIn)}</td>
+                        <td className="px-6 py-4">
+                          <label className="flex items-center justify-center cursor-pointer">
+                            <input type="checkbox" checked={confirmCapital} onChange={e=>setConfirmCapital(e.target.checked)} className="w-5 h-5 text-[#0284c7] rounded border-slate-300 focus:ring-[#0284c7]" />
+                          </label>
+                        </td>
+                      </tr>
+                      <tr className="hidden">
+                        <td>
+                          <label>
+                            <input type="checkbox" style={{display:'none'}} />
                          </label>
                        </td>
                      </tr>
@@ -913,7 +981,7 @@ export default function DayBook() {
                       <button type="button" onClick={() => setShowCloseModal(false)} className="flex-1 bg-white border-2 border-slate-200 text-slate-600 font-bold uppercase tracking-widest py-4 rounded-xl hover:bg-slate-50 transition-colors">
                         Cancel
                       </button>
-                      <button type="submit" disabled={!confirmCollections || !confirmDisbursements || !confirmExpenses || !confirmBank || !confirmSavings || !confirmProducts || closing || parseFloat(transferAmount || '0') > closingBalance} className="flex-[2] bg-[#f43f5e] hover:bg-[#e11d48] text-white font-black uppercase tracking-widest py-4 rounded-xl shadow-md shadow-rose-200 transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-lg">
+                      <button type="submit" disabled={!confirmCollections || !confirmDisbursements || !confirmProcessing || !confirmInsurance || !confirmExpenses || !confirmBank || !confirmSavings || !confirmProducts || !confirmCapital || closing || parseFloat(transferAmount || '0') > closingBalance} className="flex-[2] bg-[#f43f5e] hover:bg-[#e11d48] text-white font-black uppercase tracking-widest py-4 rounded-xl shadow-md shadow-rose-200 transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-lg">
                         <Lock className="w-5 h-5" /> Confirm Day Close
                       </button>
                     </div>
