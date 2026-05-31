@@ -126,6 +126,7 @@ export default function BatchCollection() {
   const paidSums = React.useMemo(() => {
     const sums: Record<string, number> = {};
     collections.forEach(c => {
+      if (c.status === 'rejected') return;
       const lid = c.loan_id?.toString();
       if (lid) {
         sums[lid] = (sums[lid] || 0) + (parseFloat(c.amount_paid) || 0);

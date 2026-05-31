@@ -2164,6 +2164,23 @@ async function startServer() {
 
   app.get("/api/loans", verifyToken, async (req: any, res) => {
     try {
+      // Auto-close loans that are fully paid
+      try {
+        await pool.query(`
+          UPDATE loans l
+          JOIN (
+            SELECT loan_id, SUM(amount_paid) as total_paid 
+            FROM collections 
+            WHERE status != 'rejected' 
+            GROUP BY loan_id
+          ) c ON l.id = c.loan_id
+          SET l.status = 'closed'
+          WHERE l.status = 'active' AND c.total_paid >= l.total_repayment
+        `);
+      } catch (autoCloseErr) {
+        console.error("Auto-close loans error:", autoCloseErr);
+      }
+
       const { role, branchId, userId } = req.user;
       
       let whereClauses: string[] = [];
@@ -2419,15 +2436,18 @@ async function startServer() {
   });
 
   app.put("/api/loans/:id/status", async (req, res) => {
+    const conn = await pool.getConnection();
     try {
-      const { status, disbursement_date, first_emi_date } = req.body;
+      await conn.beginTransaction();
+
+      const { status, disbursement_date, first_emi_date, bank_id } = req.body;
       const validStatuses = ['pending', 'approved', 'active', 'closed', 'rejected'];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({ error: 'Invalid status' });
       }
 
       let updateQuery = 'UPDATE loans SET status = ?';
-      let params = [status];
+      let params: any[] = [status];
 
       if (disbursement_date) {
         updateQuery += ', disbursement_date = ?';
@@ -2442,11 +2462,54 @@ async function startServer() {
       updateQuery += ' WHERE id = ?';
       params.push(req.params.id);
 
-      await pool.query(updateQuery, params);
+      await conn.query(updateQuery, params);
+
+      // If disbursing (setting to active) and bank_id is provided, deduct from bank
+      if (status === 'active' && bank_id) {
+        const [loanRows]: any = await conn.query('SELECT amount, processing_fee, insurance_fee, loan_no FROM loans WHERE id = ?', [req.params.id]);
+        if (loanRows.length > 0) {
+          const loanData = loanRows[0];
+          const amount = parseFloat(loanData.amount || 0);
+          const pfee = parseFloat(loanData.processing_fee || 0);
+          const ifee = parseFloat(loanData.insurance_fee || 0);
+          const disbDate = disbursement_date || new Date().toISOString().split('T')[0];
+          
+          // Net withdrawal from bank
+          const netDisbursed = amount - pfee - ifee;
+          
+          await conn.query(`
+            UPDATE bank_accounts SET current_balance = current_balance - ? WHERE id = ?
+          `, [netDisbursed, bank_id]);
+          
+          await conn.query(`
+            INSERT INTO bank_transactions (bank_id, date, type, source_type, source_id, amount, purpose)
+            VALUES (?, ?, 'withdrawal', 'other', ?, ?, ?)
+          `, [bank_id, disbDate, req.params.id, amount, `Loan Disbursed - ${loanData.loan_no}`]);
+
+          if (pfee > 0) {
+            await conn.query(`
+              INSERT INTO bank_transactions (bank_id, date, type, source_type, source_id, amount, purpose)
+              VALUES (?, ?, 'deposit', 'other', ?, ?, ?)
+            `, [bank_id, disbDate, req.params.id, pfee, `Processing Fee Collected - ${loanData.loan_no}`]);
+          }
+
+          if (ifee > 0) {
+            await conn.query(`
+              INSERT INTO bank_transactions (bank_id, date, type, source_type, source_id, amount, purpose)
+              VALUES (?, ?, 'deposit', 'other', ?, ?, ?)
+            `, [bank_id, disbDate, req.params.id, ifee, `Insurance Fee Collected - ${loanData.loan_no}`]);
+          }
+        }
+      }
+
+      await conn.commit();
       res.json({ success: true, status });
     } catch (err) {
+      await conn.rollback();
       console.error(err);
       res.status(500).json({ error: 'Database error' });
+    } finally {
+      conn.release();
     }
   });
 
@@ -3194,6 +3257,21 @@ async function startServer() {
             if (totalPaid >= totalRepayment) {
               await pool.query('UPDATE loans SET status = ? WHERE id = ?', ['closed', loanId]);
             }
+          }
+        }
+      } else if (status === 'rejected') {
+        // If a collection is rejected, check if we need to reopen the loan
+        const [loanRows]: any = await pool.query('SELECT total_repayment, status FROM loans WHERE id = ?', [loanId]);
+        if (loanRows.length > 0 && loanRows[0].status === 'closed') {
+          const totalRepayment = Number(loanRows[0].total_repayment);
+          const [sumRows]: any = await pool.query(
+            'SELECT SUM(amount_paid) as total_paid FROM collections WHERE loan_id = ? AND status != "rejected"',
+            [loanId]
+          );
+          const totalPaid = Number(sumRows[0].total_paid || 0);
+
+          if (totalPaid < totalRepayment) {
+            await pool.query('UPDATE loans SET status = ? WHERE id = ?', ['active', loanId]);
           }
         }
       }

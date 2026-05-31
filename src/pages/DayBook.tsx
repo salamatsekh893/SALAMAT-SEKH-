@@ -25,14 +25,11 @@ export default function DayBook() {
 
   // Checklist for Day Close
   const [confirmCollections, setConfirmCollections] = useState(false);
-  const [confirmDisbursements, setConfirmDisbursements] = useState(false);
   const [confirmExpenses, setConfirmExpenses] = useState(false);
   const [confirmBank, setConfirmBank] = useState(false);
   const [confirmSavings, setConfirmSavings] = useState(false);
   const [confirmProducts, setConfirmProducts] = useState(false);
   const [confirmCapital, setConfirmCapital] = useState(false);
-  const [confirmProcessing, setConfirmProcessing] = useState(false);
-  const [confirmInsurance, setConfirmInsurance] = useState(false);
 
   useEffect(() => {
     loadBranches();
@@ -204,9 +201,6 @@ export default function DayBook() {
     const totalInsu = disbs.reduce((sum: number, d: any) => sum + parseFloat(d.insurance_fee || 0), 0);
 
     setConfirmCollections(collections.length === 0);
-    setConfirmDisbursements(disbursements.length === 0);
-    setConfirmProcessing(totalProc === 0);
-    setConfirmInsurance(totalInsu === 0);
     setConfirmExpenses((expenses.length + salaries.length) === 0);
     setConfirmBank(bankTxns.length === 0);
     setConfirmSavings(savingsTxns.length === 0);
@@ -234,8 +228,6 @@ export default function DayBook() {
 
   // Calculate totals
   const totalCollections = collections.reduce((sum: number, c: any) => sum + parseFloat(c.amount_paid || 0), 0);
-  const totalProcessingFees = disbursements.reduce((sum: number, d: any) => sum + parseFloat(d.processing_fee || 0), 0);
-  const totalInsuranceFees = disbursements.reduce((sum: number, d: any) => sum + parseFloat(d.insurance_fee || 0), 0);
   
   const totalSavingDeposits = savingsTxns
     .filter((t: any) => t.type === 'deposit' && t.account_type === 'saving')
@@ -254,10 +246,9 @@ export default function DayBook() {
   const totalCapitalIn = capital.filter((c:any) => c.payment_method === 'cash').reduce((sum: number, c: any) => sum + parseFloat(c.amount || 0), 0);
   const totalBankWithdrawals = bankTxns.filter((t:any) => t.type === 'withdrawal').reduce((sum: number, t: any) => sum + parseFloat(t.amount || 0), 0);
   
-  const totalInflows = totalCollections + totalProcessingFees + totalInsuranceFees + totalSavingsDeposits + totalProductSales + totalCapitalIn + totalBankWithdrawals;
+  // NOTE: Precessing Fees & Insurance Fees are deducted at source (bank) during disbursement. They do not come in Cash.
+  const totalInflows = totalCollections + totalSavingsDeposits + totalProductSales + totalCapitalIn + totalBankWithdrawals;
 
-  const totalDisbursements = disbursements.reduce((sum: number, d: any) => sum + parseFloat(d.amount || 0), 0);
-  
   const totalSavingWithdrawals = savingsTxns
     .filter((t: any) => t.type === 'withdrawal' && t.account_type === 'saving')
     .reduce((sum: number, t: any) => sum + parseFloat(t.amount || 0), 0);
@@ -273,7 +264,8 @@ export default function DayBook() {
   const totalBankDeposits = bankTxns.filter((t:any) => t.type === 'deposit').reduce((sum: number, t: any) => sum + parseFloat(t.amount || 0), 0);
   const totalExpensesPaid = expenses.filter((e:any) => e.payment_method === 'cash').reduce((sum: number, e: any) => sum + parseFloat(e.amount || 0), 0);
 
-  const totalOutflows = totalDisbursements + totalSavingsWithdrawals + totalSalaries + totalCapitalOut + totalBankDeposits + totalExpensesPaid;
+  // NOTE: Disbursements happen directly from Bank/HO. They do not deduct from Branch Cash.
+  const totalOutflows = totalSavingsWithdrawals + totalSalaries + totalCapitalOut + totalBankDeposits + totalExpensesPaid;
 
   const netCashFlow = totalInflows - totalOutflows;
   const closingBalance = openingBalance + netCashFlow;
@@ -329,36 +321,13 @@ export default function DayBook() {
     }
   });
 
+  // NOTE: Disbursements and their associated fees are done via Bank (non-cash),
+  // so we completely exclude them from the Daily Cash Ledger.
+  /*
   disbursements.forEach((d: any) => {
-    const txnTime = d.disbursement_date || d.start_date || d.created_at;
-    // 1. Principal Outflow
-    ledger.push({
-      time: txnTime,
-      description: `Loan Disbursement - ${d.member_name || 'Member'}`,
-      type: 'outflow',
-      amount: parseFloat(d.amount)
-    });
-
-    // 2. Processing Fee Inflow
-    if (parseFloat(d.processing_fee || 0) > 0) {
-      ledger.push({
-        time: txnTime,
-        description: `Processing Fee Collected - ${d.member_name || 'Member'}`,
-        type: 'inflow',
-        amount: parseFloat(d.processing_fee)
-      });
-    }
-
-    // 3. Insurance Fee Inflow
-    if (parseFloat(d.insurance_fee || 0) > 0) {
-      ledger.push({
-        time: txnTime,
-        description: `Insurance Fee Collected - ${d.member_name || 'Member'}`,
-        type: 'inflow',
-        amount: parseFloat(d.insurance_fee)
-      });
-    }
+    // ... logic hidden
   });
+  */
 
   sales.forEach((s: any) => {
     if (s.payment_method?.toLowerCase() === 'cash') {
@@ -561,20 +530,6 @@ export default function DayBook() {
               <div className="text-[8px] font-bold text-slate-400 mt-0.5">{collections.length} Txns</div>
             </div>
 
-            {/* Processing Fees */}
-            <div className="border border-emerald-150 rounded-lg bg-emerald-50/20 p-2 flex flex-col justify-between shadow-sm">
-              <div className="text-[9px] font-black uppercase text-emerald-700 tracking-wider">Processing Fee</div>
-              <div className="text-sm font-black text-emerald-600 mt-1">+₹{formatAmount(totalProcessingFees)}</div>
-              <div className="text-[8px] font-bold text-slate-400 mt-0.5">Disb. Fees</div>
-            </div>
-
-            {/* Insurance Fees */}
-            <div className="border border-emerald-150 rounded-lg bg-emerald-50/20 p-2 flex flex-col justify-between shadow-sm">
-              <div className="text-[9px] font-black uppercase text-emerald-700 tracking-wider">Insurance Fee</div>
-              <div className="text-sm font-black text-emerald-600 mt-1">+₹{formatAmount(totalInsuranceFees)}</div>
-              <div className="text-[8px] font-bold text-slate-400 mt-0.5">Disb. Fees</div>
-            </div>
-
             {/* Savings Deposit */}
             <div className="border border-teal-150 rounded-lg bg-teal-50/20 p-2 flex flex-col justify-between shadow-sm">
               <div className="text-[9px] font-black uppercase text-teal-700 tracking-wider">Savings Deposit</div>
@@ -594,13 +549,6 @@ export default function DayBook() {
               <div className="text-[9px] font-black uppercase text-amber-700 tracking-wider">Product Sales</div>
               <div className="text-sm font-black text-amber-600 mt-1">+₹{formatAmount(totalProductSales)}</div>
               <div className="text-[8px] font-bold text-slate-400 mt-0.5">{sales.length} Sales</div>
-            </div>
-
-            {/* Loan Disbursements */}
-            <div className="border border-rose-150 rounded-lg bg-rose-50/20 p-2 flex flex-col justify-between shadow-sm">
-              <div className="text-[9px] font-black uppercase text-rose-700 tracking-wider">Loans Disbursed</div>
-              <div className="text-sm font-black text-rose-600 mt-1">-₹{formatAmount(totalDisbursements)}</div>
-              <div className="text-[8px] font-bold text-slate-400 mt-0.5">{disbursements.length} Loans</div>
             </div>
 
             {/* Savings Withdrawal */}
@@ -788,40 +736,6 @@ export default function DayBook() {
                        </td>
                      </tr>
                      <tr className="hover:bg-slate-50/50 transition-colors">
-                       <td className="px-6 py-4 text-sm font-bold text-slate-700">Loans Disbursed</td>
-                       <td className="px-6 py-4 text-center text-lg font-black text-[#0ea5e9]">{disbursements.length}</td>
-                       <td className="px-6 py-4 text-right text-base font-bold text-slate-800">₹{formatAmount(totalDisbursements)}</td>
-                       <td className="px-6 py-4">
-                         <label className="flex items-center justify-center cursor-pointer">
-                           <input type="checkbox" checked={confirmDisbursements} onChange={e=>setConfirmDisbursements(e.target.checked)} className="w-5 h-5 text-[#0ea5e9] rounded border-slate-300 focus:ring-[#0ea5e9]" />
-                         </label>
-                       </td>
-                     </tr>
-                     <tr className="hover:bg-slate-50/50 transition-colors">
-                       <td className="px-6 py-4 text-sm font-bold text-slate-700">Processing Fee Collected</td>
-                       <td className="px-6 py-4 text-center text-lg font-black text-emerald-600">
-                         {disbursements.filter((d: any) => parseFloat(d.processing_fee || 0) > 0).length}
-                       </td>
-                       <td className="px-6 py-4 text-right text-base font-bold text-slate-800">₹{formatAmount(totalProcessingFees)}</td>
-                       <td className="px-6 py-4">
-                         <label className="flex items-center justify-center cursor-pointer">
-                           <input type="checkbox" checked={confirmProcessing} onChange={e=>setConfirmProcessing(e.target.checked)} className="w-5 h-5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-600" />
-                         </label>
-                       </td>
-                     </tr>
-                     <tr className="hover:bg-slate-50/50 transition-colors">
-                       <td className="px-6 py-4 text-sm font-bold text-slate-700">Insurance Fee Collected</td>
-                       <td className="px-6 py-4 text-center text-lg font-black text-emerald-600">
-                         {disbursements.filter((d: any) => parseFloat(d.insurance_fee || 0) > 0).length}
-                       </td>
-                       <td className="px-6 py-4 text-right text-base font-bold text-slate-800">₹{formatAmount(totalInsuranceFees)}</td>
-                       <td className="px-6 py-4">
-                         <label className="flex items-center justify-center cursor-pointer">
-                           <input type="checkbox" checked={confirmInsurance} onChange={e=>setConfirmInsurance(e.target.checked)} className="w-5 h-5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-600" />
-                         </label>
-                       </td>
-                     </tr>
-                     <tr className="hover:bg-slate-50/50 transition-colors">
                        <td className="px-6 py-4 text-sm font-bold text-slate-700">Expenses / Salary</td>
                        <td className="px-6 py-4 text-center text-lg font-black text-[#f97316]">{expenses.length + salaries.length}</td>
                        <td className="px-6 py-4 text-right text-base font-bold text-slate-800">₹{formatAmount(totalExpensesPaid + totalSalaries)}</td>
@@ -981,7 +895,7 @@ export default function DayBook() {
                       <button type="button" onClick={() => setShowCloseModal(false)} className="flex-1 bg-white border-2 border-slate-200 text-slate-600 font-bold uppercase tracking-widest py-4 rounded-xl hover:bg-slate-50 transition-colors">
                         Cancel
                       </button>
-                      <button type="submit" disabled={!confirmCollections || !confirmDisbursements || !confirmProcessing || !confirmInsurance || !confirmExpenses || !confirmBank || !confirmSavings || !confirmProducts || !confirmCapital || closing || parseFloat(transferAmount || '0') > closingBalance} className="flex-[2] bg-[#f43f5e] hover:bg-[#e11d48] text-white font-black uppercase tracking-widest py-4 rounded-xl shadow-md shadow-rose-200 transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-lg">
+                      <button type="submit" disabled={!confirmCollections || !confirmExpenses || !confirmBank || !confirmSavings || !confirmProducts || !confirmCapital || closing || parseFloat(transferAmount || '0') > closingBalance} className="flex-[2] bg-[#f43f5e] hover:bg-[#e11d48] text-white font-black uppercase tracking-widest py-4 rounded-xl shadow-md shadow-rose-200 transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-lg">
                         <Lock className="w-5 h-5" /> Confirm Day Close
                       </button>
                     </div>
