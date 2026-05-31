@@ -78,7 +78,7 @@ export default function DayBook() {
       return;
     }
     const depositAmtNum = parseFloat(transferAmount || '0');
-    if (depositAmtNum > closingBalance) {
+    if (depositAmtNum > 0 && depositAmtNum > closingBalance) {
       voiceFeedback.error();
       alert("Deposit amount cannot exceed Final Closing Balance");
       return;
@@ -95,8 +95,8 @@ export default function DayBook() {
           total_inflow: totalInflows,
           total_outflow: totalOutflows,
           closing_balance: closingBalance,
-          deposit_amount: depositAmtNum > 0 ? depositAmtNum : undefined,
-          bank_id: depositAmtNum > 0 ? selectedBank : undefined
+          deposit_amount: depositAmtNum !== 0 ? depositAmtNum : undefined,
+          bank_id: depositAmtNum !== 0 ? selectedBank : undefined
         })
       });
       setShowCloseModal(false);
@@ -114,12 +114,12 @@ export default function DayBook() {
   const handleTransfer = async (e: React.FormEvent) => {
     e.preventDefault();
     const depositAmtNum = parseFloat(transferAmount || '0');
-    if (depositAmtNum <= 0) {
+    if (depositAmtNum === 0) {
        voiceFeedback.error();
-       alert("Please enter a valid amount.");
+       alert("Please enter a valid non-zero amount.");
        return;
     }
-    if (depositAmtNum > closingBalance) {
+    if (depositAmtNum > 0 && depositAmtNum > closingBalance) {
       voiceFeedback.error();
       alert("Transfer amount cannot exceed Current Cash in Hand");
       return;
@@ -872,14 +872,14 @@ export default function DayBook() {
                                placeholder="0"
                              />
                            </div>
-                           {parseFloat(transferAmount || '0') > closingBalance && (
+                           {parseFloat(transferAmount || '0') > 0 && parseFloat(transferAmount || '0') > closingBalance && (
                              <div className="text-xs text-red-500 font-bold mt-2 flex items-center gap-1"><AlertCircle className="w-3 h-3"/> Cannot exceed Final Closing Balance!</div>
                            )}
                         </motion.div>
                       )}
                     </div>
 
-                    {selectedBank && transferAmount && parseFloat(transferAmount) > 0 && parseFloat(transferAmount) <= closingBalance && (
+                    {selectedBank && transferAmount && parseFloat(transferAmount) !== 0 && (parseFloat(transferAmount) <= 0 || parseFloat(transferAmount) <= closingBalance) && (
                       <div className="bg-slate-800 text-white border border-slate-900 px-5 py-4 rounded-xl shadow-inner mt-4 flex items-center justify-between">
                          <div>
                            <div className="text-xs font-black uppercase tracking-wider text-slate-300">Net Hand Cash</div>
@@ -895,7 +895,7 @@ export default function DayBook() {
                       <button type="button" onClick={() => setShowCloseModal(false)} className="flex-1 bg-white border-2 border-slate-200 text-slate-600 font-bold uppercase tracking-widest py-4 rounded-xl hover:bg-slate-50 transition-colors">
                         Cancel
                       </button>
-                      <button type="submit" disabled={!confirmCollections || !confirmExpenses || !confirmBank || !confirmSavings || !confirmProducts || !confirmCapital || closing || parseFloat(transferAmount || '0') > closingBalance} className="flex-[2] bg-[#f43f5e] hover:bg-[#e11d48] text-white font-black uppercase tracking-widest py-4 rounded-xl shadow-md shadow-rose-200 transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-lg">
+                      <button type="submit" disabled={!confirmCollections || !confirmExpenses || !confirmBank || !confirmSavings || !confirmProducts || !confirmCapital || closing || (parseFloat(transferAmount || '0') > 0 && parseFloat(transferAmount || '0') > closingBalance)} className="flex-[2] bg-[#f43f5e] hover:bg-[#e11d48] text-white font-black uppercase tracking-widest py-4 rounded-xl shadow-md shadow-rose-200 transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-lg">
                         <Lock className="w-5 h-5" /> Confirm Day Close
                       </button>
                     </div>

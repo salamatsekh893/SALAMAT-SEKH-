@@ -75,9 +75,16 @@ async function startServer() {
   app.use(express.json({ limit: '50mb' }));
 
   // Helper to auto-close fully paid loans (with fallback total repayment calculation for old loans)
+  let lastAutoCloseTime = 0;
   async function autoCloseFullyPaidLoans() {
+    const now = Date.now();
+    // Throttle to run at most once every 60 seconds to prevent DB hammering and write-lock contention
+    if (now - lastAutoCloseTime < 60000) {
+      return;
+    }
+    lastAutoCloseTime = now;
     try {
-      await pool.query(`
+      await queryWithRetry(`
         UPDATE loans l
         JOIN (
           SELECT loan_id, SUM(amount_paid) as total_paid 
@@ -3737,10 +3744,12 @@ async function startServer() {
 
       if (deposit_amount && bank_id) {
           const depAmt = parseFloat(deposit_amount);
-          if (depAmt > 0) {
+          if (depAmt !== 0) {
+              const txType = depAmt > 0 ? 'deposit' : 'withdrawal';
+              const absAmt = Math.abs(depAmt);
               await conn.query(
-                `INSERT INTO bank_transactions (bank_id, date, type, source_type, source_id, amount, purpose) VALUES (?, ?, 'deposit', 'branch', ?, ?, 'Day Close Cash Deposit')`,
-                [bank_id, date, bId, depAmt]
+                `INSERT INTO bank_transactions (bank_id, date, type, source_type, source_id, amount, purpose) VALUES (?, ?, ?, 'branch', ?, ?, ?)`,
+                [bank_id, date, txType, bId, absAmt, depAmt > 0 ? 'Day Close Cash Deposit' : 'Day Close HO Funding Transfer']
               );
               await conn.query(
                 `UPDATE bank_accounts SET current_balance = current_balance + ? WHERE id = ?`,
@@ -3779,15 +3788,21 @@ async function startServer() {
       await conn.beginTransaction();
       const { date, branch_id, amount, bank_id, source_type, purpose } = req.body;
       const bId = branch_id ? parseInt(branch_id, 10) : null;
+      const amtNum = parseFloat(amount || 0);
 
-      await conn.query(
-        `INSERT INTO bank_transactions (bank_id, date, type, source_type, source_id, amount, purpose) VALUES (?, ?, 'deposit', ?, ?, ?, ?)`,
-        [bank_id, date, source_type || 'branch', bId, amount, purpose || 'Cash to Bank Transfer']
-      );
-      await conn.query(
-        `UPDATE bank_accounts SET current_balance = current_balance + ? WHERE id = ?`,
-        [amount, bank_id]
-      );
+      if (amtNum !== 0) {
+        const txType = amtNum > 0 ? 'deposit' : 'withdrawal';
+        const absAmt = Math.abs(amtNum);
+        
+        await conn.query(
+          `INSERT INTO bank_transactions (bank_id, date, type, source_type, source_id, amount, purpose) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [bank_id, date, txType, source_type || 'branch', bId, absAmt, purpose || (amtNum > 0 ? 'Cash to Bank Transfer' : 'Bank to Cash Funding Transfer')]
+        );
+        await conn.query(
+          `UPDATE bank_accounts SET current_balance = current_balance + ? WHERE id = ?`,
+          [amtNum, bank_id]
+        );
+      }
 
       await conn.commit();
       res.json({ success: true });
