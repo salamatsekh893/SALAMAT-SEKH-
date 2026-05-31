@@ -74,6 +74,25 @@ async function startServer() {
 
   app.use(express.json({ limit: '50mb' }));
 
+  // Helper to auto-close fully paid loans (with fallback total repayment calculation for old loans)
+  async function autoCloseFullyPaidLoans() {
+    try {
+      await pool.query(`
+        UPDATE loans l
+        JOIN (
+          SELECT loan_id, SUM(amount_paid) as total_paid 
+          FROM collections 
+          WHERE status != 'rejected' 
+          GROUP BY loan_id
+        ) c ON l.id = c.loan_id
+        SET l.status = 'closed'
+        WHERE l.status = 'active' AND c.total_paid >= (COALESCE(NULLIF(l.total_repayment, 0), l.installment * l.duration_weeks, l.amount * 1.1) - 1.0)
+      `);
+    } catch (autoCloseErr) {
+      console.error("Auto-close loans helper error:", autoCloseErr);
+    }
+  }
+
   // Verify connection at startup
   pool.getConnection()
     .then(conn => {
@@ -1831,6 +1850,7 @@ async function startServer() {
 
   app.get("/api/dashboard", verifyToken, async (req: any, res) => {
     try {
+      await autoCloseFullyPaidLoans();
       const { role, branchId, userId } = req.user;
       let whereClause = "";
       const params: any[] = [];
@@ -2165,21 +2185,7 @@ async function startServer() {
   app.get("/api/loans", verifyToken, async (req: any, res) => {
     try {
       // Auto-close loans that are fully paid
-      try {
-        await pool.query(`
-          UPDATE loans l
-          JOIN (
-            SELECT loan_id, SUM(amount_paid) as total_paid 
-            FROM collections 
-            WHERE status != 'rejected' 
-            GROUP BY loan_id
-          ) c ON l.id = c.loan_id
-          SET l.status = 'closed'
-          WHERE l.status = 'active' AND c.total_paid >= l.total_repayment
-        `);
-      } catch (autoCloseErr) {
-        console.error("Auto-close loans error:", autoCloseErr);
-      }
+      await autoCloseFullyPaidLoans();
 
       const { role, branchId, userId } = req.user;
       
@@ -3243,21 +3249,8 @@ async function startServer() {
         if (colRows[0].is_pre_close) {
           await pool.query('UPDATE loans SET status = ? WHERE id = ?', ['closed', loanId]);
         } else {
-          // Option 2: Regular collection. Check if total paid >= total repayment
-          const [loanRows]: any = await pool.query('SELECT total_repayment FROM loans WHERE id = ?', [loanId]);
-          if (loanRows.length > 0) {
-            const totalRepayment = Number(loanRows[0].total_repayment);
-            
-            const [sumRows]: any = await pool.query(
-              'SELECT SUM(amount_paid) as total_paid FROM collections WHERE loan_id = ? AND status = "approved"',
-              [loanId]
-            );
-            const totalPaid = Number(sumRows[0].total_paid || 0);
-
-            if (totalPaid >= totalRepayment) {
-              await pool.query('UPDATE loans SET status = ? WHERE id = ?', ['closed', loanId]);
-            }
-          }
+          // Option 2: Regular collection. Running general auto-close helper
+          await autoCloseFullyPaidLoans();
         }
       } else if (status === 'rejected') {
         // If a collection is rejected, check if we need to reopen the loan

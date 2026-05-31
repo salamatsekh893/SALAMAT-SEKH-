@@ -22,7 +22,14 @@ export default function PreCloseLoan() {
     setLoading(true);
     fetchWithAuth('/loans?status=active')
       .then((loanData) => {
-        setLoans(loanData);
+        const activeUnpaid = loanData.filter((l: any) => {
+          const repayable = parseFloat(l.total_repayment) > 0 
+            ? parseFloat(l.total_repayment) 
+            : (parseFloat(l.installment) * (parseInt(l.duration_weeks) || parseInt(l.no_of_emis) || 0));
+          const totalPaid = parseFloat(l.total_paid || 0);
+          return (repayable - totalPaid) > 1.0;
+        });
+        setLoans(activeUnpaid);
       })
       .finally(() => setLoading(false));
   };

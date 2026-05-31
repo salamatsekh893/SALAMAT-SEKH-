@@ -44,8 +44,11 @@ export default function DailyDemand() {
   const filteredLoans = loans.filter(loan => {
     if (loan.status !== 'active') return false;
     // Must have balance
-    const balance = Number(loan.total_repayment || 0) - Number(loan.total_paid || 0);
-    if (balance <= 0) return false;
+    const repayable = parseFloat(loan.total_repayment) > 0 
+      ? parseFloat(loan.total_repayment) 
+      : (parseFloat(loan.installment) * (parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 0));
+    const balance = repayable - parseFloat(loan.total_paid || 0);
+    if (balance <= 1.0) return false;
     
     if (filters.branch_id && String(loan.branch_id) !== String(filters.branch_id)) return false;
 

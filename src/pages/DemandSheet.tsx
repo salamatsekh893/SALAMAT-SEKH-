@@ -30,8 +30,11 @@ export default function DemandSheet() {
       setBranches(Array.isArray(branchesData) ? branchesData : []);
       // Only keep active loans for demand or loans where balance > 0
       setLoans(Array.isArray(loansData) ? loansData.filter((l: any) => {
-        const balance = Number(l.total_repayment || 0) - Number(l.total_paid || 0);
-        return l.status === 'active' && balance > 0;
+        const repayable = parseFloat(l.total_repayment) > 0 
+          ? parseFloat(l.total_repayment) 
+          : (parseFloat(l.installment) * (parseInt(l.duration_weeks) || parseInt(l.no_of_emis) || 0));
+        const balance = repayable - parseFloat(l.total_paid || 0);
+        return l.status === 'active' && balance > 1.0;
       }) : []);
       setGroups(Array.isArray(groupsData) ? groupsData : []);
     } catch (e) {

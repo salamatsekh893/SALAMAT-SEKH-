@@ -146,7 +146,15 @@ export default function BatchCollection() {
     ])
       .then(([grpData, loanData, colData]) => {
         setGroups(grpData);
-        setLoans(loanData.filter((l: any) => l.status === "active"));
+        const activeAndUnpaidLoans = loanData.filter((l: any) => {
+          if (l.status !== "active") return false;
+          const repayable = parseFloat(l.total_repayment) > 0 
+            ? parseFloat(l.total_repayment) 
+            : (parseFloat(l.installment) * (parseInt(l.duration_weeks) || parseInt(l.no_of_emis) || 0));
+          const totalPaid = parseFloat(l.total_paid || 0);
+          return (repayable - totalPaid) > 1.0;
+        });
+        setLoans(activeAndUnpaidLoans);
         setCollections(colData);
 
         // Check if we have incoming state from navigation
@@ -258,10 +266,9 @@ export default function BatchCollection() {
           (acc: number, c: any) => acc + (parseFloat(c.amount_paid) || 0),
           0,
         );
-        const repayable = parseFloat(
-          loan.total_repayment ||
-            parseFloat(loan.amount) + parseFloat(loan.interest || 0),
-        );
+        const repayable = parseFloat(loan.total_repayment) > 0 
+          ? parseFloat(loan.total_repayment) 
+          : (parseFloat(loan.installment) * (parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 0));
         const balance = Math.max(0, roundVal(repayable - totalPaid));
         
         setAmounts(prev => ({ ...prev, [loanId]: balance.toString() }));
@@ -543,7 +550,9 @@ export default function BatchCollection() {
                       const isSelected = !!selectedLoans[loan.id];
                       const isPresent = attendance[loan.id] !== false;
                       const totalPaidSum = paidSums[loan.id.toString()] || 0;
-                      const repayable = parseFloat(loan.total_repayment || (parseFloat(loan.amount) + parseFloat(loan.interest || 0)));
+                      const repayable = parseFloat(loan.total_repayment) > 0 
+                        ? parseFloat(loan.total_repayment) 
+                        : (parseFloat(loan.installment) * (parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 0));
                       const balance = Math.max(0, repayable - totalPaidSum);
                       const installmentAmt = parseFloat(loan.installment) || 0;
                       
@@ -677,7 +686,9 @@ export default function BatchCollection() {
                 {currentGroupLoans.map((loan, idx) => {
                   const isSelected = !!selectedLoans[loan.id];
                   const totalPaidSum = paidSums[loan.id.toString()] || 0;
-                  const repayable = parseFloat(loan.total_repayment || (parseFloat(loan.amount) + parseFloat(loan.interest || 0)));
+                  const repayable = parseFloat(loan.total_repayment) > 0 
+                    ? parseFloat(loan.total_repayment) 
+                    : (parseFloat(loan.installment) * (parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 0));
                   const balance = Math.max(0, repayable - totalPaidSum);
                   const installmentAmt = parseFloat(loan.installment) || 0;
                   const principalAmt = parseFloat(loan.amount) || 0;
