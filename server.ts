@@ -3752,6 +3752,7 @@ async function startServer() {
 
       let final_closing = parseFloat(closing_balance);
       let final_outflow = parseFloat(total_outflow);
+      let final_inflow = parseFloat(total_inflow);
 
       if (deposit_amount && bank_id) {
           const depAmt = parseFloat(deposit_amount);
@@ -3766,8 +3767,13 @@ async function startServer() {
                 `UPDATE bank_accounts SET current_balance = current_balance + ? WHERE id = ?`,
                 [depAmt, bank_id]
               );
-              final_outflow += depAmt;
-              final_closing -= depAmt;
+              if (depAmt > 0) {
+                  final_outflow += depAmt;
+                  final_closing -= depAmt;
+              } else {
+                  final_inflow += absAmt;
+                  final_closing += absAmt;
+              }
           }
       }
 
@@ -3780,7 +3786,7 @@ async function startServer() {
          total_outflow = VALUES(total_outflow),
          closing_balance = VALUES(closing_balance),
          status = 'closed'`,
-         [bId, date, opening_balance, total_inflow, final_outflow, final_closing]
+         [bId, date, opening_balance, final_inflow, final_outflow, final_closing]
       );
       await conn.commit();
       res.json({ success: true });

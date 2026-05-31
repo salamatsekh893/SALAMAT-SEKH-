@@ -8,10 +8,18 @@ async function test() {
     database: 'u926896353_aljooya1',
   });
   
-  const [res] = await pool.query(
-    `DELETE FROM daily_cash_balances WHERE id = 27`
+  const bId = 2; // Bhatar
+  const date = '2026-06-01';
+
+  const [opResult]: any = await pool.query(
+    `SELECT COALESCE(
+      (SELECT opening_balance FROM daily_cash_balances WHERE branch_id = ? AND DATE(date) = ? AND status = 'closed'),
+      (SELECT closing_balance FROM daily_cash_balances WHERE branch_id = ? AND DATE(date) < ? ORDER BY date DESC LIMIT 1),
+      0
+    ) as opening_balance`,
+    [bId, date, bId, date]
   );
-  console.log("Deleted wrong daybook row ID 27:", res);
+  console.log("Calculated Opening Balance for June 1st:", opResult[0]?.opening_balance);
 
   pool.end();
 }

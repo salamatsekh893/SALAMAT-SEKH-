@@ -532,26 +532,38 @@ export default function BankAccounts() {
                     <input required type="number" step="0.01" min="0.01" value={transactionForm.amount} onChange={e => setTransactionForm({...transactionForm, amount: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded font-bold text-slate-700 focus:outline-none focus:border-[#00bcd4]" placeholder="0.00" />
                   </div>
 
-                  {transactionForm.type === 'deposit' && (
-                    <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-1.5">
+                        {transactionForm.type === 'deposit' ? 'Source' : 'Destination'}
+                      </label>
+                      <select 
+                        required 
+                        value={transactionForm.source_type} 
+                        onChange={e => setTransactionForm({...transactionForm, source_type: e.target.value, source_id: ''})} 
+                        className="w-full px-3 py-2 border border-slate-300 rounded font-bold text-slate-700 focus:outline-none focus:border-[#00bcd4]"
+                      >
+                        <option value="other">Other / অন্যান্য</option>
+                        <option value="branch">
+                          {transactionForm.type === 'deposit' ? 'From Branch / ব্রাঞ্চ থেকে' : 'To Branch / ব্রাঞ্চে পাঠানো'}
+                        </option>
+                      </select>
+                    </div>
+                    {transactionForm.source_type === 'branch' && (
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-1.5">Source</label>
-                        <select required value={transactionForm.source_type} onChange={e => setTransactionForm({...transactionForm, source_type: e.target.value, source_id: ''})} className="w-full px-3 py-2 border border-slate-300 rounded font-bold text-slate-700 focus:outline-none focus:border-[#00bcd4]">
-                          <option value="other">Other Deposit</option>
-                          <option value="branch">From Branch</option>
+                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-1.5">Branch / ব্রাঞ্চ</label>
+                        <select 
+                          required 
+                          value={transactionForm.source_id} 
+                          onChange={e => setTransactionForm({...transactionForm, source_id: e.target.value})} 
+                          className="w-full px-3 py-2 border border-slate-300 rounded font-bold text-slate-700 focus:outline-none focus:border-[#00bcd4]"
+                        >
+                          <option value="">-- Select --</option>
+                          {branches.map(b => <option key={b.id} value={b.id}>{b.branch_name}</option>)}
                         </select>
                       </div>
-                      {transactionForm.source_type === 'branch' && (
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-1.5">Branch</label>
-                          <select required value={transactionForm.source_id} onChange={e => setTransactionForm({...transactionForm, source_id: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded font-bold text-slate-700 focus:outline-none focus:border-[#00bcd4]">
-                            <option value="">-- Select --</option>
-                            {branches.map(b => <option key={b.id} value={b.id}>{b.branch_name}</option>)}
-                          </select>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    )}
+                  </div>
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-1.5">Description</label>
