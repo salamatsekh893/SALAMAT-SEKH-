@@ -3709,17 +3709,28 @@ async function startServer() {
       let dayBookStatus = cbResult.length > 0 ? cbResult[0] : null;
 
       let opening_balance = 0;
-      if (dayBookStatus) {
-        opening_balance = parseFloat(dayBookStatus.opening_balance);
-      } else {
-        // Get the latest closed record before this date
-        const [prevResult]: any = await pool.query(
-          `SELECT closing_balance FROM daily_cash_balances WHERE date < ? AND (branch_id = ? OR (branch_id IS NULL AND ? IS NULL)) ORDER BY date DESC LIMIT 1`,
-          [date, bId, bId]
+      if (bId) {
+        const [opResult]: any = await pool.query(
+          `SELECT COALESCE(
+            (SELECT opening_balance FROM daily_cash_balances WHERE branch_id = ? AND DATE(date) = ? AND status = 'closed'),
+            (SELECT closing_balance FROM daily_cash_balances WHERE branch_id = ? AND DATE(date) < ? ORDER BY date DESC LIMIT 1),
+            0
+          ) as opening_balance`,
+          [bId, date, bId, date]
         );
-        if (prevResult.length > 0) {
-          opening_balance = parseFloat(prevResult[0].closing_balance);
-        }
+        opening_balance = parseFloat(opResult[0]?.opening_balance || 0);
+      } else {
+        const [opResult]: any = await pool.query(
+          `SELECT SUM(
+            COALESCE(
+              (SELECT opening_balance FROM daily_cash_balances WHERE branch_id = br.id AND DATE(date) = ? AND status = 'closed'),
+              (SELECT closing_balance FROM daily_cash_balances WHERE branch_id = br.id AND DATE(date) < ? ORDER BY date DESC LIMIT 1),
+              0
+            )
+          ) as opening_balance FROM branches br`,
+          [date, date]
+        );
+        opening_balance = parseFloat(opResult[0]?.opening_balance || 0);
       }
 
       res.json({ date, collections, disbursements, salaries, capital, bankTxns, expenses, savingsTxns, sales, dayBookStatus, opening_balance });
