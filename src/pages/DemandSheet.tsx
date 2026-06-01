@@ -13,7 +13,8 @@ export default function DemandSheet() {
   const [filters, setFilters] = useState({
     branch_id: '',
     group_id: '',
-    date: new Date().toISOString().split('T')[0]
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
   });
 
   useEffect(() => {
@@ -49,6 +50,63 @@ export default function DemandSheet() {
     window.print();
   };
 
+  const getDemandCyclesInPeriod = (loan: any, startStr: string, endStr: string) => {
+    const start = new Date(startStr);
+    const end = new Date(endStr);
+    start.setHours(0,0,0,0);
+    end.setHours(23,59,59,999);
+    
+    if (start > end) return [];
+
+    const matches: string[] = [];
+    const current = new Date(start);
+    
+    // Safety guard to avoid locking up browser thread
+    let safetyCounter = 0;
+    while (current <= end && safetyCounter < 366) {
+      safetyCounter++;
+      const dayOfWeek = current.toLocaleDateString('en-US', { weekday: 'long' });
+      let isMatch = false;
+      
+      if (loan.emi_frequency === 'daily') {
+        if (dayOfWeek !== 'Sunday') isMatch = true; 
+      } else if (loan.emi_frequency === 'weekly' || !loan.emi_frequency) {
+        if (loan.meeting_day && loan.meeting_day === dayOfWeek) isMatch = true;
+      } else if (loan.emi_frequency === 'monthly') {
+        if (loan.start_date) {
+          const lStartDate = new Date(loan.start_date);
+          if (lStartDate.getDate() === current.getDate()) isMatch = true;
+        }
+      }
+
+      if (isMatch) {
+        matches.push(current.toISOString().split('T')[0]);
+      }
+      current.setDate(current.getDate() + 1);
+    }
+    return matches;
+  };
+
+  const processedLoans = loans.map(loan => {
+    const matchingDates = getDemandCyclesInPeriod(loan, filters.startDate, filters.endDate);
+    const matchCount = matchingDates.length;
+    const individualInstallment = Number(loan.installment || 0);
+    const totalDemand = individualInstallment * matchCount;
+    
+    return {
+      ...loan,
+      matchCount,
+      matchingDates,
+      calculatedDemand: totalDemand,
+    };
+  });
+
+  const filteredLoans = processedLoans.filter(loan => {
+    if (filters.branch_id && String(loan.branch_id) !== String(filters.branch_id)) return false;
+    if (filters.group_id && String(loan.group_id) !== String(filters.group_id)) return false;
+    return loan.matchCount > 0;
+  });
+
   const exportToExcel = () => {
     const exportData = filteredLoans.map((loan, idx) => {
       const balance = Number(loan.total_repayment || 0) - Number(loan.total_paid || 0);
@@ -65,7 +123,7 @@ export default function DemandSheet() {
         'First EMI Date': formatDate(loan.start_date),
         'EMIs (Paid/Total)': `${loan.paid_emi_count || 0}/${loan.duration_weeks || 0}`,
         'Balance (INR)': Math.round(balance * 100) / 100,
-        'Demand (INR)': Math.round(Number(loan.installment || 0) * 100) / 100,
+        'Demand (INR)': Math.round(Number(loan.calculatedDemand || 0) * 100) / 100,
         'Arrear (INR)': '',
         'Collected (INR)': '',
         'Signature': ''
@@ -97,31 +155,8 @@ export default function DemandSheet() {
     ];
     ws['!cols'] = wscols;
 
-    XLSX.writeFile(wb, `Demand_Sheet_${filters.date}.xlsx`);
+    XLSX.writeFile(wb, `Demand_Sheet_${filters.startDate}_to_${filters.endDate}.xlsx`);
   };
-
-  const filteredLoans = loans.filter(loan => {
-    if (filters.branch_id && String(loan.branch_id) !== String(filters.branch_id)) return false;
-    if (filters.group_id && String(loan.group_id) !== String(filters.group_id)) return false;
-    
-    // Filter by date
-    const selectedDate = new Date(filters.date);
-    const dayOfWeek = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
-    
-    if (loan.emi_frequency === 'daily') {
-      if (dayOfWeek === 'Sunday') return false; // Assuming no collection on Sunday
-    } else if (loan.emi_frequency === 'weekly' || !loan.emi_frequency) {
-      // Default to weekly logic if frequency not specified
-      if (loan.meeting_day && loan.meeting_day !== dayOfWeek) return false;
-    } else if (loan.emi_frequency === 'monthly') {
-      if (loan.start_date) {
-        const startDate = new Date(loan.start_date);
-        if (startDate.getDate() !== selectedDate.getDate()) return false;
-      }
-    }
-
-    return true;
-  });
 
   // Sort by meeting time, then group name, then member name
   filteredLoans.sort((a, b) => {
@@ -159,22 +194,36 @@ export default function DemandSheet() {
             <p className="text-slate-500 text-xs mt-1">Generate collection demand</p>
           </div>
           
-          <div className="flex flex-row items-center gap-2 w-full lg:w-auto overflow-x-auto pb-1 shrink-0 scrollbar-hide">
-            <div className="flex items-center gap-1 text-slate-700 font-semibold text-sm shrink-0">
+          <div className="flex flex-row items-center gap-3 w-full lg:w-auto overflow-x-auto pb-1 shrink-0 scrollbar-hide">
+            <div className="flex items-center gap-1 text-slate-700 font-bold text-sm shrink-0">
               <Filter className="w-4 h-4 text-slate-500" />
+              <span>Filters:</span>
             </div>
             
-            <input
-               type="date"
-               value={filters.date}
-               onChange={(e) => setFilters(f => ({ ...f, date: e.target.value }))}
-               className="bg-white border border-slate-200 rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 shrink-0 text-slate-900 font-medium"
-            />
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">From</span>
+              <input
+                 type="date"
+                 value={filters.startDate}
+                 onChange={(e) => setFilters(f => ({ ...f, startDate: e.target.value }))}
+                 className="bg-white border border-slate-300 rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-900 font-bold shadow-sm"
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">To</span>
+              <input
+                 type="date"
+                 value={filters.endDate}
+                 onChange={(e) => setFilters(f => ({ ...f, endDate: e.target.value }))}
+                 className="bg-white border border-slate-300 rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-900 font-bold shadow-sm"
+              />
+            </div>
             
             <select
               value={filters.branch_id}
               onChange={(e) => setFilters(f => ({ ...f, branch_id: e.target.value }))}
-              className="bg-white border border-slate-200 text-slate-900 rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 shrink-0 min-w-[120px]"
+              className="bg-white border border-slate-300 text-slate-900 rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 shrink-0 min-w-[120px] font-semibold"
             >
               <option value="">All Branches</option>
               {branches.map(b => (
@@ -185,7 +234,7 @@ export default function DemandSheet() {
             <select
               value={filters.group_id}
               onChange={(e) => setFilters(f => ({ ...f, group_id: e.target.value }))}
-              className="bg-white border border-slate-200 text-slate-900 rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 shrink-0 min-w-[120px]"
+              className="bg-white border border-slate-300 text-slate-900 rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 shrink-0 min-w-[120px] font-semibold"
             >
               <option value="">All Groups</option>
               {groups.map((g: any) => (
@@ -231,7 +280,12 @@ export default function DemandSheet() {
             
             <div className="grid grid-cols-2 gap-4 mt-4 text-sm font-semibold border-b-2 border-black pb-2 text-left">
               <div>
-                <p>Date: {new Date(filters.date).toLocaleDateString('en-IN')}</p>
+                <p>
+                  Date: {filters.startDate === filters.endDate 
+                    ? new Date(filters.startDate).toLocaleDateString('en-IN') 
+                    : `${new Date(filters.startDate).toLocaleDateString('en-IN')} to ${new Date(filters.endDate).toLocaleDateString('en-IN')}`
+                  }
+                </p>
                 <p>Branch: {filters.branch_id ? branches.find((b:any) => String(b.id) === String(filters.branch_id))?.branch_name : 'All Branches'}</p>
               </div>
               <div className="text-right">
@@ -289,7 +343,12 @@ export default function DemandSheet() {
                       )}
                     </td>
                     <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-300 text-right font-bold text-black">₹{formatAmount(Number(loan.total_repayment || 0) - Number(loan.total_paid || 0))}</td>
-                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-300 text-right font-black text-black bg-slate-50/80 print:bg-transparent">₹{formatAmount(Number(loan.installment))}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-300 text-right font-black text-black bg-slate-50/80 print:bg-transparent">
+                      ₹{formatAmount(Number(loan.calculatedDemand))}
+                      {loan.matchCount > 1 && (
+                        <div className="text-[9.5px] text-slate-600 font-extrabold">({loan.matchCount} × ₹{formatAmount(Number(loan.installment))})</div>
+                      )}
+                    </td>
                     {/* Empty columns for printing */}
                     <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-300 bg-white print:bg-transparent"></td>
                     <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-300 bg-white print:bg-transparent"></td>
@@ -298,12 +357,12 @@ export default function DemandSheet() {
                 ))}
                 {filteredLoans.length > 0 && (
                   <tr className="bg-slate-100 print:bg-slate-100 font-black text-black">
-                    <td colSpan={10} className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-right uppercase tracking-wider text-xs font-extrabold">TOTAL</td>
+                    <td colSpan={10} className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-right uppercase tracking-wider text-xs font-extrabold font-black">TOTAL</td>
                     <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-right text-black font-black">
                       ₹{formatAmount(filteredLoans.reduce((sum, l) => sum + (Number(l.total_repayment || 0) - Number(l.total_paid || 0)), 0))}
                     </td>
                     <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-right text-black font-black">
-                      ₹{formatAmount(filteredLoans.reduce((sum, l) => sum + Number(l.installment || 0), 0))}
+                      ₹{formatAmount(filteredLoans.reduce((sum, l) => sum + Number(l.calculatedDemand || 0), 0))}
                     </td>
                     <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300"></td>
                     <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300"></td>

@@ -23,6 +23,7 @@ export default function CreateLoanRequest() {
     scheme_id: '',
     branch_id: '',
     loan_amount: '',
+    start_date: format(new Date(), 'yyyy-MM-dd'),
   });
 
   useEffect(() => {
@@ -43,6 +44,37 @@ export default function CreateLoanRequest() {
   }, []);
 
   const selectedScheme = schemes.find(s => s.id.toString() === formData.scheme_id);
+
+  // Auto-calculate start date when member or scheme changes
+  useEffect(() => {
+    const selectedMemberObj = (members || []).find(m => String(m.id) === String(formData.customer_id));
+    if (selectedMemberObj && selectedMemberObj.meeting_day && selectedScheme) {
+      let start = new Date();
+      start.setHours(0, 0, 0, 0);
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const targetDay = days.indexOf(selectedMemberObj.meeting_day);
+      const freq = selectedScheme.repayment_frequency || 'weekly';
+
+      if (targetDay !== -1) {
+        let daysUntil = targetDay - start.getDay();
+        if (daysUntil <= 0) daysUntil += 7;
+
+        if (freq === 'daily') {
+          start.setDate(start.getDate() + 1);
+        } else if (freq === 'weekly') {
+          start.setDate(start.getDate() + daysUntil);
+        } else if (freq === 'bi-weekly') {
+          start.setDate(start.getDate() + daysUntil + 7);
+        } else if (freq === 'monthly') {
+          start.setMonth(start.getMonth() + 1);
+          let diff = targetDay - start.getDay();
+          if (diff < 0) diff += 7;
+          start.setDate(start.getDate() + diff);
+        }
+        setFormData(prev => ({ ...prev, start_date: format(start, 'yyyy-MM-dd') }));
+      }
+    }
+  }, [formData.customer_id, formData.scheme_id, members, schemes]);
   
   // Calculate Loan Details
   const loanAmount = parseFloat(formData.loan_amount) || 0;
@@ -128,7 +160,7 @@ export default function CreateLoanRequest() {
           no_of_emis: noOfEmis,
           emi_frequency: selectedScheme?.repayment_frequency,
           collection_week: selectedScheme?.collection_week,
-          start_date: calculatedStartDate ? format(calculatedStartDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
+          start_date: formData.start_date
         })
       });
       voiceFeedback.success();
@@ -287,7 +319,7 @@ export default function CreateLoanRequest() {
                 <FileText className="w-4 h-4" /> Product & Amount
               </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-3">
                   <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-900 ml-1">Loan Scheme</label>
                   <div className="relative group">
@@ -317,6 +349,19 @@ export default function CreateLoanRequest() {
                       className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-200 focus:bg-white p-5 pl-10 rounded-2xl text-lg font-black text-slate-900 focus:ring-4 focus:ring-indigo-50 outline-none transition-all shadow-sm"
                       value={formData.loan_amount}
                       onChange={(e) => setFormData({ ...formData, loan_amount: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-900 ml-1">First EMI / Start Date</label>
+                  <div className="relative group">
+                    <input
+                      required
+                      type="date"
+                      className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-200 focus:bg-white p-5 rounded-2xl text-sm font-black text-slate-900 focus:ring-4 focus:ring-indigo-50 outline-none transition-all shadow-sm"
+                      value={formData.start_date}
+                      onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                     />
                   </div>
                 </div>
