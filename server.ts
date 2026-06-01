@@ -4649,7 +4649,7 @@ async function startServer() {
   });
 
   app.post("/api/travel_v2/fuel-rates", verifyToken, async (req: any, res) => {
-    if (req.user.role !== 'admin') return res.status(403).json({ error: "Only admin can set rates" });
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin' && req.user.role !== 'manager') return res.status(403).json({ error: "Only admin can set rates" });
     try {
       const { rate_per_km } = req.body;
       await pool.query('INSERT INTO fuel_rate_settings (rate_per_km, effective_from) VALUES (?, ?)', [rate_per_km, new Date()]);

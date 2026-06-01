@@ -42,7 +42,7 @@ export const fetchWithAuth = async (endpoint: string, options: RequestInit = {})
   const isJson = contentType.includes('application/json');
 
   if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
