@@ -2490,6 +2490,14 @@ async function startServer() {
           // Net withdrawal from bank
           const netDisbursed = amount - pfee - ifee;
           
+          if (bank_id) {
+            const [bankCheck]: any = await conn.query('SELECT current_balance FROM bank_accounts WHERE id = ? FOR UPDATE', [bank_id]);
+            if (!bankCheck.length || parseFloat(bankCheck[0].current_balance) < netDisbursed) {
+              await conn.rollback();
+              return res.status(400).json({ error: 'Insufficient bank balance for disbursement' });
+            }
+          }
+          
           await conn.query(`
             UPDATE bank_accounts SET current_balance = current_balance - ? WHERE id = ?
           `, [netDisbursed, bank_id]);
@@ -3102,6 +3110,15 @@ async function startServer() {
       );
 
       const op = type === 'deposit' ? '+' : '-';
+      
+      if (type === 'withdrawal') {
+        const [bankCheck]: any = await conn.query('SELECT current_balance FROM bank_accounts WHERE id = ? FOR UPDATE', [bankId]);
+        if (!bankCheck.length || parseFloat(bankCheck[0].current_balance) < parseFloat(amount)) {
+          await conn.rollback();
+          return res.status(400).json({ error: 'Insufficient bank balance' });
+        }
+      }
+
       await conn.query(
         `UPDATE bank_accounts SET current_balance = current_balance ${op} ? WHERE id = ?`,
         [amount, bankId]
@@ -3209,6 +3226,12 @@ async function startServer() {
       
       // Revert bank account balance
       if (capital.bank_id && capital.payment_method === 'bank') {
+        const [bankCheck]: any = await conn.query('SELECT current_balance FROM bank_accounts WHERE id = ? FOR UPDATE', [capital.bank_id]);
+        if (!bankCheck.length || parseFloat(bankCheck[0].current_balance) < parseFloat(capital.amount)) {
+          await conn.rollback();
+          return res.status(400).json({ error: 'Insufficient bank balance to delete capital' });
+        }
+
         await conn.query(
           `UPDATE bank_accounts SET current_balance = current_balance - ? WHERE id = ?`,
           [capital.amount, capital.bank_id]
@@ -3759,6 +3782,15 @@ async function startServer() {
           if (depAmt !== 0) {
               const txType = depAmt > 0 ? 'deposit' : 'withdrawal';
               const absAmt = Math.abs(depAmt);
+              
+              if (depAmt < 0) {
+                  const [bankCheck]: any = await conn.query('SELECT current_balance FROM bank_accounts WHERE id = ? FOR UPDATE', [bank_id]);
+                  if (!bankCheck.length || parseFloat(bankCheck[0].current_balance) < absAmt) {
+                      await conn.rollback();
+                      return res.status(400).json({ error: 'Insufficient bank balance for HO Funding Transfer' });
+                  }
+              }
+
               await conn.query(
                 `INSERT INTO bank_transactions (bank_id, date, type, source_type, source_id, amount, purpose) VALUES (?, ?, ?, 'branch', ?, ?, ?)`,
                 [bank_id, date, txType, bId, absAmt, depAmt > 0 ? 'Day Close Cash Deposit' : 'Day Close HO Funding Transfer']
@@ -3811,6 +3843,14 @@ async function startServer() {
         const txType = amtNum > 0 ? 'deposit' : 'withdrawal';
         const absAmt = Math.abs(amtNum);
         
+        if (amtNum < 0) {
+            const [bankCheck]: any = await conn.query('SELECT current_balance FROM bank_accounts WHERE id = ? FOR UPDATE', [bank_id]);
+            if (!bankCheck.length || parseFloat(bankCheck[0].current_balance) < absAmt) {
+                await conn.rollback();
+                return res.status(400).json({ error: 'Insufficient bank balance for transfer' });
+            }
+        }
+
         await conn.query(
           `INSERT INTO bank_transactions (bank_id, date, type, source_type, source_id, amount, purpose) VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [bank_id, date, txType, source_type || 'branch', bId, absAmt, purpose || (amtNum > 0 ? 'Cash to Bank Transfer' : 'Bank to Cash Funding Transfer')]
