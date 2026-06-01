@@ -17,7 +17,7 @@ interface SidebarProps {
 export default function Sidebar({ user, isOpen, setIsOpen, onLogout, navigation }: SidebarProps) {
   const location = useLocation();
   
-  // Close sidebar on navigation (useful for mobile)
+  // Close sidebar on navigation
   useEffect(() => {
     if (isOpen) {
       setIsOpen(false);
@@ -26,14 +26,14 @@ export default function Sidebar({ user, isOpen, setIsOpen, onLogout, navigation 
 
   return (
     <>
-      {/* Backdrop (Mobile only) */}
+      {/* Backdrop */}
       <AnimatePresence>
         {isOpen && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[3px] cursor-pointer"
+            className="fixed inset-0 z-40 bg-black/55 backdrop-blur-[3px] cursor-pointer"
             onClick={() => setIsOpen(false)}
           />
         )}
@@ -41,7 +41,7 @@ export default function Sidebar({ user, isOpen, setIsOpen, onLogout, navigation 
 
       {/* Sidebar Container */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-[280px] bg-[#fff5f6] text-rose-950 transform transition-all duration-300 ease-in-out flex flex-col overflow-hidden h-screen shadow-xl border-r border-rose-100",
+        "fixed inset-y-0 left-0 z-50 w-[280px] bg-[#fff5f6] text-rose-950 transition-transform duration-300 ease-in-out flex flex-col overflow-hidden h-screen shadow-2xl border-r border-[#ffe4e6] shrink-0",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         {/* Sidebar Header (Matches .sidebar-header) */}
