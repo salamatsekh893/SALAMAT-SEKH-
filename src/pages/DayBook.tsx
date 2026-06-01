@@ -30,6 +30,7 @@ export default function DayBook() {
   const [confirmSavings, setConfirmSavings] = useState(false);
   const [confirmProducts, setConfirmProducts] = useState(false);
   const [confirmCapital, setConfirmCapital] = useState(false);
+  const [confirmLoanFees, setConfirmLoanFees] = useState(false);
 
   useEffect(() => {
     loadBranches();
@@ -246,8 +247,9 @@ export default function DayBook() {
   const totalCapitalIn = capital.filter((c:any) => c.payment_method === 'cash').reduce((sum: number, c: any) => sum + parseFloat(c.amount || 0), 0);
   const totalBankWithdrawals = bankTxns.filter((t:any) => t.type === 'withdrawal').reduce((sum: number, t: any) => sum + parseFloat(t.amount || 0), 0);
   
-  // NOTE: Precessing Fees & Insurance Fees are deducted at source (bank) during disbursement. They do not come in Cash.
-  const totalInflows = totalCollections + totalSavingsDeposits + totalProductSales + totalCapitalIn + totalBankWithdrawals;
+  const totalLoanFees = disbursements.reduce((sum: number, d: any) => sum + parseFloat(d.processing_fee || 0) + parseFloat(d.insurance_fee || 0), 0);
+
+  const totalInflows = totalCollections + totalSavingsDeposits + totalProductSales + totalCapitalIn + totalBankWithdrawals + totalLoanFees;
 
   const totalSavingWithdrawals = savingsTxns
     .filter((t: any) => t.type === 'withdrawal' && t.account_type === 'saving')
@@ -321,13 +323,29 @@ export default function DayBook() {
     }
   });
 
-  // NOTE: Disbursements and their associated fees are done via Bank (non-cash),
-  // so we completely exclude them from the Daily Cash Ledger.
-  /*
+  // Add Processing Fee and Insurance Fee from Disbursements to DayBook as Cash Inflow
   disbursements.forEach((d: any) => {
-    // ... logic hidden
+    const pfee = parseFloat(d.processing_fee || 0);
+    const ifee = parseFloat(d.insurance_fee || 0);
+
+    if (pfee > 0) {
+      ledger.push({
+        time: d.disbursement_date || d.start_date,
+        description: `Processing Fee Collected - ${d.loan_no} - ${d.member_name || 'Member'}`,
+        type: 'inflow',
+        amount: pfee
+      });
+    }
+
+    if (ifee > 0) {
+      ledger.push({
+        time: d.disbursement_date || d.start_date,
+        description: `Insurance Fee Collected - ${d.loan_no} - ${d.member_name || 'Member'}`,
+        type: 'inflow',
+        amount: ifee
+      });
+    }
   });
-  */
 
   sales.forEach((s: any) => {
     if (s.payment_method?.toLowerCase() === 'cash') {
@@ -549,6 +567,13 @@ export default function DayBook() {
               <div className="text-[9px] font-black uppercase text-amber-700 tracking-wider">Product Sales</div>
               <div className="text-sm font-black text-amber-600 mt-1">+₹{formatAmount(totalProductSales)}</div>
               <div className="text-[8px] font-bold text-slate-400 mt-0.5">{sales.length} Sales</div>
+            </div>
+
+            {/* Loan Fees In */}
+            <div className="border border-green-150 rounded-lg bg-green-50/20 p-2 flex flex-col justify-between shadow-sm">
+              <div className="text-[9px] font-black uppercase text-green-700 tracking-wider">Loan Fees Collected</div>
+              <div className="text-sm font-black text-green-600 mt-1">+₹{formatAmount(totalLoanFees)}</div>
+              <div className="text-[8px] font-bold text-slate-400 mt-0.5">{disbursements.filter((d: any) => d.processing_fee > 0 || d.insurance_fee > 0).length} Disb.</div>
             </div>
 
             {/* Savings Withdrawal */}
@@ -789,6 +814,16 @@ export default function DayBook() {
                           </label>
                         </td>
                       </tr>
+                      <tr className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-6 py-4 text-sm font-bold text-slate-700">Loan Fees (Processing & Insurance)</td>
+                        <td className="px-6 py-4 text-center text-lg font-black text-[#10b981]">{disbursements.filter((d: any) => d.processing_fee > 0 || d.insurance_fee > 0).length}</td>
+                        <td className="px-6 py-4 text-right text-base font-bold text-slate-800">₹{formatAmount(totalLoanFees)}</td>
+                        <td className="px-6 py-4">
+                          <label className="flex items-center justify-center cursor-pointer">
+                            <input type="checkbox" checked={confirmLoanFees} onChange={e=>setConfirmLoanFees(e.target.checked)} className="w-5 h-5 text-[#10b981] rounded border-slate-300 focus:ring-[#10b981]" />
+                          </label>
+                        </td>
+                      </tr>
                       <tr className="hidden">
                         <td>
                           <label>
@@ -895,7 +930,7 @@ export default function DayBook() {
                       <button type="button" onClick={() => setShowCloseModal(false)} className="flex-1 bg-white border-2 border-slate-200 text-slate-600 font-bold uppercase tracking-widest py-4 rounded-xl hover:bg-slate-50 transition-colors">
                         Cancel
                       </button>
-                      <button type="submit" disabled={!confirmCollections || !confirmExpenses || !confirmBank || !confirmSavings || !confirmProducts || !confirmCapital || closing || (parseFloat(transferAmount || '0') > 0 && parseFloat(transferAmount || '0') > closingBalance)} className="flex-[2] bg-[#f43f5e] hover:bg-[#e11d48] text-white font-black uppercase tracking-widest py-4 rounded-xl shadow-md shadow-rose-200 transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-lg">
+                      <button type="submit" disabled={!confirmCollections || !confirmExpenses || !confirmBank || !confirmSavings || !confirmProducts || !confirmCapital || !confirmLoanFees || closing || (parseFloat(transferAmount || '0') > 0 && parseFloat(transferAmount || '0') > closingBalance)} className="flex-[2] bg-[#f43f5e] hover:bg-[#e11d48] text-white font-black uppercase tracking-widest py-4 rounded-xl shadow-md shadow-rose-200 transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-lg">
                         <Lock className="w-5 h-5" /> Confirm Day Close
                       </button>
                     </div>

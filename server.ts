@@ -2487,12 +2487,9 @@ async function startServer() {
           const ifee = parseFloat(loanData.insurance_fee || 0);
           const disbDate = disbursement_date || new Date().toISOString().split('T')[0];
           
-          // Net withdrawal from bank
-          const netDisbursed = amount - pfee - ifee;
-          
           if (bank_id) {
             const [bankCheck]: any = await conn.query('SELECT current_balance FROM bank_accounts WHERE id = ? FOR UPDATE', [bank_id]);
-            if (!bankCheck.length || parseFloat(bankCheck[0].current_balance) < netDisbursed) {
+            if (!bankCheck.length || parseFloat(bankCheck[0].current_balance) < amount) {
               await conn.rollback();
               return res.status(400).json({ error: 'Insufficient bank balance for disbursement' });
             }
@@ -2500,26 +2497,12 @@ async function startServer() {
           
           await conn.query(`
             UPDATE bank_accounts SET current_balance = current_balance - ? WHERE id = ?
-          `, [netDisbursed, bank_id]);
+          `, [amount, bank_id]);
           
           await conn.query(`
             INSERT INTO bank_transactions (bank_id, date, type, source_type, source_id, amount, purpose)
             VALUES (?, ?, 'withdrawal', 'other', ?, ?, ?)
-          `, [bank_id, disbDate, req.params.id, amount, `Loan Disbursed - ${loanData.loan_no}`]);
-
-          if (pfee > 0) {
-            await conn.query(`
-              INSERT INTO bank_transactions (bank_id, date, type, source_type, source_id, amount, purpose)
-              VALUES (?, ?, 'deposit', 'other', ?, ?, ?)
-            `, [bank_id, disbDate, req.params.id, pfee, `Processing Fee Collected - ${loanData.loan_no}`]);
-          }
-
-          if (ifee > 0) {
-            await conn.query(`
-              INSERT INTO bank_transactions (bank_id, date, type, source_type, source_id, amount, purpose)
-              VALUES (?, ?, 'deposit', 'other', ?, ?, ?)
-            `, [bank_id, disbDate, req.params.id, ifee, `Insurance Fee Collected - ${loanData.loan_no}`]);
-          }
+          `, [bank_id, disbDate, req.params.id, amount, `Loan Disbursed (Full) - ${loanData.loan_no}`]);
         }
       }
 
@@ -3648,7 +3631,7 @@ async function startServer() {
          LEFT JOIN branches b ON c.branch_id = b.id
          LEFT JOIN loans l ON c.loan_id = l.id
          LEFT JOIN members m ON l.customer_id = m.id
-         WHERE DATE(c.payment_date) = ? AND c.status != 'rejected' ${branchFilter}`,
+         WHERE DATE(c.payment_date) = ? AND c.status = 'approved' ${branchFilter}`,
         params
       );
 
