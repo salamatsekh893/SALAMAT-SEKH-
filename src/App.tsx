@@ -116,17 +116,6 @@ export default function App() {
               <Route path="/savings/passbook/saving/:id" element={<SavingsPassbook />} />
               <Route path="/savings/passbook/rd/:id" element={<RDPassbook />} />
               <Route path="/savings/card/:type/:id" element={<PassbookCardView />} />
-              <Route path="/loans" element={<Loans />} />
-              <Route path="/loans/new" element={<CreateLoanRequest />} />
-              <Route path="/loans/edit/:id" element={<EditLoan />} />
-              <Route path="/loans/view/:id" element={<LoanApplicationView />} />
-              <Route path="/loans/card/:id" element={<LoanCardView />} />
-              <Route path="/loans/agreement/:id" element={<LoanAgreementView />} />
-              <Route path="/loans/noc/:id" element={<NOCView />} />
-              <Route path="/loans/approvals" element={<LoanApprovals />} />
-              <Route path="/loans/closed" element={<ClosedLoans />} />
-              <Route path="/loans/pre-close" element={<PreCloseLoan />} />
-              <Route path="/loans/disbursements" element={<LoanDisbursements />} />
               <Route path="/products" element={<Products />} />
               <Route path="/products/add" element={<AddProduct />} />
               <Route path="/sales" element={<Sales />} />
@@ -137,6 +126,17 @@ export default function App() {
           )}
           {/* General routes for everyone who can log in (including FO and Collector) */}
           <Route path="/attendance" element={<MyAttendance user={user} />} />
+          <Route path="/loans" element={<Loans />} />
+          <Route path="/loans/new" element={<CreateLoanRequest />} />
+          <Route path="/loans/edit/:id" element={<EditLoan />} />
+          <Route path="/loans/view/:id" element={<LoanApplicationView />} />
+          <Route path="/loans/card/:id" element={<LoanCardView />} />
+          <Route path="/loans/agreement/:id" element={<LoanAgreementView />} />
+          <Route path="/loans/noc/:id" element={<NOCView />} />
+          <Route path="/loans/approvals" element={<LoanApprovals />} />
+          <Route path="/loans/closed" element={<ClosedLoans />} />
+          <Route path="/loans/pre-close" element={<PreCloseLoan />} />
+          <Route path="/loans/disbursements" element={<LoanDisbursements />} />
           <Route path="/groups" element={<Groups />} />
           <Route path="/groups/new" element={<GroupForm />} />
           <Route path="/groups/edit/:id" element={<GroupForm />} />

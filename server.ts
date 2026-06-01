@@ -2317,10 +2317,6 @@ async function startServer() {
       }
 
       const finalDateStr = startDate.toISOString().split('T')[0];
-      const checkStatus = await verifyDayBookActive(data.branch_id, finalDateStr);
-      if (!checkStatus.active) {
-         return res.status(400).json({ error: checkStatus.error });
-      }
 
       const [result]: any = await pool.query(
         `INSERT INTO loans (

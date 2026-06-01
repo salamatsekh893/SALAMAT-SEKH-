@@ -34,6 +34,9 @@ export default function CreateLoanRequest() {
       setMembers(memData);
       setSchemes(schemeData.filter((s: any) => !s.status || String(s.status).toLowerCase() === 'active'));
       setBranches(branchData);
+      if (branchData && branchData.length === 1) {
+        setFormData(prev => ({ ...prev, branch_id: branchData[0].id.toString() }));
+      }
     }).finally(() => {
       setInitLoading(false);
     });
