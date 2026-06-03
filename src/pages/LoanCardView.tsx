@@ -646,34 +646,34 @@ export default function LoanCardView() {
 
                       {/* Left Table Panel */}
                       <div className="overflow-hidden">
-                        <table className="w-full border-collapse border border-slate-300 text-[8px]">
+                        <table className="w-full border-collapse border border-slate-400 print:border-slate-800 text-[8px]">
                           <thead>
                             <tr className="bg-slate-800 text-white font-black uppercase text-[7.5px]">
-                              <th className="border border-slate-450 p-1 text-center w-6">নং</th>
-                              <th className="border border-slate-450 p-1 text-center w-16">নির্ধারিত তারিখ</th>
-                              <th className="border border-slate-450 p-1 text-right w-12">কিস্তি টাকা</th>
-                              <th className="border border-slate-450 p-1 text-center w-16">আদায় তারিখ</th>
-                              <th className="border border-slate-450 p-1 text-right w-14">আদায় টাকা</th>
-                              <th className="border border-slate-450 p-1 text-center w-12">কর্মী সই</th>
+                              <th className="border border-slate-500 print:border-slate-800 p-1 text-center w-6">নং</th>
+                              <th className="border border-slate-500 print:border-slate-800 p-1 text-center w-16">নির্ধারিত তারিখ</th>
+                              <th className="border border-slate-500 print:border-slate-800 p-1 text-right w-12">কিস্তি টাকা</th>
+                              <th className="border border-slate-500 print:border-slate-800 p-1 text-center w-16">আদায় তারিখ</th>
+                              <th className="border border-slate-500 print:border-slate-800 p-1 text-right w-14">আদায় টাকা</th>
+                              <th className="border border-slate-500 print:border-slate-800 p-1 text-center w-12">কর্মী সই</th>
                             </tr>
                           </thead>
                           <tbody>
                             {leftRows.map((row) => (
                               <tr key={row.instNo} className="bg-white hover:bg-slate-50">
-                                <td className="border border-slate-300 p-0.5 text-center font-bold text-slate-550">{row.instNo}</td>
-                                <td className="border border-slate-300 p-0.5 text-center font-bold font-mono text-slate-750">{row.date}</td>
-                                <td className="border border-slate-300 p-0.5 text-right font-black font-mono text-slate-900">₹{formatAmount(row.amount)}</td>
-                                <td className="border border-slate-300 p-0.5 text-center text-[7.5px] font-bold text-emerald-700 font-mono text-slate-800">
-                                  {row.collectedAmt ? row.recvDate : <span className="text-slate-300 block text-center font-light leading-none">..........</span>}
+                                <td className="border border-slate-400 print:border-slate-800 p-0.5 text-center font-bold text-slate-550">{row.instNo}</td>
+                                <td className="border border-slate-400 print:border-slate-800 p-0.5 text-center font-bold font-mono text-slate-750">{row.date}</td>
+                                <td className="border border-slate-400 print:border-slate-800 p-0.5 text-right font-black font-mono text-slate-900">₹{formatAmount(row.amount)}</td>
+                                <td className="border border-slate-400 print:border-slate-800 p-0.5 text-center text-[7.5px] font-bold text-emerald-700 font-mono text-slate-800">
+                                  {row.collectedAmt ? row.recvDate : <span className="text-slate-300 print:text-slate-500 block text-center font-light leading-none">..........</span>}
                                 </td>
-                                <td className="border border-slate-300 p-0.5 text-right text-[7.5px] font-black text-emerald-700 font-mono text-slate-800">
-                                  {row.collectedAmt ? `₹${row.collectedAmt}` : <span className="text-slate-300 block text-center font-light leading-none">..........</span>}
+                                <td className="border border-slate-400 print:border-slate-800 p-0.5 text-right text-[7.5px] font-black text-emerald-700 font-mono text-slate-800">
+                                  {row.collectedAmt ? `₹${row.collectedAmt}` : <span className="text-slate-300 print:text-slate-500 block text-center font-light leading-none">..........</span>}
                                 </td>
-                                <td className="border border-slate-300 p-0.5 text-center text-[7px] font-extrabold text-emerald-600">
+                                <td className="border border-slate-400 print:border-slate-800 p-0.5 text-center text-[7px] font-extrabold text-emerald-600">
                                   {row.isPaid && signatureMode === 'digital' ? (
                                     <span className="text-emerald-700 font-black">✓ Paid</span>
                                   ) : (
-                                    <span className="text-slate-300 block text-center font-light leading-none">..........</span>
+                                    <span className="text-slate-300 print:text-slate-500 block text-center font-light leading-none">..........</span>
                                   )}
                                 </td>
                               </tr>
@@ -728,34 +728,34 @@ export default function LoanCardView() {
                       {/* Right Table Panel */}
                       {rightRows.length > 0 ? (
                         <div className="overflow-hidden">
-                          <table className="w-full border-collapse border border-slate-300 text-[8px]">
+                          <table className="w-full border-collapse border border-slate-400 print:border-slate-800 text-[8px]">
                             <thead>
                               <tr className="bg-slate-800 text-white font-black uppercase text-[7.5px]">
-                                <th className="border border-slate-450 p-1 text-center w-6">নং</th>
-                                <th className="border border-slate-450 p-1 text-center w-16">নির্ধারিত তারিখ</th>
-                                <th className="border border-slate-450 p-1 text-right w-12">কিস্তি টাকা</th>
-                                <th className="border border-slate-450 p-1 text-center w-16">আদায় তারিখ</th>
-                                <th className="border border-slate-450 p-1 text-right w-14">আদায় টাকা</th>
-                                <th className="border border-slate-450 p-1 text-center w-12">কর্মী সই</th>
+                                <th className="border border-slate-500 print:border-slate-800 p-1 text-center w-6">নং</th>
+                                <th className="border border-slate-500 print:border-slate-800 p-1 text-center w-16">নির্ধারিত তারিখ</th>
+                                <th className="border border-slate-500 print:border-slate-800 p-1 text-right w-12">কিস্তি টাকা</th>
+                                <th className="border border-slate-500 print:border-slate-800 p-1 text-center w-16">আদায় তারিখ</th>
+                                <th className="border border-slate-500 print:border-slate-800 p-1 text-right w-14">আদায় টাকা</th>
+                                <th className="border border-slate-500 print:border-slate-800 p-1 text-center w-12">কর্মী সই</th>
                               </tr>
                             </thead>
                             <tbody>
                               {rightRows.map((row) => (
                                 <tr key={row.instNo} className="bg-white hover:bg-slate-50">
-                                  <td className="border border-slate-300 p-0.5 text-center font-bold text-slate-500">{row.instNo}</td>
-                                  <td className="border border-slate-300 p-0.5 text-center font-bold font-mono text-slate-750">{row.date}</td>
-                                  <td className="border border-slate-300 p-0.5 text-right font-black font-mono text-slate-900">₹{formatAmount(row.amount)}</td>
-                                  <td className="border border-slate-300 p-0.5 text-center text-[7.5px] font-bold text-emerald-700 font-mono text-slate-800">
-                                    {row.collectedAmt ? row.recvDate : <span className="text-slate-300 block text-center font-light leading-none">..........</span>}
+                                  <td className="border border-slate-400 print:border-slate-800 p-0.5 text-center font-bold text-slate-500">{row.instNo}</td>
+                                  <td className="border border-slate-400 print:border-slate-800 p-0.5 text-center font-bold font-mono text-slate-750">{row.date}</td>
+                                  <td className="border border-slate-400 print:border-slate-800 p-0.5 text-right font-black font-mono text-slate-900">₹{formatAmount(row.amount)}</td>
+                                  <td className="border border-slate-400 print:border-slate-800 p-0.5 text-center text-[7.5px] font-bold text-emerald-700 font-mono text-slate-800">
+                                    {row.collectedAmt ? row.recvDate : <span className="text-slate-300 print:text-slate-500 block text-center font-light leading-none">..........</span>}
                                   </td>
-                                  <td className="border border-slate-300 p-0.5 text-right text-[7.5px] font-black text-emerald-700 font-mono text-slate-800">
-                                    {row.collectedAmt ? `₹${row.collectedAmt}` : <span className="text-slate-300 block text-center font-light leading-none">..........</span>}
+                                  <td className="border border-slate-400 print:border-slate-800 p-0.5 text-right text-[7.5px] font-black text-emerald-700 font-mono text-slate-800">
+                                    {row.collectedAmt ? `₹${row.collectedAmt}` : <span className="text-slate-300 print:text-slate-500 block text-center font-light leading-none">..........</span>}
                                   </td>
-                                  <td className="border border-slate-300 p-0.5 text-center text-[7px] font-extrabold text-emerald-600">
+                                  <td className="border border-slate-400 print:border-slate-800 p-0.5 text-center text-[7px] font-extrabold text-emerald-600">
                                     {row.isPaid && signatureMode === 'digital' ? (
                                       <span className="text-emerald-700 font-black">✓ Paid</span>
                                     ) : (
-                                      <span className="text-slate-300 block text-center font-light leading-none">..........</span>
+                                      <span className="text-slate-300 print:text-slate-500 block text-center font-light leading-none">..........</span>
                                     )}
                                   </td>
                                 </tr>

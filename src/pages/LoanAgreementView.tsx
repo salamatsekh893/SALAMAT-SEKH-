@@ -110,7 +110,7 @@ export default function LoanAgreementView() {
           <div 
             ref={printRef}
             className="bg-white shadow-lg mx-auto print:shadow-none print:m-0 print:p-0"
-            style={{ width: '210mm', minHeight: '290mm', padding: '15mm', fontFamily: '"Times New Roman", Times, serif', fontSize: '14px', color: '#000', lineHeight: '1.6', boxSizing: 'border-box' }}
+            style={{ width: '210mm', height: '290mm', maxHeight: '290mm', overflow: 'hidden', padding: '15mm', fontFamily: '"Times New Roman", Times, serif', fontSize: '14px', color: '#000', lineHeight: '1.6', boxSizing: 'border-box' }}
           >
         <style>{`
           @media print {

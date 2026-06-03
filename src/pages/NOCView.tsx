@@ -185,7 +185,7 @@ export default function NOCView() {
         <div 
           ref={printRef}
           className="mx-auto relative overflow-hidden print:p-0 print:m-0"
-          style={{ width: '210mm', minHeight: '290mm', fontFamily: 'serif', backgroundColor: '#ffffff', padding: '80px', boxShadow: 'none', boxSizing: 'border-box' }}
+          style={{ width: '210mm', height: '290mm', maxHeight: '290mm', overflow: 'hidden', fontFamily: 'serif', backgroundColor: '#ffffff', padding: '80px', boxShadow: 'none', boxSizing: 'border-box' }}
         >
           <style>{`
             @media print {
