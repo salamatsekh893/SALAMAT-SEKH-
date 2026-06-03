@@ -63,7 +63,7 @@ export default function DemandSheet() {
     
     // Safety guard to avoid locking up browser thread
     let safetyCounter = 0;
-    while (current <= end && safetyCounter < 366) {
+    while (current <= end && safetyCounter < 3650) {
       safetyCounter++;
       const dayOfWeek = current.toLocaleDateString('en-US', { weekday: 'long' });
       let isMatch = false;
@@ -93,11 +93,23 @@ export default function DemandSheet() {
     const individualInstallment = Number(loan.installment || 0);
     const totalDemand = individualInstallment * matchCount;
     
+    // Calculate Arrear
+    const allExpectedDates = getDemandCyclesInPeriod(loan, loan.start_date || loan.created_at, new Date().toISOString().split('T')[0]);
+    const expectedEmiCount = allExpectedDates.length;
+    let expectedAmount = expectedEmiCount * individualInstallment;
+    
+    // Never expect more than total repayment
+    const maxRepayment = Number(loan.total_repayment) || (individualInstallment * Number(loan.duration_weeks || loan.no_of_emis || 0));
+    if (expectedAmount > maxRepayment) expectedAmount = maxRepayment;
+    
+    const arrear = Math.max(0, expectedAmount - Number(loan.total_paid || 0));
+
     return {
       ...loan,
       matchCount,
       matchingDates,
       calculatedDemand: totalDemand,
+      arrear: arrear
     };
   });
 
@@ -119,12 +131,13 @@ export default function DemandSheet() {
         'Nominee Name': loan.nominee_name || '-',
         'Group': loan.group_name || '-',
         'Group Day': loan.meeting_day || '-',
+        'Loan Amount (INR)': Number(loan.amount || 0),
         'Disbursement Date': formatDate(loan.created_at),
         'First EMI Date': formatDate(loan.start_date),
         'EMIs (Paid/Total)': `${loan.paid_emi_count || 0}/${loan.duration_weeks || 0}`,
         'Balance (INR)': Math.round(balance * 100) / 100,
         'Demand (INR)': Math.round(Number(loan.calculatedDemand || 0) * 100) / 100,
-        'Arrear (INR)': '',
+        'Arrear (INR)': Math.round(Number(loan.arrear || 0) * 100) / 100,
         'Collected (INR)': '',
         'Signature': ''
       };
@@ -308,7 +321,7 @@ export default function DemandSheet() {
                   <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">Nominee Name</th>
                   <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">Group</th>
                   <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">Group Day</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">Disbursement</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">Loan & Disb.</th>
                   <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">First EMI</th>
                   <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold text-center text-[11px] print:text-[9px]">EMIs</th>
                   <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold text-right text-[11px] print:text-[9px]">Balance</th>
@@ -334,7 +347,10 @@ export default function DemandSheet() {
                       <div className="text-[9px] text-slate-500 font-black">{loan.meeting_time ? String(loan.meeting_time).slice(0, 5) : ''}</div>
                     </td>
                     <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-black font-semibold">{loan.meeting_day || '-'}</td>
-                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-black font-medium whitespace-nowrap">{formatDate(loan.created_at)}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-black font-medium">
+                      <div className="font-extrabold">₹{formatAmount(Number(loan.amount || 0))}</div>
+                      <div className="whitespace-nowrap text-[10px] print:text-[8px] text-slate-500 font-bold">{formatDate(loan.created_at)}</div>
+                    </td>
                     <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-black font-medium whitespace-nowrap">{formatDate(loan.start_date)}</td>
                     <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-center text-[10px] print:text-[9.5px] font-bold text-black print:whitespace-nowrap">
                       {loan.paid_emi_count || 0}/{loan.duration_weeks || 0}
@@ -350,7 +366,9 @@ export default function DemandSheet() {
                       )}
                     </td>
                     {/* Empty columns for printing */}
-                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 bg-white print:bg-transparent"></td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 bg-white print:bg-transparent text-right font-black text-red-600">
+                      {loan.arrear > 0 ? `₹${formatAmount(Number(loan.arrear))}` : ''}
+                    </td>
                     <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 bg-white print:bg-transparent"></td>
                     <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 bg-white print:bg-transparent"></td>
                   </tr>
