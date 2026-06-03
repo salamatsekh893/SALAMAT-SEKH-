@@ -117,9 +117,11 @@ export default function ViewCollection() {
   const exportToExcel = () => {
     const data = filteredCollections.map((col, idx) => ({
       'SL': idx + 1,
-      'DATE': col.payment_date,
+      'DATE': col.payment_date ? col.payment_date.substring(0, 10) : '',
+      'TIME': col.created_at ? format(new Date(col.created_at), 'hh:mm a') : '',
       'LOAN ID': col.loan_id,
       'MEMBER NAME': col.customer_name,
+      'GROUP': col.group_name || 'Individual',
       'COLLECTED BY': col.collected_by_name,
       'AMOUNT': parseFloat(col.amount_paid)
     }));
@@ -318,7 +320,7 @@ export default function ViewCollection() {
               <thead>
                 <tr className="bg-gradient-to-r from-indigo-600 to-purple-600">
                   <th className="text-center text-[11px] font-black uppercase tracking-wider p-4 w-[60px] text-white">#</th>
-                  <th className="text-left text-[11px] font-black uppercase tracking-wider p-4 w-[130px] text-white">Date</th>
+                  <th className="text-left text-[11px] font-black uppercase tracking-wider p-4 w-[130px] text-white">Date & Time</th>
                   <th className="text-left text-[11px] font-black uppercase tracking-wider p-4 text-white">Customer / Loan</th>
                   <th className="text-left text-[11px] font-black uppercase tracking-wider p-4 w-[140px] text-white text-right">Amount</th>
                   <th className="text-left text-[11px] font-black uppercase tracking-wider p-4 w-[150px] text-white">Collected By</th>
@@ -346,9 +348,9 @@ export default function ViewCollection() {
                       </td>
                       <td className="p-4">
                         <div className="flex flex-col">
-                          <span className="text-sm font-bold text-slate-700">{col.payment_date}</span>
+                          <span className="text-sm font-bold text-slate-700">{col.payment_date ? col.payment_date.substring(0, 10) : ''}</span>
                           <span className="text-[9px] font-mono text-slate-400">
-                            {format(new Date(col.payment_date), 'EEEE')}
+                            {col.created_at ? format(new Date(col.created_at), 'hh:mm a') : format(new Date(col.payment_date || new Date()), 'EEEE')}
                           </span>
                         </div>
                        </td>
@@ -358,6 +360,8 @@ export default function ViewCollection() {
                           <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-tighter flex items-center gap-1 mt-0.5">
                             <CreditCard className="w-3 h-3" />
                             Loan #{col.loan_id}
+                            <span className="text-slate-400 mx-1">•</span>
+                            <span className="text-purple-600">{col.group_name || 'Individual'}</span>
                           </span>
                         </div>
                        </td>
@@ -469,10 +473,12 @@ export default function ViewCollection() {
                     <div>
                       <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Customer Name</p>
                       <p className="text-base font-black text-slate-800">{col.customer_name}</p>
+                      <p className="text-[10px] font-black text-purple-600 uppercase mt-0.5">{col.group_name || 'Individual'}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Date</p>
-                      <p className="text-sm font-bold text-slate-700">{col.payment_date}</p>
+                      <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Date & Time</p>
+                      <p className="text-sm font-bold text-slate-700">{col.payment_date ? col.payment_date.substring(0, 10) : ''}</p>
+                      <p className="text-[10px] font-bold text-slate-400">{col.created_at ? format(new Date(col.created_at), 'hh:mm a') : ''}</p>
                     </div>
                   </div>
 
