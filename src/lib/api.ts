@@ -19,7 +19,7 @@ export const fetchWithAuth = async (endpoint: string, options: RequestInit = {})
   };
 
   if (token) {
-    defaultHeaders['Authorization'] = `Bearer ${token}`;
+    defaultHeaders['X-Authorization'] = `Bearer ${token}`;
   }
 
   // Ensure leading slash for endpoint

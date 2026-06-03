@@ -20,7 +20,7 @@ if (!resend) {
 }
 
 export const verifyToken = (req: any, res: any, next: any) => {
-  const authHeader = req.headers['authorization'];
+  const authHeader = req.headers['x-authorization'] || req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   
   if (!token) {
