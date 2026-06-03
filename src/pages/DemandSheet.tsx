@@ -298,75 +298,75 @@ export default function DemandSheet() {
           </div>
 
           <div className="overflow-x-auto w-full print:overflow-visible">
-            <table className="w-full text-left text-[13px] border-collapse border border-slate-300 print:text-[9.5px]">
+            <table className="w-full text-left text-[13px] border-collapse border border-slate-400 print:border-slate-800 print:text-[9.5px]">
               <thead>
-                <tr className="bg-slate-100 print:bg-slate-100 text-black border-b border-slate-300">
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-extrabold w-12 text-center text-[11px] print:text-[9px]">Sl. No.</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">Member ID</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">Member Name</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">Mobile No.</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">Nominee Name</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">Group</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">Group Day</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">Disbursement</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">First EMI</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-extrabold text-center text-[11px] print:text-[9px]">EMIs</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-extrabold text-right text-[11px] print:text-[9px]">Balance</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-extrabold text-right text-[11px] print:text-[9px]">Demand</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-extrabold text-right print:w-16 text-[11px] print:text-[9px]">Arrear</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-extrabold text-right print:w-16 text-[11px] print:text-[9px]">Collected</th>
-                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-300 font-extrabold text-center print:w-16 text-[11px] print:text-[9px]">Signature</th>
+                <tr className="bg-slate-100 print:bg-slate-100 text-black border-b border-slate-400 print:border-slate-800">
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold w-12 text-center text-[11px] print:text-[9px]">Sl. No.</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">Member ID</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">Member Name</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">Mobile No.</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">Nominee Name</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">Group</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">Group Day</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">Disbursement</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold whitespace-nowrap text-[11px] print:text-[9px]">First EMI</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold text-center text-[11px] print:text-[9px]">EMIs</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold text-right text-[11px] print:text-[9px]">Balance</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold text-right text-[11px] print:text-[9px]">Demand</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold text-right print:w-16 text-[11px] print:text-[9px]">Arrear</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold text-right print:w-16 text-[11px] print:text-[9px]">Collected</th>
+                  <th className="px-2 py-2 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 font-extrabold text-center print:w-16 text-[11px] print:text-[9px]">Signature</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredLoans.map((loan, idx) => (
-                  <tr key={loan.id} className="border-b border-slate-200 group hover:bg-slate-50 print:hover:bg-transparent">
-                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-300 text-center font-bold text-slate-800">{idx + 1}</td>
-                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-300 text-black font-bold font-mono">{loan.member_code || loan.customer_id}</td>
-                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-300">
+                  <tr key={loan.id} className="border-b border-slate-200 print:border-slate-800 group hover:bg-slate-50 print:hover:bg-transparent">
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-center font-bold text-slate-800">{idx + 1}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-black font-bold font-mono">{loan.member_code || loan.customer_id}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800">
                       <div className="font-extrabold text-black leading-tight text-[13.5px]">{loan.member_name || 'Unknown'}</div>
                       <div className="text-[10px] print:text-[7.5px] text-slate-500 font-semibold uppercase">{loan.loan_no}</div>
                     </td>
-                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-300 text-black font-semibold whitespace-nowrap text-xs print:text-[9px]">{loan.member_mobile || loan.mobile_no || 'N/A'}</td>
-                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-300 text-black font-medium uppercase text-xs print:text-[9px] truncate max-w-[100px]">{loan.nominee_name || '-'}</td>
-                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-300 text-black font-semibold">
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-black font-semibold whitespace-nowrap text-xs print:text-[9px]">{loan.member_mobile || loan.mobile_no || 'N/A'}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-black font-medium uppercase text-xs print:text-[9px] truncate max-w-[100px]">{loan.nominee_name || '-'}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-black font-semibold">
                       <div>{loan.group_name || '-'}</div>
                       <div className="text-[9px] text-slate-500 font-black">{loan.meeting_time ? String(loan.meeting_time).slice(0, 5) : ''}</div>
                     </td>
-                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-300 text-black font-semibold">{loan.meeting_day || '-'}</td>
-                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-300 text-black font-medium whitespace-nowrap">{formatDate(loan.created_at)}</td>
-                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-300 text-black font-medium whitespace-nowrap">{formatDate(loan.start_date)}</td>
-                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-300 text-center text-[10px] print:text-[9.5px] font-bold text-black print:whitespace-nowrap">
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-black font-semibold">{loan.meeting_day || '-'}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-black font-medium whitespace-nowrap">{formatDate(loan.created_at)}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-black font-medium whitespace-nowrap">{formatDate(loan.start_date)}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-center text-[10px] print:text-[9.5px] font-bold text-black print:whitespace-nowrap">
                       {loan.paid_emi_count || 0}/{loan.duration_weeks || 0}
                       {((loan.paid_emi_count || 0) >= (loan.duration_weeks || 0)) && (
                         <div className="text-[9px] print:text-[8px] text-red-600 font-bold mt-0.5 whitespace-nowrap">OVER</div>
                       )}
                     </td>
-                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-300 text-right font-bold text-black">₹{formatAmount(Number(loan.total_repayment || 0) - Number(loan.total_paid || 0))}</td>
-                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-300 text-right font-black text-black bg-slate-50/80 print:bg-transparent">
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-right font-bold text-black">₹{formatAmount(Number(loan.total_repayment || 0) - Number(loan.total_paid || 0))}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-right font-black text-black bg-slate-50/80 print:bg-transparent">
                       ₹{formatAmount(Number(loan.calculatedDemand))}
                       {loan.matchCount > 1 && (
                         <div className="text-[9.5px] text-slate-600 font-extrabold">({loan.matchCount} × ₹{formatAmount(Number(loan.installment))})</div>
                       )}
                     </td>
                     {/* Empty columns for printing */}
-                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-300 bg-white print:bg-transparent"></td>
-                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-300 bg-white print:bg-transparent"></td>
-                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-300 bg-white print:bg-transparent"></td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 bg-white print:bg-transparent"></td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 bg-white print:bg-transparent"></td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 bg-white print:bg-transparent"></td>
                   </tr>
                 ))}
                 {filteredLoans.length > 0 && (
                   <tr className="bg-slate-100 print:bg-slate-100 font-black text-black">
-                    <td colSpan={10} className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-right uppercase tracking-wider text-xs font-extrabold font-black">TOTAL</td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-right text-black font-black">
+                    <td colSpan={10} className="px-2 py-3 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-right uppercase tracking-wider text-xs font-extrabold font-black">TOTAL</td>
+                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-right text-black font-black">
                       ₹{formatAmount(filteredLoans.reduce((sum, l) => sum + (Number(l.total_repayment || 0) - Number(l.total_paid || 0)), 0))}
                     </td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300 text-right text-black font-black">
+                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-right text-black font-black">
                       ₹{formatAmount(filteredLoans.reduce((sum, l) => sum + Number(l.calculatedDemand || 0), 0))}
                     </td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300"></td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300"></td>
-                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-300"></td>
+                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-400 print:border-slate-800"></td>
+                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-400 print:border-slate-800"></td>
+                    <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-400 print:border-slate-800"></td>
                   </tr>
                 )}
               </tbody>
