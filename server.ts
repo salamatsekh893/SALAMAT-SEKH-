@@ -2862,6 +2862,9 @@ async function startServer() {
 
       // Offline dictionary cache for instant & reliable lookup under sandboxed or offline conditions
       const localPincodeDb: Record<string, any[]> = {
+        "713125": [
+          { Name: "Balgona", District: "Purba Bardhaman", State: "West Bengal", Pincode: "713125" }
+        ],
         "731213": [
           { Name: "Labpur", District: "Birbhum", State: "West Bengal", Pincode: "731213" },
           { Name: "Bipa", District: "Birbhum", State: "West Bengal", Pincode: "731213" },
@@ -3039,9 +3042,48 @@ async function startServer() {
 
       console.warn(`[PINCODE PROXY] All APIs failed for ${pincode}. Activating intelligent fallback...`);
       
-      const isBirbhum = pincode.startsWith('731');
-      const fallbackState = "West Bengal";
-      const fallbackDistrict = isBirbhum ? "Birbhum" : "Birbhum"; // default to Birbhum since the application is MFI management system focusing on Birbhum
+      let fallbackState = "West Bengal";
+      let fallbackDistrict = "Birbhum"; // default to Birbhum since the application is MFI management system focusing on Birbhum
+      
+      // Determine state/district based on Indian PIN prefix
+      const p3 = pincode.slice(0, 3);
+      const p2 = pincode.slice(0, 2);
+      
+      if (p2 === "11") { fallbackState = "Delhi"; fallbackDistrict = "New Delhi"; }
+      else if (p2 === "12" || p2 === "13") { fallbackState = "Haryana"; fallbackDistrict = "Gurgaon"; }
+      else if (p2 === "14" || p2 === "15" || p2 === "16") { fallbackState = "Punjab"; fallbackDistrict = "Amritsar"; }
+      else if (p2 === "17") { fallbackState = "Himachal Pradesh"; fallbackDistrict = "Shimla"; }
+      else if (p2 === "18" || p2 === "19") { fallbackState = "Jammu & Kashmir"; fallbackDistrict = "Srinagar"; }
+      else if (p2 === "20" || p2 === "21" || p2 === "22" || p2 === "23" || p2 === "24" || p2 === "25" || p2 === "26" || p2 === "27" || p2 === "28") { fallbackState = "Uttar Pradesh"; fallbackDistrict = "Noida"; }
+      else if (p2 === "30" || p2 === "31" || p2 === "32" || p2 === "33" || p2 === "34") { fallbackState = "Rajasthan"; fallbackDistrict = "Jaipur"; }
+      else if (p2 === "36" || p2 === "37" || p2 === "38" || p2 === "39") { fallbackState = "Gujarat"; fallbackDistrict = "Ahmedabad"; }
+      else if (p2 === "40" || p2 === "41" || p2 === "42" || p2 === "43" || p2 === "44") { fallbackState = "Maharashtra"; fallbackDistrict = "Mumbai"; }
+      else if (p2 === "45" || p2 === "46" || p2 === "47" || p2 === "48") { fallbackState = "Madhya Pradesh"; fallbackDistrict = "Bhopal"; }
+      else if (p2 === "49") { fallbackState = "Chhattisgarh"; fallbackDistrict = "Raipur"; }
+      else if (p2 === "50" || p2 === "51" || p2 === "52" || p2 === "53") { fallbackState = "Andhra Pradesh"; fallbackDistrict = "Visakhapatnam"; }
+      else if (p2 === "56" || p2 === "57" || p2 === "58" || p2 === "59") { fallbackState = "Karnataka"; fallbackDistrict = "Bengaluru"; }
+      else if (p2 === "60" || p2 === "61" || p2 === "62" || p2 === "63" || p2 === "64") { fallbackState = "Tamil Nadu"; fallbackDistrict = "Chennai"; }
+      else if (p2 === "67" || p2 === "68" || p2 === "69") { fallbackState = "Kerala"; fallbackDistrict = "Trivandrum"; }
+      else if (p2 >= "70" && p2 <= "74") {
+        fallbackState = "West Bengal";
+        if (p3 === "731") fallbackDistrict = "Birbhum";
+        else if (p3 === "713") fallbackDistrict = "Purba Bardhaman";
+        else if (p3 === "700") fallbackDistrict = "Kolkata";
+        else if (p3 === "711") fallbackDistrict = "Howrah";
+        else if (p3 === "712") fallbackDistrict = "Hooghly";
+        else if (p3 === "721") fallbackDistrict = "Paschim Medinipur";
+        else if (p3 === "722") fallbackDistrict = "Bankura";
+        else if (p3 === "723") fallbackDistrict = "Purulia";
+        else if (p3 === "732") fallbackDistrict = "Malda";
+        else if (p3 === "741") fallbackDistrict = "Nadia";
+        else if (p3 === "742") fallbackDistrict = "Murshidabad";
+        else fallbackDistrict = "Birbhum";
+      }
+      else if (p2 >= "75" && p2 <= "77") { fallbackState = "Odisha"; fallbackDistrict = "Bhubaneswar"; }
+      else if (p2 === "78") { fallbackState = "Assam"; fallbackDistrict = "Guwahati"; }
+      else if (p2 === "79") { fallbackState = "Sikkim"; fallbackDistrict = "Gangtok"; }
+      else if (p2 >= "80" && p2 <= "85") { fallbackState = "Bihar"; fallbackDistrict = "Patna"; }
+      
       const fallbackOffice = `Post Office ${pincode}`;
       
       return res.json([
