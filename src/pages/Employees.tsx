@@ -347,11 +347,14 @@ export default function Employees() {
 
       <style>{`
         @media print {
+          @page { size: A4 portrait; margin: 0; }
+          body { margin: 0; padding: 0; background-color: white !important; -webkit-print-color-adjust: exact; }
+          .print\\:hidden { display: none !important; }
+          html, body, #root { height: auto !important; min-height: auto !important; }
           .print-area {
             padding: 0 !important;
             margin: 0 !important;
           }
-          body { -webkit-print-color-adjust: exact; }
         }
       `}</style>
     </div>
@@ -361,7 +364,7 @@ export default function Employees() {
 function JoiningLetter({ employee }: { employee: any }) {
   const today = new Date().toLocaleDateString('en-GB');
   return (
-    <div className="bg-white w-[210mm] min-h-[297mm] p-[30mm] shadow-sm text-slate-800 font-serif leading-relaxed">
+    <div className="bg-white w-[210mm] min-h-[290mm] p-[30mm] shadow-sm text-slate-800 font-serif leading-relaxed box-border">
       <div className="text-center mb-16 border-b-2 border-indigo-600 pb-10">
         <h1 className="text-4xl font-black text-indigo-700 tracking-tighter uppercase mb-2">ALJOOYA SUBIDHA SERVICES</h1>
         <p className="text-sm font-bold text-slate-500 uppercase tracking-[0.4em] mb-4">Financial Empowerment • Growth • Trust</p>

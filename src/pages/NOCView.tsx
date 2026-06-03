@@ -184,9 +184,17 @@ export default function NOCView() {
       <div className="flex-1 overflow-auto px-4 pb-12">
         <div 
           ref={printRef}
-          className="mx-auto relative overflow-hidden"
-          style={{ width: '210mm', minHeight: '297mm', fontFamily: 'serif', backgroundColor: '#ffffff', padding: '80px', boxShadow: 'none' }}
+          className="mx-auto relative overflow-hidden print:p-0 print:m-0"
+          style={{ width: '210mm', minHeight: '290mm', fontFamily: 'serif', backgroundColor: '#ffffff', padding: '80px', boxShadow: 'none', boxSizing: 'border-box' }}
         >
+          <style>{`
+            @media print {
+              @page { size: A4 portrait; margin: 0; }
+              body { margin: 0; padding: 0; background-color: white !important; }
+              .print\\:hidden { display: none !important; }
+              html, body, #root { height: auto !important; min-height: auto !important; }
+            }
+          `}</style>
             {/* Border decoration */}
             <div className="absolute inset-4 border-4 border-double pointer-events-none" style={{ borderColor: '#e2e8f0' }}></div>
             <div className="absolute inset-8 border pointer-events-none" style={{ borderColor: '#f1f5f9' }}></div>

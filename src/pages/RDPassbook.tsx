@@ -273,10 +273,17 @@ export default function RDPassbook() {
           animation: spin-slow 8s linear infinite;
         }
         @media print {
-          body * { visibility: hidden; }
-          .max-w-6xl, .max-w-6xl * { visibility: visible; }
-          .max-w-6xl { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; }
+          @page { margin: 0; }
+          body { 
+            margin: 0; 
+            padding: 0; 
+            background-color: white !important; 
+          }
           .print\\:hidden { display: none !important; }
+          html, body, #root {
+            height: auto !important;
+            min-height: auto !important;
+          }
           table { width: 100%; border-collapse: collapse; }
           th, td { border-bottom: 3px solid #f8fafc; padding: 16px 20px; }
           .bg-\\[\\#4a148c\\] { background-color: #4a148c !important; -webkit-print-color-adjust: exact; color-adjust: exact; }

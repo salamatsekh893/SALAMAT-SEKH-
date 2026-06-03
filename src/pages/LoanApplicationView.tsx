@@ -110,30 +110,31 @@ export default function LoanApplicationView() {
           {/* A4 Page Container */}
           <div 
             ref={printRef}
-            className="bg-white shadow-lg mx-auto print:shadow-none"
-            style={{ width: '210mm', minHeight: '297mm', padding: '15mm', fontFamily: '"Times New Roman", Times, serif', fontSize: '14.5px', color: '#000' }}
+            className="bg-white shadow-lg mx-auto print:shadow-none print:m-0 print:p-8"
+            style={{ width: '210mm', minHeight: '290mm', padding: '15mm', fontFamily: '"Times New Roman", Times, serif', fontSize: '14.5px', color: '#000', boxSizing: 'border-box' }}
           >
         <style>{`
           @media print {
-            body * {
-              visibility: hidden;
-            }
-            .bg-white > div:nth-child(2), .bg-white > div:nth-child(2) * {
-              visibility: visible;
-            }
-            .bg-white > div:nth-child(2) {
-              position: absolute;
-              left: 0;
-              top: 0;
+            @page {
+              size: A4 portrait;
               margin: 0;
-              padding: 10mm;
-              width: 210mm;
-              height: 296mm;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+              background-color: white !important;
+            }
+            .print\\:hidden {
+              display: none !important;
+            }
+            html, body, #root {
+              height: auto !important;
+              min-height: auto !important;
             }
           }
         `}</style>
         
-        <div>
+        <div className="print-content">
           {/* Header */}
           <div className="text-center border-b-2 border-black pb-2.5 mb-4">
             {c_logo && <img src={c_logo} alt="Logo" className="w-[60px] h-[60px] object-contain mx-auto mb-1" />}

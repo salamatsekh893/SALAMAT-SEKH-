@@ -243,10 +243,17 @@ export default function SavingsPassbook() {
       
       <style>{`
         @media print {
-          body * { visibility: hidden; }
-          .max-w-5xl, .max-w-5xl * { visibility: visible; }
-          .max-w-5xl { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; }
+          @page { margin: 0; }
+          body { 
+            margin: 0; 
+            padding: 0; 
+            background-color: white !important; 
+          }
           .print\\:hidden { display: none !important; }
+          html, body, #root {
+            height: auto !important;
+            min-height: auto !important;
+          }
           table { width: 100%; border-collapse: collapse; }
           th, td { border-bottom: 2px solid #f1f5f9; padding: 12px 16px; }
           .bg-\\[\\#1976d2\\] { background-color: #1976d2 !important; -webkit-print-color-adjust: exact; color-adjust: exact; }

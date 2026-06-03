@@ -356,44 +356,45 @@ export default function LoanCardView() {
           <div 
             id="loan-card-print-area"
             ref={printRef}
-            className="bg-white shadow-2xl print:shadow-none mx-auto rounded-[2px]"
+            className="bg-white shadow-2xl print:shadow-none mx-auto rounded-[2px] print:rounded-none"
             style={{ 
               width: '297mm', 
-              height: '210mm', 
-              minHeight: '210mm',
+              height: '200mm', 
+              maxHeight: '200mm',
+              overflow: 'hidden',
               fontFamily: 'sans-serif', 
-              color: '#000' 
+              color: '#000',
+              boxSizing: 'border-box'
             }}
           >
             <style>{`
               @media print {
                 @page {
-                  size: landscape;
+                  size: A4 landscape;
                   margin: 0;
                 }
                 body {
+                  margin: 0;
+                  padding: 0;
                   background-color: #fff !important;
                 }
-                body * {
-                  visibility: hidden !important;
+                .print\\:hidden {
+                  display: none !important;
                 }
-                #loan-card-print-area, #loan-card-print-area * {
-                  visibility: visible !important;
+                html, body, #root {
+                  height: auto !important;
+                  min-height: auto !important;
                 }
                 #loan-card-print-area {
-                  position: absolute !important;
-                  left: 0 !important;
-                  top: 0 !important;
-                  margin: 0 !important;
-                  padding: 0 !important;
-                  width: 297mm !important;
-                  height: 210mm !important;
-                  min-height: 210mm !important;
                   border: none !important;
                   box-shadow: none !important;
                   background-color: #fff !important;
                   -webkit-print-color-adjust: exact !important;
                   print-color-adjust: exact !important;
+                  width: 297mm !important;
+                  height: 200mm !important;
+                  max-height: 200mm !important;
+                  overflow: hidden !important; 
                 }
               }
             `}</style>
@@ -402,7 +403,7 @@ export default function LoanCardView() {
               /* ========================================================================= */
               /* FRONT & BACK FOLDABLE PASSBOOK COVER PAGE LAYOUT - PINK/ROSE THEME        */
               /* ========================================================================= */
-              <div className="flex w-full h-[210mm] p-[10mm] gap-6 select-none relative bg-white overflow-hidden box-border">
+              <div className="flex w-full h-[200mm] p-[10mm] gap-6 select-none relative bg-white overflow-hidden box-border">
                 
                 {/* LEFT CONVOLUTION: BACK COVER - নিয়মাবলী / Support */}
                 <div className="w-[48.5%] h-full border-[3px] border-dashed border-pink-200 rounded-3xl p-6 flex flex-col justify-between bg-pink-50/15 relative">
@@ -614,7 +615,7 @@ export default function LoanCardView() {
               /* ========================================================================= */
               /* DETAILED EMI PAYMENT SCHEDULE TABLE LAYOUT - LANDSCAPE DOUBLE COLUMN      */
               /* ========================================================================= */
-              <div className="flex w-full h-[210mm] p-[10mm] gap-6 select-none relative bg-white overflow-hidden box-border">
+              <div className="flex w-full h-[200mm] p-[10mm] gap-6 select-none relative bg-white overflow-hidden box-border">
                 
                 {/* LEFT CONVOLUTION: Part 1 - Installments 1 to Math.ceil(rows.length / 2) */}
                 <div className="w-[48.5%] h-full border-2 border-slate-300 rounded-3xl p-4 flex flex-col justify-between bg-slate-50/15 relative">

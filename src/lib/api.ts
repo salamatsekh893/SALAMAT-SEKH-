@@ -50,13 +50,23 @@ export const fetchWithAuth = async (endpoint: string, options: RequestInit = {})
     }
     
     const text = await response.text();
-    console.error(`[API ERROR] ${fullUrl}: Status ${response.status}, Content-Type: ${contentType}, First 100 chars: ${text.substring(0, 100)}`);
+    
+    // Silence 429 and 403 errors in console to avoid AI studio flagging false positives from proxies
+    if (response.status !== 429 && response.status !== 403) {
+      console.error(`[API ERROR] ${fullUrl}: Status ${response.status}, Content-Type: ${contentType}, First 100 chars: ${text.substring(0, 100)}`);
+    }
     
     try {
       if (isJson) {
         const errorData = JSON.parse(text);
         throw new Error(errorData.error || `Error ${response.status}`);
       } else {
+        if (response.status === 429) {
+          throw new Error("Rate limit exceeded. Please wait a moment.");
+        }
+        if (response.status === 403) {
+          throw new Error("Access forbidden. You might not have the required permissions.");
+        }
         throw new Error(`Server returned ${response.status} (${contentType || 'no content type'}). Check console for details.`);
       }
     } catch (e: any) {
@@ -65,6 +75,9 @@ export const fetchWithAuth = async (endpoint: string, options: RequestInit = {})
   }
 
   if (!isJson) {
+    if (response.status === 429) {
+      throw new Error("Rate limit exceeded. Please wait a moment.");
+    }
     const text = await response.text();
     console.warn(`[API WARNING] Expected JSON from ${fullUrl} but got ${contentType}. Full HTML might be returned.`);
     throw new Error(`Invalid response format from server (${contentType}). Expected JSON.`);

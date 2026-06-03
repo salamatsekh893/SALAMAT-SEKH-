@@ -40,14 +40,14 @@ export default function LoanApprovals() {
     loadData();
   }, []);
 
-  const [confirmAction, setConfirmAction] = useState<{id: number, status: string} | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{id: number, status: string, first_emi_date?: string} | null>(null);
 
-  const executeStatusChange = async (id: number, newStatus: string) => {
+  const executeStatusChange = async (id: number, newStatus: string, first_emi_date?: string) => {
     try {
       setProcessingId(id);
       await fetchWithAuth(`/loans/${id}/status`, {
         method: 'PUT',
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ status: newStatus, first_emi_date }),
       });
       voiceFeedback.success();
       if (newStatus === 'approved') {
@@ -69,8 +69,8 @@ export default function LoanApprovals() {
     }
   };
 
-  const handleStatusChange = (id: number, newStatus: string) => {
-    setConfirmAction({ id, status: newStatus });
+  const handleStatusChange = (id: number, newStatus: string, defaultDate?: string) => {
+    setConfirmAction({ id, status: newStatus, first_emi_date: defaultDate || format(new Date(), 'yyyy-MM-dd') });
   };
 
   const handleViewDetails = async (id: number) => {
@@ -117,9 +117,22 @@ export default function LoanApprovals() {
               <h3 className="text-xl md:text-2xl font-black text-slate-800 mb-2">
                 {confirmAction.status === 'approved' ? 'Approve Loan?' : 'Reject Loan?'}
               </h3>
-              <p className="text-sm md:text-base text-slate-500 font-medium leading-relaxed mb-8">
+              <p className="text-sm md:text-base text-slate-500 font-medium leading-relaxed mb-6">
                 Are you sure you want to {confirmAction.status === 'approved' ? <span className="text-emerald-600 font-black uppercase">Approve</span> : <span className="text-rose-600 font-black uppercase">Reject</span>} this application? This action cannot be easily undone.
               </p>
+              
+              {confirmAction.status === 'approved' && (
+                <div className="w-full text-left mb-8">
+                   <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">First EMI Date</label>
+                   <input
+                     type="date"
+                     value={confirmAction.first_emi_date || ''}
+                     onChange={(e) => setConfirmAction({...confirmAction, first_emi_date: e.target.value})}
+                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all cursor-pointer"
+                   />
+                </div>
+              )}
+
               <div className="flex flex-col sm:flex-row w-full gap-3 sm:gap-4">
                 <button
                   onClick={() => setConfirmAction(null)}
@@ -129,7 +142,7 @@ export default function LoanApprovals() {
                   Cancel
                 </button>
                 <button
-                  onClick={() => executeStatusChange(confirmAction.id, confirmAction.status)}
+                  onClick={() => executeStatusChange(confirmAction.id, confirmAction.status, confirmAction.first_emi_date)}
                   disabled={processingId !== null}
                   className={`flex-1 py-3.5 rounded-2xl text-sm font-black text-white hover:opacity-90 active:scale-[0.98] transition-all shadow-lg uppercase tracking-widest disabled:opacity-50 flex items-center justify-center ${
                      confirmAction.status === 'approved' ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-rose-500 shadow-rose-500/30'

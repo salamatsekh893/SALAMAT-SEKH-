@@ -114,23 +114,26 @@ export default function PassbookCardView() {
         <div className="w-fit min-w-full mx-auto p-4 sm:p-8 print:p-0">
           <div 
             ref={printRef}
-            className="bg-white shadow-lg print:shadow-none mx-auto border border-gray-300"
-            style={{ width: '297mm', minHeight: '210mm', fontFamily: 'sans-serif', color: '#000' }}
+            className="bg-white shadow-lg print:shadow-none mx-auto border border-gray-300 print:border-none print:m-0"
+            style={{ width: '297mm', minHeight: '200mm', maxHeight: '200mm', overflow: 'hidden', fontFamily: 'sans-serif', color: '#000', boxSizing: 'border-box' }}
           >
             <style>{`
               @media print {
-                @page { size: landscape; margin: 0; }
-                body * { visibility: hidden; }
-                #passbook-print-area, #passbook-print-area * { visibility: visible; }
-                #passbook-print-area {
-                  position: absolute;
-                  left: 0;
-                  top: 0;
+                @page { size: A4 landscape; margin: 0; }
+                body {
                   margin: 0;
                   padding: 0;
-                  width: 297mm;
-                  height: 210mm;
+                  background-color: white !important;
+                }
+                .print\\:hidden { display: none !important; }
+                html, body, #root {
+                  height: auto !important;
+                  min-height: auto !important;
+                }
+                #passbook-print-area {
                   border: none !important;
+                  width: 297mm !important;
+                  height: 200mm !important;
                 }
               }
             `}</style>

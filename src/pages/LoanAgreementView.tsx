@@ -109,30 +109,34 @@ export default function LoanAgreementView() {
           {/* A4 Page Container */}
           <div 
             ref={printRef}
-            className="bg-white shadow-lg mx-auto print:shadow-none"
-            style={{ width: '210mm', minHeight: '297mm', padding: '15mm', fontFamily: '"Times New Roman", Times, serif', fontSize: '15px', color: '#000', lineHeight: '1.6' }}
+            className="bg-white shadow-lg mx-auto print:shadow-none print:m-0 print:p-8"
+            style={{ width: '210mm', minHeight: '290mm', padding: '15mm', fontFamily: '"Times New Roman", Times, serif', fontSize: '15px', color: '#000', lineHeight: '1.6', boxSizing: 'border-box' }}
           >
         <style>{`
           @media print {
-            body * {
-              visibility: hidden;
-            }
-            .bg-white > div:nth-child(2), .bg-white > div:nth-child(2) * {
-              visibility: visible;
-            }
-            .bg-white > div:nth-child(2) {
-              position: absolute;
-              left: 0;
-              top: 0;
+            @page {
+              size: A4 portrait;
               margin: 0;
-              padding: 10mm;
-              width: 210mm;
-              height: 296mm;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+              background-color: white !important;
+            }
+            /* Hide the main layout elements (sidebar, etc) using global classes if needed, 
+               but print:hidden is already handled mostly by Tailwind */
+            .print\\:hidden {
+              display: none !important;
+            }
+            /* Reset body min-heights which can cause blank pages */
+            html, body, #root {
+              height: auto !important;
+              min-height: auto !important;
             }
           }
         `}</style>
         
-        <div>
+        <div className="print-content">
           <h1 className="text-center font-bold text-[24px] uppercase underline mb-8 mt-2">LOAN AGREEMENT</h1>
           
           <div className="text-justify space-y-6">
