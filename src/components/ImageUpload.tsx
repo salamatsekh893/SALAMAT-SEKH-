@@ -104,6 +104,42 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
       image.src = url;
     });
 
+  const compressAndResizeImage = (dataUrl: string, maxDim = 1000, quality = 0.7): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(dataUrl);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        } catch (e) {
+          console.error('[COMPRESSION] error:', e);
+          resolve(dataUrl);
+        }
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  };
+
   const getStampingData = async (): Promise<{ address: string, lat: number, lng: number } | null> => {
     return new Promise((resolve) => {
       if (!navigator.geolocation) {
@@ -194,10 +230,21 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const reader = new FileReader();
-      reader.onload = () => {
-        setImage(reader.result as string);
-        setShowOptions(false);
-        setShowCropper(true);
+      reader.onload = async () => {
+        setIsProcessing(true);
+        try {
+          const compressed = await compressAndResizeImage(reader.result as string, 1000, 0.7);
+          setImage(compressed);
+          setShowOptions(false);
+          setShowCropper(true);
+        } catch (err) {
+          console.error("Auto compression failed:", err);
+          setImage(reader.result as string);
+          setShowOptions(false);
+          setShowCropper(true);
+        } finally {
+          setIsProcessing(false);
+        }
       };
       reader.readAsDataURL(e.target.files[0]);
     }
@@ -211,16 +258,42 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
         return;
       }
       
-      let pixelCrop = completedCrop;
-      if ((!pixelCrop || pixelCrop.width === 0 || pixelCrop.height === 0) && imgRef.current) {
-        const { width, height } = imgRef.current;
-        pixelCrop = {
-          unit: 'px',
-          x: 0,
-          y: 0,
-          width: width,
-          height: height
-        };
+      let pixelCrop: PixelCrop | null = null;
+      
+      if (imgRef.current) {
+        const { naturalWidth, naturalHeight, width: displayWidth, height: displayHeight } = imgRef.current;
+        const activeCrop = completedCrop || crop;
+        
+        if (activeCrop && activeCrop.width > 0 && activeCrop.height > 0) {
+          if (activeCrop.unit === '%') {
+            pixelCrop = {
+              unit: 'px',
+              x: (activeCrop.x * naturalWidth) / 100,
+              y: (activeCrop.y * naturalHeight) / 100,
+              width: (activeCrop.width * naturalWidth) / 100,
+              height: (activeCrop.height * naturalHeight) / 100
+            };
+          } else {
+            // Apply scale ratio from display dimensions to natural dimensions to avoid cropping a tiny 100px corner
+            const scaleX = naturalWidth / displayWidth;
+            const scaleY = naturalHeight / displayHeight;
+            pixelCrop = {
+              unit: 'px',
+              x: activeCrop.x * scaleX,
+              y: activeCrop.y * scaleY,
+              width: activeCrop.width * scaleX,
+              height: activeCrop.height * scaleY
+            };
+          }
+        } else {
+          pixelCrop = {
+            unit: 'px',
+            x: 0,
+            y: 0,
+            width: naturalWidth,
+            height: naturalHeight
+          };
+        }
       }
       
       if (!pixelCrop || pixelCrop.width === 0 || pixelCrop.height === 0) {
@@ -304,7 +377,7 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
   };
 
   // Snapshot from video to canvas
-  const captureSnapshot = () => {
+  const captureSnapshot = async () => {
     const video = videoRef.current;
     if (video) {
        try {
@@ -315,13 +388,17 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
          if (ctx) {
            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-           setImage(dataUrl);
+           setIsProcessing(true);
+           const compressed = await compressAndResizeImage(dataUrl, 1000, 0.7);
+           setImage(compressed);
            setShowOptions(false);
            setShowCropper(true);
            stopCamera();
          }
        } catch (err) {
          console.error("Snapshot error:", err);
+       } finally {
+         setIsProcessing(false);
        }
     }
   };
