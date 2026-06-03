@@ -4051,6 +4051,7 @@ async function startServer() {
   });
 
   app.post("/api/expenses", verifyToken, async (req: any, res) => {
+    let conn;
     try {
       const data = req.body;
 
@@ -4060,15 +4061,64 @@ async function startServer() {
          return res.status(400).json({ error: checkStatus.error });
       }
 
-      const [result]: any = await pool.query(
+      conn = await pool.getConnection();
+      await conn.beginTransaction();
+
+      // If bank payment, verify balance first
+      const isBankType = data.payment_method === 'bank' && data.bank_id;
+      if (isBankType) {
+        const [bankCheck]: any = await conn.query(
+          'SELECT current_balance FROM bank_accounts WHERE id = ? FOR UPDATE', 
+          [data.bank_id]
+        );
+        if (!bankCheck.length) {
+          await conn.rollback();
+          return res.status(400).json({ error: 'Selected bank account was not found' });
+        }
+        if (parseFloat(bankCheck[0].current_balance) < parseFloat(data.amount)) {
+          await conn.rollback();
+          return res.status(400).json({ error: `Insufficient bank balance: Current balance is ৳${bankCheck[0].current_balance}` });
+        }
+      }
+
+      const [result]: any = await conn.query(
         `INSERT INTO expenses (branch_id, category, amount, date, description, payment_method, bank_id) 
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [data.branch_id || null, data.category, data.amount, txDate, data.description || '', data.payment_method, data.bank_id || null]
       );
-      res.status(201).json({ id: result.insertId });
+
+      const insertedExpenseId = result.insertId;
+
+      if (isBankType) {
+        // 1. Deduct amount from bank account
+        await conn.query(
+          `UPDATE bank_accounts SET current_balance = current_balance - ? WHERE id = ?`,
+          [data.amount, data.bank_id]
+        );
+
+        // 2. Insert transaction in bank_transactions
+        const txnPurpose = `Expense: ${data.category}${data.description ? ' - ' + data.description : ''}`;
+        await conn.query(
+          `INSERT INTO bank_transactions (bank_id, date, type, source_type, source_id, amount, purpose) 
+           VALUES (?, ?, 'withdrawal', 'expense', ?, ?, ?)`,
+          [data.bank_id, txDate, insertedExpenseId, data.amount, txnPurpose]
+        );
+      }
+
+      await conn.commit();
+      res.status(201).json({ id: insertedExpenseId });
     } catch (err: any) {
+      if (conn) {
+        try {
+          await conn.rollback();
+        } catch (rollErr) {
+          console.error("Rollback failed", rollErr);
+        }
+      }
       console.error(err);
       res.status(500).json({ error: 'Failed to add expense' });
+    } finally {
+      if (conn) conn.release();
     }
   });
 

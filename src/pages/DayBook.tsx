@@ -371,8 +371,15 @@ export default function DayBook() {
     if(e.payment_method === 'cash') {
       ledger.push({
         time: e.created_at,
-        description: `Expense Paid - ${e.category}`,
+        description: `Expense Paid - ${e.category}${e.description ? ' (' + e.description + ')' : ''}`,
         type: 'outflow',
+        amount: parseFloat(e.amount)
+      });
+    } else if(e.payment_method === 'bank') {
+      ledger.push({
+        time: e.created_at,
+        description: `Expense Paid (Bank) - ${e.category}${e.description ? ' (' + e.description + ')' : ''}`,
+        type: 'bank_outflow',
         amount: parseFloat(e.amount)
       });
     }
@@ -632,8 +639,14 @@ export default function DayBook() {
                   {ledger.map((item, i) => (
                     <tr key={i} className="hover:bg-slate-50 transition-colors">
                       <td className="px-3 py-1.5 tracking-wider text-[10px] font-bold">
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] inline-block ${item.type === 'inflow' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                          {item.type === 'inflow' ? 'CR (+)' : 'DR (-)'}
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] inline-block ${
+                          item.type === 'inflow' 
+                            ? 'bg-green-100 text-green-700' 
+                            : item.type === 'bank_outflow'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-red-100 text-red-700'
+                        }`}>
+                          {item.type === 'inflow' ? 'CR (+)' : item.type === 'bank_outflow' ? 'BANK (-)' : 'DR (-)'}
                         </span>
                         <div className="text-[9px] text-slate-400 mt-0.5">{formatTimeSafe(item.time)}</div>
                       </td>
@@ -647,7 +660,13 @@ export default function DayBook() {
                            {item.description.split(' - ')[0]}
                          </div>
                       </td>
-                      <td className={`px-3 py-1.5 text-right text-xs font-black ${item.type === 'inflow' ? 'text-green-600' : 'text-red-500'}`}>
+                      <td className={`px-3 py-1.5 text-right text-xs font-black ${
+                        item.type === 'inflow' 
+                          ? 'text-green-600' 
+                          : item.type === 'bank_outflow'
+                            ? 'text-blue-600'
+                            : 'text-red-500'
+                      }`}>
                         {item.type === 'inflow' ? '+' : '-'}₹{formatAmount(item.amount)}
                       </td>
                     </tr>
