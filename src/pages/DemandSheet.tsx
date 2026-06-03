@@ -102,7 +102,8 @@ export default function DemandSheet() {
     const maxRepayment = Number(loan.total_repayment) || (individualInstallment * Number(loan.duration_weeks || loan.no_of_emis || 0));
     if (expectedAmount > maxRepayment) expectedAmount = maxRepayment;
     
-    const arrear = Math.max(0, expectedAmount - Number(loan.total_paid || 0));
+    let arrear = expectedAmount - Number(loan.total_paid || 0);
+    arrear = arrear > 0.5 ? Math.round(arrear) : 0;
 
     return {
       ...loan,
