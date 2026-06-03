@@ -1199,10 +1199,17 @@ async function startServer() {
             description TEXT,
             payment_method VARCHAR(50),
             bank_id INT NULL,
+            created_by INT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )
         `);
         console.log("expenses table ensured");
+        try {
+          await conn.query("ALTER TABLE expenses ADD COLUMN created_by INT NULL");
+          console.log("Added created_by column to expenses table");
+        } catch (colErr) {
+          // Already exists or other harmless error
+        }
       } catch (e: any) {
         console.error("expenses table creation failed:", e);
       }
@@ -4097,9 +4104,10 @@ async function startServer() {
     try {
       const { role, branchId } = req.user;
       let query = `
-        SELECT e.*, b.branch_name 
+        SELECT e.*, b.branch_name, u.name AS creator_name 
         FROM expenses e 
         LEFT JOIN branches b ON e.branch_id = b.id 
+        LEFT JOIN users u ON e.created_by = u.id
       `;
       const params: any[] = [];
       
@@ -4150,9 +4158,9 @@ async function startServer() {
       }
 
       const [result]: any = await conn.query(
-        `INSERT INTO expenses (branch_id, category, amount, date, description, payment_method, bank_id) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [data.branch_id || null, data.category, data.amount, txDate, data.description || '', data.payment_method, data.bank_id || null]
+        `INSERT INTO expenses (branch_id, category, amount, date, description, payment_method, bank_id, created_by) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [data.branch_id || null, data.category, data.amount, txDate, data.description || '', data.payment_method, data.bank_id || null, req.user.id || null]
       );
 
       const insertedExpenseId = result.insertId;
@@ -4185,6 +4193,162 @@ async function startServer() {
       }
       console.error(err);
       res.status(500).json({ error: 'Failed to add expense' });
+    } finally {
+      if (conn) conn.release();
+    }
+  });
+
+  app.put("/api/expenses/:id", verifyToken, async (req: any, res) => {
+    let conn;
+    try {
+      const { role } = req.user;
+      if (role !== 'superadmin') {
+        return res.status(403).json({ error: 'Permission denied. Only super admin can edit expenses.' });
+      }
+
+      const expenseId = req.params.id;
+      const data = req.body;
+
+      const txDate = (data.date ? new Date(data.date) : new Date()).toISOString().split('T')[0];
+      
+      conn = await pool.getConnection();
+      await conn.beginTransaction();
+
+      // Retrieve old expense
+      const [oldExpenseRows]: any = await conn.query("SELECT * FROM expenses WHERE id = ?", [expenseId]);
+      if (oldExpenseRows.length === 0) {
+        await conn.rollback();
+        return res.status(404).json({ error: 'Expense not found' });
+      }
+
+      const oldExpense = oldExpenseRows[0];
+      
+      // Verify daybook active for original date and branch, and new date and branch
+      const checkOldStatus = await verifyDayBookActive(oldExpense.branch_id, oldExpense.date);
+      if (!checkOldStatus.active) {
+         await conn.rollback();
+         return res.status(400).json({ error: `Original daybook status check: ${checkOldStatus.error}` });
+      }
+      
+      const checkNewStatus = await verifyDayBookActive(data.branch_id, txDate);
+      if (!checkNewStatus.active) {
+         await conn.rollback();
+         return res.status(400).json({ error: `New daybook status check: ${checkNewStatus.error}` });
+      }
+
+      // Step 1: Reverse the OLD bank impact if there was any
+      if (oldExpense.payment_method === 'bank' && oldExpense.bank_id) {
+        await conn.query(
+          "UPDATE bank_accounts SET current_balance = current_balance + ? WHERE id = ?",
+          [oldExpense.amount, oldExpense.bank_id]
+        );
+        await conn.query(
+          "DELETE FROM bank_transactions WHERE type = 'withdrawal' AND source_type = 'other' AND source_id = ?",
+          [expenseId]
+        );
+      }
+
+      // Step 2: Apply the NEW bank impact if there is any
+      const isBankType = data.payment_method === 'bank' && data.bank_id;
+      if (isBankType) {
+        const [bankCheck]: any = await conn.query(
+          'SELECT current_balance FROM bank_accounts WHERE id = ? FOR UPDATE', 
+          [data.bank_id]
+        );
+        if (!bankCheck.length) {
+          await conn.rollback();
+          return res.status(400).json({ error: 'Selected bank account was not found' });
+        }
+        if (parseFloat(bankCheck[0].current_balance) < parseFloat(data.amount)) {
+          await conn.rollback();
+          return res.status(400).json({ error: `Insufficient bank balance: Current balance is ৳${bankCheck[0].current_balance}` });
+        }
+
+        // Deduct new amount
+        await conn.query(
+          "UPDATE bank_accounts SET current_balance = current_balance - ? WHERE id = ?",
+          [data.amount, data.bank_id]
+        );
+
+        // Record a new transaction in bank_transactions
+        const txnPurpose = `Expense Update: ${data.category}${data.description ? ' - ' + data.description : ''}`;
+        await conn.query(
+          `INSERT INTO bank_transactions (bank_id, date, type, source_type, source_id, amount, purpose) 
+           VALUES (?, ?, 'withdrawal', 'other', ?, ?, ?)`,
+          [data.bank_id, txDate, expenseId, data.amount, txnPurpose]
+        );
+      }
+
+      // Step 3: Update expense record
+      await conn.query(
+        `UPDATE expenses 
+         SET branch_id = ?, category = ?, amount = ?, date = ?, description = ?, payment_method = ?, bank_id = ?
+         WHERE id = ?`,
+        [data.branch_id || null, data.category, data.amount, txDate, data.description || '', data.payment_method, data.bank_id || null, expenseId]
+      );
+
+      await conn.commit();
+      res.json({ message: 'Expense updated successfully', id: expenseId });
+    } catch (err: any) {
+      if (conn) {
+        try { await conn.rollback(); } catch(e) {}
+      }
+      console.error(err);
+      res.status(500).json({ error: 'Failed to update expense' });
+    } finally {
+      if (conn) conn.release();
+    }
+  });
+
+  app.delete("/api/expenses/:id", verifyToken, async (req: any, res) => {
+    let conn;
+    try {
+      const { role } = req.user;
+      if (role !== 'superadmin') {
+        return res.status(403).json({ error: 'Permission denied. Only super admin can delete expenses.' });
+      }
+
+      const expenseId = req.params.id;
+      conn = await pool.getConnection();
+      await conn.beginTransaction();
+
+      // Retrieve old expense
+      const [oldExpenseRows]: any = await conn.query("SELECT * FROM expenses WHERE id = ?", [expenseId]);
+      if (oldExpenseRows.length === 0) {
+        await conn.rollback();
+        return res.status(404).json({ error: 'Expense not found' });
+      }
+
+      const oldExpense = oldExpenseRows[0];
+      const checkStatus = await verifyDayBookActive(oldExpense.branch_id, oldExpense.date);
+      if (!checkStatus.active) {
+         await conn.rollback();
+         return res.status(400).json({ error: checkStatus.error });
+      }
+
+      // If it was bank payment, reverse the bank impact
+      if (oldExpense.payment_method === 'bank' && oldExpense.bank_id) {
+        await conn.query(
+          "UPDATE bank_accounts SET current_balance = current_balance + ? WHERE id = ?",
+          [oldExpense.amount, oldExpense.bank_id]
+        );
+        await conn.query(
+          "DELETE FROM bank_transactions WHERE type = 'withdrawal' AND source_type = 'other' AND source_id = ?",
+          [expenseId]
+        );
+      }
+
+      // Delete expense record
+      await conn.query("DELETE FROM expenses WHERE id = ?", [expenseId]);
+
+      await conn.commit();
+      res.json({ message: 'Expense deleted successfully' });
+    } catch (err: any) {
+      if (conn) {
+        try { await conn.rollback(); } catch(e) {}
+      }
+      console.error(err);
+      res.status(500).json({ error: 'Failed to delete expense' });
     } finally {
       if (conn) conn.release();
     }
