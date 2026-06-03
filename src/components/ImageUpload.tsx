@@ -34,23 +34,23 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
     if (newAspect === undefined) {
       const initialCrop: Crop = {
         unit: '%',
-        width: 85,
-        height: 85,
-        x: 7.5,
-        y: 7.5
+        width: 100,
+        height: 100,
+        x: 0,
+        y: 0
       };
       setCrop(initialCrop);
     } else {
-      let cropWidth = 85;
-      let cropHeight = 85;
+      let cropWidth = 100;
+      let cropHeight = 100;
       const imageAspect = width / height;
       
       if (newAspect > imageAspect) {
-        cropWidth = 85;
-        cropHeight = (85 / newAspect) * imageAspect;
+        cropWidth = 100;
+        cropHeight = (100 / newAspect) * imageAspect;
       } else {
-        cropHeight = 85;
-        cropWidth = (85 * newAspect) / imageAspect;
+        cropHeight = 100;
+        cropWidth = (100 * newAspect) / imageAspect;
       }
       
       const newCrop: Crop = {
@@ -68,19 +68,19 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
     const { width, height } = e.currentTarget;
     const defaultPixelCrop: PixelCrop = {
       unit: 'px',
-      x: width * 0.075,
-      y: height * 0.075,
-      width: width * 0.85,
-      height: height * 0.85
+      x: 0,
+      y: 0,
+      width: width,
+      height: height
     };
     setCompletedCrop(defaultPixelCrop);
 
     const defaultCrop: Crop = {
       unit: '%',
-      width: 85,
-      height: 85,
-      x: 7.5,
-      y: 7.5
+      width: 100,
+      height: 100,
+      x: 0,
+      y: 0
     };
     setCrop(defaultCrop);
     setAspect(undefined); // Reset aspect ratio selector on load
@@ -216,10 +216,10 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
         const { width, height } = imgRef.current;
         pixelCrop = {
           unit: 'px',
-          x: width * 0.075,
-          y: height * 0.075,
-          width: width * 0.85,
-          height: height * 0.85
+          x: 0,
+          y: 0,
+          width: width,
+          height: height
         };
       }
       
@@ -352,7 +352,7 @@ export default function ImageUpload({ label, icon: Icon, color, onImageCaptured,
         )}
       >
         {preview ? (
-          <img src={preview} alt={label} className="w-full h-full object-cover" />
+          <img src={preview} alt={label} className="w-full h-full object-contain bg-slate-50/50 p-1" />
         ) : (
           <>
             <Icon className={cn(compact ? "w-6 h-6 mb-1" : "w-8 h-8 mb-2", color)} />
