@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { fetchWithAuth } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
 import { format } from 'date-fns';
-import { Check, X, Printer, IndianRupee, Eye, FileText, CreditCard } from 'lucide-react';
+import { Check, X, Printer, IndianRupee, Eye, FileText, CreditCard, Calendar } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { formatAmount } from '../lib/utils';
 import { voiceFeedback } from '../lib/voice';
@@ -19,6 +19,25 @@ export default function LoanApprovals() {
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [processingId, setProcessingId] = useState<number | null>(null);
+  const [editDateModal, setEditDateModal] = useState<{id: number, start_date: string} | null>(null);
+
+  const updateFirstEmiDate = async () => {
+    if (!editDateModal) return;
+    try {
+      setProcessingId(editDateModal.id);
+      await fetchWithAuth(`/loans/${editDateModal.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ start_date: editDateModal.start_date }),
+      });
+      toast.success('First EMI Date updated for documents');
+      setEditDateModal(null);
+      loadData();
+    } catch (err) {
+      toast.error('Failed to update date');
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -386,6 +405,13 @@ export default function LoanApprovals() {
                           >
                             <Printer className="w-4 h-4" />
                           </Link>
+                          <button 
+                            onClick={() => setEditDateModal({ id: loan.id, start_date: loan.start_date ? format(new Date(loan.start_date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd') })}
+                            className="w-10 h-10 flex items-center justify-center bg-white text-orange-600 hover:text-white hover:bg-orange-600 border border-orange-100 rounded-xl transition-all shadow-sm"
+                            title="Edit First EMI Date before printing"
+                          >
+                            <Calendar className="w-4 h-4" />
+                          </button>
                           <Link 
                             to={`/loans/agreement/${loan.id}`}
                             className="w-10 h-10 flex items-center justify-center bg-white text-indigo-600 hover:text-white hover:bg-indigo-600 border border-indigo-100 rounded-xl transition-all shadow-sm"
@@ -491,6 +517,13 @@ export default function LoanApprovals() {
                     >
                       <Printer className="w-4 h-4" />
                     </Link>
+                    <button 
+                      onClick={() => setEditDateModal({ id: loan.id, start_date: loan.start_date ? format(new Date(loan.start_date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd') })}
+                      className="w-10 h-10 flex items-center justify-center bg-white text-orange-600 hover:text-white hover:bg-orange-600 border border-orange-200 rounded-xl transition-all shadow-sm"
+                      title="Edit First EMI Date before printing"
+                    >
+                      <Calendar className="w-4 h-4" />
+                    </button>
                     <Link 
                       to={`/loans/agreement/${loan.id}`}
                       className="w-10 h-10 flex items-center justify-center bg-white text-indigo-600 hover:text-white hover:bg-indigo-600 border border-indigo-200 rounded-xl transition-all shadow-sm"
@@ -524,6 +557,60 @@ export default function LoanApprovals() {
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {editDateModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              onClick={() => setEditDateModal(null)}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden relative z-10 p-8"
+            >
+              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-6">
+                <Calendar className="w-8 h-8 text-orange-600" />
+              </div>
+              <h3 className="text-xl md:text-2xl font-black text-slate-800 mb-2">
+                Set First EMI Date
+              </h3>
+              <p className="text-sm md:text-base text-slate-500 font-medium leading-relaxed mb-6">
+                Set the starting date to preview correctly in printed Agreement and Loan Card.
+              </p>
+              
+              <div className="w-full text-left mb-8">
+                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">First EMI Date</label>
+                <input
+                  type="date"
+                  value={editDateModal.start_date || ''}
+                  onChange={(e) => setEditDateModal({...editDateModal, start_date: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-orange-500 outline-none transition-all cursor-pointer"
+                />
+              </div>
+
+              <div className="flex w-full gap-3">
+                <button
+                  onClick={() => setEditDateModal(null)}
+                  className="flex-1 py-3.5 rounded-2xl text-sm font-black text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all uppercase tracking-widest"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={updateFirstEmiDate}
+                  disabled={processingId !== null}
+                  className="flex-1 py-3.5 rounded-2xl text-sm font-black text-white bg-orange-500 hover:bg-orange-600 hover:opacity-90 active:scale-[0.98] transition-all shadow-lg shadow-orange-500/30 uppercase tracking-widest disabled:opacity-50 flex items-center justify-center"
+                >
+                  {processingId === editDateModal.id ? (
+                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : 'Save'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
