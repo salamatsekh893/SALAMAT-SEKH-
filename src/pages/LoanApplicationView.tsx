@@ -110,8 +110,8 @@ export default function LoanApplicationView() {
           {/* A4 Page Container */}
           <div 
             ref={printRef}
-            className="bg-white shadow-lg mx-auto print:shadow-none print:m-0 print:p-8"
-            style={{ width: '210mm', minHeight: '290mm', padding: '15mm', fontFamily: '"Times New Roman", Times, serif', fontSize: '14.5px', color: '#000', boxSizing: 'border-box' }}
+            className="bg-white shadow-lg mx-auto print:shadow-none print:m-0 print:p-0"
+            style={{ width: '210mm', minHeight: '290mm', padding: '10mm', fontFamily: '"Times New Roman", Times, serif', fontSize: '13.5px', color: '#000', boxSizing: 'border-box' }}
           >
         <style>{`
           @media print {

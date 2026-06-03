@@ -349,8 +349,8 @@ export default function LoanCardView() {
         </div>
       )}
 
-      <div className="w-full h-full flex-1 overflow-auto bg-slate-900 print:bg-white print:overflow-visible py-8">
-        <div className="w-fit min-w-full mx-auto px-4 print:p-0">
+      <div className="w-full h-full flex-1 overflow-auto bg-slate-900 print:bg-white print:overflow-visible py-8 print:py-0 print:my-0">
+        <div className="w-fit min-w-full mx-auto px-4 print:p-0 print:m-0">
           
           {/* Print Ready Container */}
           <div 

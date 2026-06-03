@@ -109,8 +109,8 @@ export default function LoanAgreementView() {
           {/* A4 Page Container */}
           <div 
             ref={printRef}
-            className="bg-white shadow-lg mx-auto print:shadow-none print:m-0 print:p-8"
-            style={{ width: '210mm', minHeight: '290mm', padding: '15mm', fontFamily: '"Times New Roman", Times, serif', fontSize: '15px', color: '#000', lineHeight: '1.6', boxSizing: 'border-box' }}
+            className="bg-white shadow-lg mx-auto print:shadow-none print:m-0 print:p-0"
+            style={{ width: '210mm', minHeight: '290mm', padding: '15mm', fontFamily: '"Times New Roman", Times, serif', fontSize: '14px', color: '#000', lineHeight: '1.6', boxSizing: 'border-box' }}
           >
         <style>{`
           @media print {

@@ -110,8 +110,8 @@ export default function PassbookCardView() {
         </button>
       </div>
 
-      <div className="w-full flex-1 overflow-x-auto bg-gray-100 print:bg-white print:overflow-visible">
-        <div className="w-fit min-w-full mx-auto p-4 sm:p-8 print:p-0">
+      <div className="w-full flex-1 overflow-x-auto bg-gray-100 print:bg-white print:overflow-visible print:p-0 print:m-0">
+        <div className="w-fit min-w-full mx-auto p-4 sm:p-8 print:p-0 print:m-0">
           <div 
             ref={printRef}
             className="bg-white shadow-lg print:shadow-none mx-auto border border-gray-300 print:border-none print:m-0"

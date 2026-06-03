@@ -281,23 +281,27 @@ export default function Layout({ user, onLogout }: LayoutProps) {
   const bottomNavItems = bottomNavItemsRaw.filter(hasAccess);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
-      <Sidebar 
-        user={user} 
-        isOpen={sidebarOpen} 
-        setIsOpen={setSidebarOpen} 
-        onLogout={onLogout} 
-        navigation={filteredNav} 
-      />
-
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header 
-          onMenuClick={() => setSidebarOpen(!sidebarOpen)} 
-          user={user}
-          company={company}
+    <div className="min-h-screen bg-slate-50 flex print:bg-white print:min-h-0 print:block">
+      <div className="print:hidden">
+        <Sidebar 
+          user={user} 
+          isOpen={sidebarOpen} 
+          setIsOpen={setSidebarOpen} 
+          onLogout={onLogout} 
+          navigation={filteredNav} 
         />
+      </div>
+
+      <div className="flex-1 flex flex-col min-w-0 print:block">
+        <div className="print:hidden">
+          <Header 
+            onMenuClick={() => setSidebarOpen(!sidebarOpen)} 
+            user={user}
+            company={company}
+          />
+        </div>
         
-        <main className="flex-1 w-full pb-12 text-slate-800">
+        <main className="flex-1 w-full pb-12 text-slate-800 print:p-0 print:m-0 print:block">
            <AnimatePresence mode="wait">
              <motion.div
                key={location.pathname}
@@ -305,7 +309,7 @@ export default function Layout({ user, onLogout }: LayoutProps) {
                animate={{ opacity: 1, y: 0 }}
                exit={{ opacity: 0, y: -10 }}
                transition={{ duration: 0.2, ease: "easeOut" }}
-               className="max-w-none w-full px-4 sm:px-6 lg:px-8"
+               className="max-w-none w-full px-4 sm:px-6 lg:px-8 print:p-0 print:m-0 print:block"
              >
                 <Outlet />
              </motion.div>
