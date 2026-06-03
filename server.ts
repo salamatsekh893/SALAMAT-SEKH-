@@ -2435,12 +2435,80 @@ async function startServer() {
   });
 
   app.delete("/api/loans/:id", async (req, res) => {
+    const conn = await pool.getConnection();
     try {
-      await pool.query('DELETE FROM loans WHERE id = ?', [req.params.id]);
-      res.json({ success: true });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Database error' });
+      await conn.beginTransaction();
+
+      const loanId = req.params.id;
+
+      // 1. Fetch loan details before deleting
+      const [loanRows]: any = await conn.query(
+        'SELECT loan_no, amount, status, branch_id, customer_id FROM loans WHERE id = ?', 
+        [loanId]
+      );
+
+      if (loanRows.length === 0) {
+        await conn.rollback();
+        return res.status(404).json({ error: 'Loan not found' });
+      }
+
+      const loan = loanRows[0];
+
+      // 2. Find any withdrawal bank transaction associated with this loan
+      const [txRows]: any = await conn.query(
+        "SELECT bank_id, amount FROM bank_transactions WHERE source_type = 'other' AND source_id = ? AND type = 'withdrawal'",
+        [loanId]
+      );
+
+      if (txRows.length > 0) {
+        // This loan was disbursed using a bank account! Let's refund the amount automatically.
+        const bankTx = txRows[0];
+        const bankId = bankTx.bank_id;
+        const refundAmount = parseFloat(bankTx.amount);
+
+        // Fetch customer name for audit trail
+        const [customerRows]: any = await conn.query(
+          'SELECT full_name FROM members WHERE id = ?',
+          [loan.customer_id]
+        );
+        const customerName = customerRows.length > 0 ? customerRows[0].full_name : `Member #${loan.customer_id}`;
+
+        // A. Add the amount back to the bank account balance
+        await conn.query(
+          'UPDATE bank_accounts SET current_balance = current_balance + ? WHERE id = ?',
+          [refundAmount, bankId]
+        );
+
+        // B. Insert a reverse 'deposit' transaction with a clear purpose
+        const refundDate = new Date().toISOString().split('T')[0];
+        const purpose = `Loan Deleted Refund (No Take) - Loan: ${loan.loan_no}, Member: ${customerName}`;
+        
+        await conn.query(
+          `INSERT INTO bank_transactions (bank_id, date, type, source_type, source_id, amount, purpose)
+           VALUES (?, ?, 'deposit', 'other', NULL, ?, ?)`,
+          [bankId, refundDate, refundAmount, purpose]
+        );
+      }
+
+      // 3. Delete the loan (foreign key constraint ON DELETE CASCADE will discard related collections)
+      await conn.query('DELETE FROM loans WHERE id = ?', [loanId]);
+
+      await conn.commit();
+      res.json({ success: true, message: 'Loan deleted and bank balance restored' });
+    } catch (err: any) {
+      if (conn) {
+        try {
+          await conn.rollback();
+        } catch (rollErr) {
+          console.error("Rollback failed", rollErr);
+        }
+      }
+      console.error("Delete loan error:", err);
+      res.status(500).json({ error: 'Database error while deleting loan' });
+    } finally {
+      if (conn) {
+        conn.release();
+      }
     }
   });
 
@@ -4100,7 +4168,7 @@ async function startServer() {
         const txnPurpose = `Expense: ${data.category}${data.description ? ' - ' + data.description : ''}`;
         await conn.query(
           `INSERT INTO bank_transactions (bank_id, date, type, source_type, source_id, amount, purpose) 
-           VALUES (?, ?, 'withdrawal', 'expense', ?, ?, ?)`,
+           VALUES (?, ?, 'withdrawal', 'other', ?, ?, ?)`,
           [data.bank_id, txDate, insertedExpenseId, data.amount, txnPurpose]
         );
       }
