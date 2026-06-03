@@ -204,57 +204,57 @@ export default function Expenses() {
       <div className="p-6 space-y-6">
         
         {/* Statistics Dashboard Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {/* Total Expense */}
           <motion.div 
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center justify-between"
+            className="bg-gradient-to-br from-rose-500 to-rose-600 p-3 rounded-lg shadow-sm flex items-center justify-between text-white border border-rose-400/20"
           >
-            <div className="space-y-1">
-              <span className="text-slate-400 font-extrabold uppercase tracking-widest text-[10px]">Overall Spendings</span>
-              <div className="text-2xl font-black text-slate-800 font-mono">
+            <div className="space-y-0.5">
+              <span className="text-rose-100 font-extrabold uppercase tracking-widest text-[9px]">Overall Spendings</span>
+              <div className="text-lg font-black font-mono">
                 ₹{formatAmount(totalExpenses)}
               </div>
             </div>
-            <div className="bg-rose-50 text-rose-600 p-3 rounded-xl border border-rose-100">
-              <TrendingDown className="w-5 h-5" />
+            <div className="bg-white/15 text-white p-2 rounded border border-white/10 shadow-inner">
+              <TrendingDown className="w-4 h-4 stroke-[2.5]" />
             </div>
           </motion.div>
 
           {/* Cash Expenses */}
           <motion.div 
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center justify-between"
+            transition={{ delay: 0.05 }}
+            className="bg-gradient-to-br from-blue-500 to-blue-600 p-3 rounded-lg shadow-sm flex items-center justify-between text-white border border-blue-400/20"
           >
-            <div className="space-y-1">
-              <span className="text-slate-400 font-extrabold uppercase tracking-widest text-[10px]">Cash Paid</span>
-              <div className="text-2xl font-black text-slate-800 font-mono">
+            <div className="space-y-0.5">
+              <span className="text-blue-100 font-extrabold uppercase tracking-widest text-[9px]">Cash Paid</span>
+              <div className="text-lg font-black font-mono">
                 ₹{formatAmount(cashExpenses)}
               </div>
             </div>
-            <div className="bg-blue-50 text-blue-600 p-3 rounded-xl border border-blue-100">
-              <Wallet className="w-5 h-5" />
+            <div className="bg-white/15 text-white p-2 rounded border border-white/10 shadow-inner">
+              <Wallet className="w-4 h-4 stroke-[2.5]" />
             </div>
           </motion.div>
 
           {/* Bank / UPI Expenses */}
           <motion.div 
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center justify-between"
+            transition={{ delay: 0.1 }}
+            className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-3 rounded-lg shadow-sm flex items-center justify-between text-white border border-emerald-400/20"
           >
-            <div className="space-y-1">
-              <span className="text-slate-400 font-extrabold uppercase tracking-widest text-[10px]">Bank / UPI Paid</span>
-              <div className="text-2xl font-black text-slate-800 font-mono">
+            <div className="space-y-0.5">
+              <span className="text-emerald-100 font-extrabold uppercase tracking-widest text-[9px]">Bank / UPI Paid</span>
+              <div className="text-lg font-black font-mono">
                 ₹{formatAmount(bankExpenses)}
               </div>
             </div>
-            <div className="bg-indigo-50 text-indigo-600 p-3 rounded-xl border border-indigo-100">
-              <Landmark className="w-5 h-5" />
+            <div className="bg-white/15 text-white p-2 rounded border border-white/10 shadow-inner">
+              <Landmark className="w-4 h-4 stroke-[2.5]" />
             </div>
           </motion.div>
         </div>

@@ -43,7 +43,7 @@ export const verifyToken = (req: any, res: any, next: any) => {
 
 async function startServer() {
   const app = express();
-  const PORT = Number(process.env.PORT) || 3000;
+  const PORT = 3000;
 
   // --- DATABASE CONFIGURATION (OPTIMIZED FOR HOSTINGER & AI STUDIO) ---
   const dbHost = process.env.DB_HOST || 'localhost';
