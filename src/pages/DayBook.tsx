@@ -18,6 +18,14 @@ export default function DayBook() {
   const [loading, setLoading] = useState(true);
   const [closing, setClosing] = useState(false);
 
+  useEffect(() => {
+    if (user && user.role !== 'superadmin' && user.role !== 'admin' && user.role !== 'manager') {
+      if ((user as any).branchId) {
+        setBranchId((user as any).branchId.toString());
+      }
+    }
+  }, [user]);
+
   const [showCloseModal, setShowCloseModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [transferAmount, setTransferAmount] = useState('');
@@ -155,9 +163,9 @@ export default function DayBook() {
   };
 
   const handleOpenDayBook = async () => {
-    if (user?.role !== 'superadmin' && user?.role !== 'admin' && user?.role !== 'manager') {
+    if (user?.role !== 'superadmin' && user?.role !== 'admin' && user?.role !== 'manager' && user?.role !== 'branch_manager') {
       voiceFeedback.error();
-      alert("Only an admin can re-open a closed Day Book");
+      alert("Requires branch manager or admin to re-open a closed Day Book");
       return;
     }
     if (!branchId) {
@@ -505,7 +513,7 @@ export default function DayBook() {
                  <RefreshCw className="w-3.5 h-3.5" /> Transfer
                </button>
                {isClosed ? (
-                 (user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'manager') && (
+                 (user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'manager' || user?.role === 'branch_manager') && (
                    <button onClick={handleOpenDayBook} disabled={closing} className="flex-1 md:flex-none flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-colors shadow-sm disabled:opacity-50 text-nowrap">
                      <Unlock className="w-3.5 h-3.5" /> Re-Open
                    </button>

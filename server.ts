@@ -3969,7 +3969,7 @@ async function startServer() {
   });
 
   app.post("/api/daybook/open", verifyToken, async (req: any, res) => {
-    if (req.user.role !== 'superadmin' && req.user.role !== 'admin' && req.user.role !== 'manager') {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin' && req.user.role !== 'manager' && req.user.role !== 'branch_manager') {
        return res.status(403).json({ error: 'Access denied' });
     }
     try {

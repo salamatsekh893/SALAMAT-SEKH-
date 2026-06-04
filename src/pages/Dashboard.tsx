@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { fetchWithAuth } from '../lib/api';
 import { formatAmount } from '../lib/utils';
-import { Building2, UsersRound, Banknote, Wallet, ArrowUpRight, TrendingUp, Calendar, Clock, CheckSquare, ArrowRightLeft, Users, Sun, Coins, MapPin, ClipboardList, CheckCircle, Settings, Activity } from 'lucide-react';
+import { Building2, UsersRound, Banknote, Wallet, ArrowUpRight, TrendingUp, Calendar, Clock, CheckSquare, ArrowRightLeft, Users, Sun, Calculator, Coins, MapPin, ClipboardList, CheckCircle, Settings, Activity } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { cn } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -173,7 +173,7 @@ export default function Dashboard({ user }: { user: any }) {
         </motion.div>
       )}
 
-      {(hasPermission('sub_dash_quick_close') || hasPermission('sub_dash_quick_loan') || hasPermission('sub_dash_quick_col') || hasPermission('sub_dash_quick_member') || hasPermission('sub_dash_quick_group_shift') || hasPermission('sub_dash_quick_staff_shift') || hasPermission('sub_dash_quick_day_shift')) && (
+      {(hasPermission('sub_dash_quick_close') || hasPermission('sub_dash_quick_loan') || hasPermission('sub_dash_quick_col') || hasPermission('sub_dash_quick_member') || hasPermission('sub_dash_quick_group_shift') || hasPermission('sub_dash_quick_staff_shift') || hasPermission('sub_dash_quick_day_shift') || hasPermission('sub_acc_daybook')) && (
       <div>
         <h3 className="text-sm sm:text-base font-bold text-slate-700 mb-2 tracking-tight uppercase">Quick Actions</h3>
         <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-7 lg:grid-cols-7 gap-1 sm:gap-1.5">
@@ -282,6 +282,18 @@ export default function Dashboard({ user }: { user: any }) {
               <CheckCircle className="w-2 h-2 sm:w-3 sm:h-3 text-white" />
             </div>
             <span className="text-[6px] sm:text-[7px] lg:text-[8px] font-bold text-white text-center leading-tight uppercase">Approvals</span>
+          </button>
+          )}
+
+          {hasPermission('sub_acc_daybook') && (
+          <button 
+            className="flex flex-col items-center justify-center py-1 px-0.5 sm:py-1 bg-gradient-to-br from-fuchsia-400 to-fuchsia-500 border border-fuchsia-500/50 rounded-lg sm:rounded-xl shadow-sm hover:shadow-md hover:from-fuchsia-500 hover:to-fuchsia-600 transition-all group h-12 sm:h-16 lg:h-14"
+            onClick={() => navigate('/accounts/daybook')}
+          >
+            <div className="w-4 h-4 sm:w-5 sm:h-5 bg-white/20 rounded-full flex items-center justify-center mb-0.5 shadow-sm group-hover:scale-110 transition-transform border border-white/20">
+              <Calculator className="w-2 h-2 sm:w-3 sm:h-3 text-white" />
+            </div>
+            <span className="text-[6px] sm:text-[7px] lg:text-[8px] font-bold text-white text-center leading-tight uppercase">Day Book</span>
           </button>
           )}
 
