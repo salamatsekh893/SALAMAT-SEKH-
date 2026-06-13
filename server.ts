@@ -66,6 +66,29 @@ async function startServer() {
     connectTimeout: 30000
   });
 
+  // Resilient pool.query interception to handle ECONNRESET, PROTOCOL_CONNECTION_LOST, and ETIMEDOUT globally
+  const originalQuery = pool.query.bind(pool);
+  pool.query = (async function customQuery(sql: any, values?: any): Promise<any> {
+    let lastError: any;
+    const retries = 5;
+    for (let i = 0; i < retries; i++) {
+      try {
+        return await originalQuery(sql, values);
+      } catch (err: any) {
+        lastError = err;
+        if (err.code === 'ECONNRESET' || err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ETIMEDOUT') {
+          console.warn(`[DATABASE POOL] Connection dropped (${err.code}). Retrying query ${i + 1}/${retries}...`);
+          if (i < retries - 1) {
+            await new Promise(resolve => setTimeout(resolve, 200 * (i + 1))); 
+            continue;
+          }
+        }
+        throw err;
+      }
+    }
+    throw lastError;
+  }) as any;
+
   // Global middleware
   app.use((req, res, next) => {
     console.log(`[REQ] ${req.method} ${req.url} (Accept: ${req.headers.accept})`);
