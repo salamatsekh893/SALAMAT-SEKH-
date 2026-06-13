@@ -2778,6 +2778,14 @@ async function startServer() {
       
       // Delete pre-close collections if any exist
       await pool.query('DELETE FROM collections WHERE loan_id = ? AND is_pre_close = 1', [loanId]);
+
+      // Delete the lump-sum collections if any exist (amount_paid > installment * 1.1)
+      if (loan.installment) {
+        await pool.query(
+          'DELETE FROM collections WHERE loan_id = ? AND status = "approved" AND amount_paid > ?',
+          [loanId, Number(loan.installment) * 1.1]
+        );
+      }
       
       res.json({ success: true, message: 'Loan reopened successfully' });
     } catch (err: any) {
