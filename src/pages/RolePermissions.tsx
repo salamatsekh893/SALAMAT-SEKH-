@@ -23,6 +23,7 @@ const PERMISSION_MODULES = [
     { id: 'sub_dash_quick_group_shift', label: 'Quick Action: Group Shifting' },
     { id: 'sub_dash_quick_staff_shift', label: 'Quick Action: Staff Shifting' },
     { id: 'sub_dash_quick_day_shift', label: 'Quick Action: Day Shifting' },
+    { id: 'sub_dash_quick_branch_shift', label: 'Quick Action: Branch Shifting' },
     { id: 'sub_dash_quick_travel_log', label: 'Quick Action: Travel Log' },
     { id: 'sub_dash_quick_travel_approve', label: 'Quick Action: Travel Approve' },
   ] },
@@ -48,6 +49,7 @@ const PERMISSION_MODULES = [
     { id: 'sub_member_group_shift', label: 'Group Shifting' },
     { id: 'sub_member_staff_shift', label: 'Staff Shifting' },
     { id: 'sub_member_day_shift', label: 'Day Shifting' },
+    { id: 'sub_member_branch_shift', label: 'Branch Shifting' },
   ] },
   { id: 'module_loans', label: 'Loan Management', sub: [
     { id: 'sub_loan_schemes', label: 'Loan Schemes' },

@@ -173,7 +173,7 @@ export default function Dashboard({ user }: { user: any }) {
         </motion.div>
       )}
 
-      {(hasPermission('sub_dash_quick_close') || hasPermission('sub_dash_quick_loan') || hasPermission('sub_dash_quick_col') || hasPermission('sub_dash_quick_member') || hasPermission('sub_dash_quick_group_shift') || hasPermission('sub_dash_quick_staff_shift') || hasPermission('sub_dash_quick_day_shift') || hasPermission('sub_acc_daybook')) && (
+      {(hasPermission('sub_dash_quick_close') || hasPermission('sub_dash_quick_loan') || hasPermission('sub_dash_quick_col') || hasPermission('sub_dash_quick_member') || hasPermission('sub_dash_quick_group_shift') || hasPermission('sub_dash_quick_staff_shift') || hasPermission('sub_dash_quick_day_shift') || hasPermission('sub_dash_quick_branch_shift') || hasPermission('sub_acc_daybook')) && (
       <div>
         <h3 className="text-sm sm:text-base font-bold text-slate-700 mb-2 tracking-tight uppercase">Quick Actions</h3>
         <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-7 lg:grid-cols-7 gap-1 sm:gap-1.5">
@@ -306,6 +306,18 @@ export default function Dashboard({ user }: { user: any }) {
               <Sun className="w-2 h-2 sm:w-3 sm:h-3 text-white" />
             </div>
             <span className="text-[6px] sm:text-[7px] lg:text-[8px] font-bold text-white text-center leading-tight uppercase">Day Shift</span>
+          </button>
+          )}
+
+          {hasPermission('sub_dash_quick_branch_shift') && (
+          <button 
+            className="flex flex-col items-center justify-center py-1 px-0.5 sm:py-1 bg-gradient-to-br from-indigo-500 to-indigo-600 border border-indigo-600/50 rounded-lg sm:rounded-xl shadow-sm hover:shadow-md hover:from-indigo-600 hover:to-indigo-700 transition-all group h-12 sm:h-16 lg:h-14"
+            onClick={() => navigate('/shifting/branch')}
+          >
+            <div className="w-4 h-4 sm:w-5 sm:h-5 bg-white/20 rounded-full flex items-center justify-center mb-0.5 shadow-sm group-hover:scale-110 transition-transform border border-white/20">
+              <ArrowRightLeft className="w-2 h-2 sm:w-3 sm:h-3 text-white" />
+            </div>
+            <span className="text-[6px] sm:text-[7px] lg:text-[8px] font-bold text-white text-center leading-tight uppercase">Branch Shift</span>
           </button>
           )}
 

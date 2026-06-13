@@ -64,6 +64,7 @@ import NewSale from './pages/NewSale';
 import GroupShifting from './pages/GroupShifting';
 import StaffShifting from './pages/StaffShifting';
 import DayShifting from './pages/DayShifting';
+import BranchShifting from './pages/BranchShifting';
 
 import { Toaster } from 'react-hot-toast';
 
@@ -143,6 +144,7 @@ export default function App() {
           <Route path="/shifting/group" element={<GroupShifting />} />
           <Route path="/shifting/staff" element={<StaffShifting />} />
           <Route path="/shifting/day" element={<DayShifting />} />
+          <Route path="/shifting/branch" element={<BranchShifting />} />
           <Route path="/members" element={<Members />} />
           <Route path="/members/new" element={<CreateMember />} />
           <Route path="/members/edit/:id" element={<CreateMember />} />

@@ -31,7 +31,7 @@ export const verifyToken = (req: any, res: any, next: any) => {
   jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
     if (err || !user) {
       console.warn(`[AUTH] Invalid token for ${req.url}: ${err?.message || 'Invalid user'}`);
-      return res.status(403).json({ error: 'Invalid token' });
+      return res.status(401).json({ error: 'Invalid token' });
     }
     if (user?.role === 'collector') {
       user.role = 'fo';
@@ -2121,6 +2121,88 @@ async function startServer() {
     } catch (err: any) {
       console.error(err);
       res.status(500).json({ error: 'Failed to shift days for groups' });
+    }
+  });
+
+  app.post("/api/shifting/branch/members", verifyToken, async (req: any, res) => {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin' && req.user.role !== 'manager' && req.user.role !== 'branch_manager') {
+       return res.status(403).json({ error: 'Access denied' });
+    }
+    try {
+      const { memberIds, targetBranchId, targetGroupId } = req.body;
+      if (!targetBranchId || !targetGroupId || !memberIds || memberIds.length === 0) {
+        return res.status(400).json({ error: 'Missing targetBranchId, targetGroupId or memberIds' });
+      }
+
+      await pool.query(
+        `UPDATE members SET branch_id = ?, group_id = ? WHERE id IN (?)`,
+        [targetBranchId, targetGroupId, memberIds]
+      );
+
+      res.json({ success: true, message: `${memberIds.length} members shifted to branch ${targetBranchId} and group ${targetGroupId}` });
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to transfer members to target branch' });
+    }
+  });
+
+  app.post("/api/shifting/branch/groups", verifyToken, async (req: any, res) => {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin' && req.user.role !== 'manager' && req.user.role !== 'branch_manager') {
+       return res.status(403).json({ error: 'Access denied' });
+    }
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const { groupIds, targetBranchId, targetCollectorId } = req.body;
+      if (!targetBranchId || !groupIds || groupIds.length === 0) {
+        conn.release();
+        return res.status(400).json({ error: 'Missing targetBranchId or groupIds' });
+      }
+
+      const collectorVal = targetCollectorId ? parseInt(targetCollectorId, 10) : null;
+
+      // 1. Update groups branch_id and collector_id
+      await conn.query(
+        `UPDATE groups SET branch_id = ?, collector_id = ? WHERE id IN (?)`,
+        [targetBranchId, collectorVal, groupIds]
+      );
+
+      // 2. Update members in those groups to target branch_id
+      await conn.query(
+        `UPDATE members SET branch_id = ? WHERE group_id IN (?)`,
+        [targetBranchId, groupIds]
+      );
+
+      await conn.commit();
+      res.json({ success: true, message: `${groupIds.length} groups shifted to branch ${targetBranchId}` });
+    } catch (err: any) {
+      await conn.rollback();
+      console.error(err);
+      res.status(500).json({ error: 'Failed to transfer groups to target branch' });
+    } finally {
+      conn.release();
+    }
+  });
+
+  app.post("/api/shifting/branch/employees", verifyToken, async (req: any, res) => {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin' && req.user.role !== 'manager' && req.user.role !== 'branch_manager') {
+       return res.status(403).json({ error: 'Access denied' });
+    }
+    try {
+      const { employeeIds, targetBranchId } = req.body;
+      if (!targetBranchId || !employeeIds || employeeIds.length === 0) {
+        return res.status(400).json({ error: 'Missing targetBranchId or employeeIds' });
+      }
+
+      await pool.query(
+        `UPDATE users SET branch_id = ? WHERE id IN (?)`,
+        [targetBranchId, employeeIds]
+      );
+
+      res.json({ success: true, message: `${employeeIds.length} employees shifted to branch ${targetBranchId}` });
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to transfer employees to target branch' });
     }
   });
 

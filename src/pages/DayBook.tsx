@@ -20,8 +20,9 @@ export default function DayBook() {
 
   useEffect(() => {
     if (user && user.role !== 'superadmin' && user.role !== 'admin' && user.role !== 'manager') {
-      if ((user as any).branchId) {
-        setBranchId((user as any).branchId.toString());
+      const bId = (user as any).branchId || (user as any).branch_id;
+      if (bId) {
+        setBranchId(bId.toString());
       }
     }
   }, [user]);
@@ -60,6 +61,9 @@ export default function DayBook() {
     try {
       const data = await fetchWithAuth('/branches');
       setBranches(data);
+      if (data && data.length === 1) {
+        setBranchId(data[0].id.toString());
+      }
     } catch (err) {}
   };
 
