@@ -15,6 +15,8 @@ export default function ClosedLoans() {
   // Table Filters state
   const [filterGroup, setFilterGroup] = useState('All Groups');
   const [filterSearch, setFilterSearch] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [groups, setGroups] = useState<any[]>([]);
   
@@ -69,11 +71,33 @@ export default function ClosedLoans() {
   const handleReset = () => {
     setFilterGroup('All Groups');
     setFilterSearch('');
+    setFromDate('');
+    setToDate('');
   };
 
   const currentTableData = closedLoans.filter(loan => {
     if (filterGroup !== 'All Groups' && loan.group_name !== filterGroup) return false;
     if (filterSearch && !loan.member_name?.toLowerCase().includes(filterSearch.toLowerCase()) && !loan.loan_no?.toLowerCase().includes(filterSearch.toLowerCase()) && !loan.member_code?.toLowerCase().includes(filterSearch.toLowerCase())) return false;
+    
+    const targetDateStr = loan.disbursed_date || loan.created_at;
+    if (targetDateStr) {
+      const loanDate = new Date(targetDateStr);
+      loanDate.setHours(0, 0, 0, 0);
+      
+      if (fromDate) {
+        const from = new Date(fromDate);
+        from.setHours(0, 0, 0, 0);
+        if (loanDate < from) return false;
+      }
+      if (toDate) {
+        const to = new Date(toDate);
+        to.setHours(0, 0, 0, 0);
+        if (loanDate > to) return false;
+      }
+    } else {
+      if (fromDate || toDate) return false;
+    }
+    
     return true;
   });
 
@@ -133,42 +157,64 @@ export default function ClosedLoans() {
       </div>
 
       {/* Filters Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 px-2 sm:px-0">
-         <div className="col-span-1">
-            <select 
-              value={filterGroup}
-              onChange={(e) => setFilterGroup(e.target.value)}
-              className="w-full h-[42px] px-3 bg-white border border-slate-200 rounded text-[13px] text-slate-700 outline-none focus:border-indigo-500"
-            >
-              <option value="All Groups">All Groups</option>
-              {groups.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
-            </select>
-         </div>
-         <div className="col-span-1">
-            <input 
-              type="text" 
-              placeholder="Search..." 
-              value={filterSearch}
-              onChange={(e) => setFilterSearch(e.target.value)}
-              className="w-full h-[42px] px-3 bg-white border border-slate-200 rounded text-[13px] text-slate-700 outline-none focus:border-indigo-500 placeholder:text-slate-400"
-            />
-         </div>
-         <div className="col-span-1">
-            <button 
-              onClick={handleFind}
-              className="w-full h-[42px] bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded font-medium tracking-wide text-[13px] transition-all shadow-sm"
-            >
-              {isSearching ? 'SEARCHING...' : 'FIND'}
-            </button>
-         </div>
-         <div className="col-span-1">
-            <button 
-              onClick={handleReset}
-              className="w-full h-[42px] bg-[#6c757d] hover:bg-slate-600 active:scale-[0.98] text-white rounded font-medium tracking-wide text-[13px] transition-all shadow-sm"
-            >
-              RESET
-            </button>
-         </div>
+      <div className="bg-white p-3.5 sm:p-4 rounded-lg border border-slate-200 shadow-sm">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+          <div className="col-span-1">
+             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Group</label>
+             <select 
+               value={filterGroup}
+               onChange={(e) => setFilterGroup(e.target.value)}
+               className="w-full h-[42px] px-3 bg-white border border-slate-200 rounded text-[13px] text-slate-700 outline-none focus:border-indigo-500"
+             >
+               <option value="All Groups">All Groups</option>
+               {groups.map(g => <option key={g.id} value={g.group_name}>{g.group_name}</option>)}
+             </select>
+          </div>
+          <div className="col-span-1">
+             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Search</label>
+             <input 
+               type="text" 
+               placeholder="Search..." 
+               value={filterSearch}
+               onChange={(e) => setFilterSearch(e.target.value)}
+               className="w-full h-[42px] px-3 bg-white border border-slate-200 rounded text-[13px] text-slate-700 outline-none focus:border-indigo-500 placeholder:text-slate-400"
+             />
+          </div>
+          <div className="col-span-1">
+             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">From Date</label>
+             <input 
+               type="date" 
+               value={fromDate}
+               onChange={(e) => setFromDate(e.target.value)}
+               className="w-full h-[42px] px-3 bg-white border border-slate-200 rounded text-[13px] text-slate-700 outline-none focus:border-indigo-500"
+             />
+          </div>
+          <div className="col-span-1">
+             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">To Date</label>
+             <input 
+               type="date" 
+               value={toDate}
+               onChange={(e) => setToDate(e.target.value)}
+               className="w-full h-[42px] px-3 bg-white border border-slate-200 rounded text-[13px] text-slate-700 outline-none focus:border-indigo-500"
+             />
+          </div>
+          <div className="col-span-1 sm:col-span-1 flex items-end">
+             <button 
+               onClick={handleFind}
+               className="w-full h-[42px] bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded font-medium tracking-wide text-[13px] transition-all shadow-sm uppercase"
+             >
+               {isSearching ? 'SEARCHING...' : 'FIND'}
+             </button>
+          </div>
+          <div className="col-span-1 sm:col-span-1 flex items-end">
+             <button 
+               onClick={handleReset}
+               className="w-full h-[42px] bg-[#6c757d] hover:bg-slate-600 active:scale-[0.98] text-white rounded font-medium tracking-wide text-[13px] transition-all shadow-sm uppercase"
+             >
+               RESET
+             </button>
+          </div>
+        </div>
       </div>
 
       {/* Table Area */}
