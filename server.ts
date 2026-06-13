@@ -3601,6 +3601,26 @@ async function startServer() {
     }
   });
 
+  app.delete("/api/groups/:id", verifyToken, async (req: any, res) => {
+    try {
+      const groupId = req.params.id;
+      
+      // 1. Unassign members in that group to null so referential integrity isn't broken
+      await pool.query('UPDATE members SET group_id = NULL WHERE group_id = ?', [groupId]);
+      
+      // 2. Delete the associated group leader(s) if there is any
+      await pool.query('DELETE FROM group_leaders WHERE group_id = ?', [groupId]);
+      
+      // 3. Delete from groups
+      await pool.query('DELETE FROM groups WHERE id = ?', [groupId]);
+      
+      res.json({ success: true, message: 'Group successfully deleted!' });
+    } catch (err: any) {
+      console.error("Delete group error:", err);
+      res.status(500).json({ error: 'Failed to delete group: ' + err.message });
+    }
+  });
+
   app.get("/api/companies", verifyToken, async (req, res) => {
     try {
       const [rows] = await pool.query('SELECT * FROM companies ORDER BY name ASC');
