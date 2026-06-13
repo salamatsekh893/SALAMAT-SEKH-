@@ -263,7 +263,13 @@ export default function ClosedLoans() {
                         <td className="py-3 px-3 text-slate-700">{loan.branch_name || '-'}</td>
                         <td className="py-3 px-3 text-slate-700">{loan.staff_name || '-'}</td>
                         <td className="py-3 px-3 text-slate-700">{loan.closed_by_name || '-'}</td>
-                        <td className="py-3 px-3 text-slate-400 italic">Auto/System</td>
+                        <td className="py-3 px-3 text-slate-700">
+                          {loan.approver_name ? (
+                            <span className="font-medium text-slate-800">{loan.approver_name}</span>
+                          ) : (
+                            <span className="text-slate-400 italic">Auto/System</span>
+                          )}
+                        </td>
                         <td className="py-3 px-3 text-center">
                           <div className="flex items-center justify-center gap-2">
                             <button 
@@ -272,7 +278,8 @@ export default function ClosedLoans() {
                             >
                               NOC
                             </button>
-                            {['superadmin', 'admin', 'branch_manager', 'manager'].includes(user?.role || '') && (
+                            {['superadmin', 'admin', 'branch_manager', 'manager'].includes(user?.role || '') && 
+                             (loan.closing_type === 'pre_close' || loan.closing_type === 'lump_sum') && (
                               <button 
                                 onClick={() => handleReopen(loan.id)}
                                 className="bg-sky-600 hover:bg-sky-700 text-white px-3 py-1 rounded text-[11px] font-medium uppercase transition-all shadow-sm whitespace-nowrap"

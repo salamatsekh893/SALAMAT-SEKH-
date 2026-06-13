@@ -2354,7 +2354,9 @@ async function startServer() {
           COALESCE(c_stats.total_paid, 0) as total_paid,
           c_stats.last_payment_date,
           COALESCE(ROUND(COALESCE(c_stats.total_paid, 0) / NULLIF(l.installment, 0)), 0) as paid_emi_count,
-          u_closed.name as closed_by_name
+          COALESCE(u_pre_coll.name, u_lump_coll.name, u_closed.name) as closed_by_name,
+          COALESCE(u_pre_appr.name, u_lump_appr.name) as approver_name,
+          IF(c_pre.max_preclose_id IS NOT NULL, 'pre_close', IF(c_lump.max_lump_id IS NOT NULL, 'lump_sum', 'normal')) as closing_type
         FROM loans l
         LEFT JOIN members m ON l.customer_id = m.id
         LEFT JOIN groups g ON m.group_id = g.id
@@ -2374,6 +2376,25 @@ async function startServer() {
           SELECT loan_id, MAX(approved_by) as approved_by FROM collections WHERE is_pre_close = 1 GROUP BY loan_id
         ) c_closed ON l.id = c_closed.loan_id
         LEFT JOIN users u_closed ON c_closed.approved_by = u_closed.id
+        LEFT JOIN (
+          SELECT c.loan_id, MAX(c.id) as max_preclose_id
+          FROM collections c
+          WHERE c.is_pre_close = 1 AND c.status = 'approved'
+          GROUP BY c.loan_id
+        ) c_pre ON l.id = c_pre.loan_id
+        LEFT JOIN collections col_pre ON c_pre.max_preclose_id = col_pre.id
+        LEFT JOIN users u_pre_coll ON col_pre.collected_by = u_pre_coll.id
+        LEFT JOIN users u_pre_appr ON col_pre.approved_by = u_pre_appr.id
+        LEFT JOIN (
+          SELECT c.loan_id, MAX(c.id) as max_lump_id
+          FROM collections c
+          JOIN loans l2 ON c.loan_id = l2.id
+          WHERE c.amount_paid > (l2.installment * 1.1) AND c.status = 'approved'
+          GROUP BY c.loan_id
+        ) c_lump ON l.id = c_lump.loan_id
+        LEFT JOIN collections col_lump ON c_lump.max_lump_id = col_lump.id
+        LEFT JOIN users u_lump_coll ON col_lump.collected_by = u_lump_coll.id
+        LEFT JOIN users u_lump_appr ON col_lump.approved_by = u_lump_appr.id
         ${whereSql}
         GROUP BY l.id
         ORDER BY l.created_at DESC
