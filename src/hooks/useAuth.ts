@@ -18,6 +18,16 @@ export function useAuth() {
   const [user, setUser] = useState<User>(null);
   const [loading, setLoading] = useState(true);
 
+  const normalizeUser = (u: any) => {
+    if (!u) return null;
+    const finalBranchId = u.branchId !== undefined ? u.branchId : u.branch_id;
+    return {
+      ...u,
+      branchId: finalBranchId !== undefined ? finalBranchId : null,
+      branch_id: finalBranchId !== undefined ? finalBranchId : null
+    };
+  };
+
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     const token = localStorage.getItem('token');
@@ -25,18 +35,19 @@ export function useAuth() {
     const initAuth = async () => {
       if (savedUser && token) {
         try {
-          const parsedUser = JSON.parse(savedUser);
+          let parsedUser = JSON.parse(savedUser);
           if (parsedUser && parsedUser.role === 'collector') {
             parsedUser.role = 'fo';
-            localStorage.setItem('user', JSON.stringify(parsedUser));
           }
+          parsedUser = normalizeUser(parsedUser);
+          localStorage.setItem('user', JSON.stringify(parsedUser));
           setUser(parsedUser);
           
           // Background fetch to update user info silently
           fetchWithAuth('/me')
           .then(data => {
             if (!data.error) {
-               const updatedUser = { ...parsedUser, ...data };
+               const updatedUser = normalizeUser({ ...parsedUser, ...data });
                localStorage.setItem('user', JSON.stringify(updatedUser));
                setUser(updatedUser);
             }
@@ -58,9 +69,10 @@ export function useAuth() {
   }, []);
 
   const login = (userData: User, token: string) => {
-    localStorage.setItem('user', JSON.stringify(userData));
+    const normalized = normalizeUser(userData);
+    localStorage.setItem('user', JSON.stringify(normalized));
     localStorage.setItem('token', token);
-    setUser(userData);
+    setUser(normalized);
   };
 
   const logout = () => {

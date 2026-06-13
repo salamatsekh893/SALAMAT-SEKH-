@@ -15,6 +15,20 @@ export default function Profile({ user }: ProfileProps) {
   const [passwordStatus, setPasswordStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
   const [changing, setChanging] = useState(false);
   const [showPass, setShowPass] = useState({ current: false, next: false, confirm: false });
+  const [branches, setBranches] = useState<any[]>([]);
+
+  // Load branches
+  useEffect(() => {
+    fetchWithAuth('/branches')
+      .then(data => {
+        if (Array.isArray(data)) {
+          setBranches(data);
+        }
+      })
+      .catch(err => console.error("Error loading branches in profile:", err));
+  }, []);
+
+  const currentBranch = branches.find(b => b.id?.toString() === user?.branchId?.toString() || b.id?.toString() === user?.branch_id?.toString());
 
   // Real-time check for current password
   useEffect(() => {
@@ -122,8 +136,10 @@ export default function Profile({ user }: ProfileProps) {
                 </div>
                 <div className="w-1 h-1 rounded-full bg-slate-200" />
                 <div className="flex items-center gap-1.5">
-                  <Building2 className="w-4 h-4" />
-                  <span className="text-xs uppercase tracking-widest font-bold">Branch ID: {user?.branchId || 'Head Office'}</span>
+                  <Building2 className="w-4 h-4 text-indigo-600" />
+                  <span className="text-xs uppercase tracking-widest font-black text-slate-700">
+                    Branch: {currentBranch ? `${currentBranch.branch_name} (${currentBranch.branch_code})` : (user?.branchId || 'Head Office')}
+                  </span>
                 </div>
               </div>
             </div>

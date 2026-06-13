@@ -1258,9 +1258,15 @@ async function startServer() {
       const payload = { userId: user.id, role: user.role || 'employee', branchId: user.branch_id };
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
 
+      const responseUser = {
+        ...user,
+        branchId: user.branch_id,
+        branch_id: user.branch_id
+      };
+
       res.json({ 
         message: 'Login successful',
-        user,
+        user: responseUser,
         token
       });
     } catch (err) {
@@ -1454,6 +1460,7 @@ async function startServer() {
           name: user.name,
           role: user.role,
           branchId: user.branch_id,
+          branch_id: user.branch_id,
           permissions: permissions,
           photo_url: user.photo_url || null,
           phone: user.phone,
