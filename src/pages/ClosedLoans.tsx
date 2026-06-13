@@ -240,6 +240,7 @@ export default function ClosedLoans() {
                       <th className="py-3 px-3 text-[12px] font-bold border-r border-white/10 uppercase tracking-wider">Member Code</th>
                       <th className="py-3 px-3 text-[12px] font-bold border-r border-white/10 uppercase tracking-wider">Mobile No.</th>
                       <th className="py-3 px-3 text-[12px] font-bold border-r border-white/10 uppercase tracking-wider">Loan Date</th>
+                      <th className="py-3 px-3 text-[12px] font-bold border-r border-white/10 uppercase tracking-wider whitespace-nowrap">Close Date</th>
                       <th className="py-3 px-3 text-[12px] font-bold border-r border-white/10 uppercase tracking-wider whitespace-nowrap">Group Name</th>
                       <th className="py-3 px-3 text-[12px] font-bold border-r border-white/10 uppercase tracking-wider whitespace-nowrap">Branch Name</th>
                       <th className="py-3 px-3 text-[12px] font-bold border-r border-white/10 uppercase tracking-wider whitespace-nowrap">Staff Name</th>
@@ -259,6 +260,7 @@ export default function ClosedLoans() {
                         <td className="py-3 px-3 text-indigo-600 font-medium">{loan.member_code || '-'}</td>
                         <td className="py-3 px-3 text-slate-600">{loan.member_mobile || '-'}</td>
                         <td className="py-3 px-3 text-slate-600">{loan.disbursed_date ? format(new Date(loan.disbursed_date), 'dd/MM/yyyy') : (loan.created_at ? format(new Date(loan.created_at), 'dd/MM/yyyy') : '-')}</td>
+                        <td className="py-3 px-3 text-emerald-600 font-bold">{loan.last_payment_date ? format(new Date(loan.last_payment_date), 'dd/MM/yyyy') : '-'}</td>
                         <td className="py-3 px-3 text-slate-700">{loan.group_name || '-'}</td>
                         <td className="py-3 px-3 text-slate-700">{loan.branch_name || '-'}</td>
                         <td className="py-3 px-3 text-slate-700">{loan.staff_name || '-'}</td>
