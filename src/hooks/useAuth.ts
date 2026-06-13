@@ -6,6 +6,7 @@ type User = {
   name: string;
   role: string;
   branchId: number | null;
+  branch_id?: number | null;
   photo_url?: string | null;
   phone?: string;
   email?: string;

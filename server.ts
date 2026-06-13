@@ -1490,7 +1490,7 @@ async function startServer() {
       `;
       const params: any[] = [];
       
-      if (role === 'branch_manager') {
+      if (role === 'branch_manager' || role === 'manager') {
         query += ' WHERE u.branch_id = ?';
         params.push(branchId);
       } else if (!['superadmin', 'dm', 'am'].includes(role)) {

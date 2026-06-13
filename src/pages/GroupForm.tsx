@@ -44,8 +44,8 @@ export default function GroupForm() {
 
   useEffect(() => {
     Promise.all([
-      user?.role === 'superadmin' ? fetchWithAuth('/branches') : Promise.resolve([]),
-      fetchWithAuth('/employees')
+      fetchWithAuth('/branches').catch(() => []),
+      fetchWithAuth('/employees').catch(() => [])
     ]).then(([branchData, empData]) => {
       setBranches(branchData);
       setEmployees(empData);
@@ -143,16 +143,25 @@ export default function GroupForm() {
   };
 
   const filteredEmployees = user?.role === 'superadmin' 
-    ? employees.filter(e => !formData.branch_id || e.branch_id === parseInt(formData.branch_id.toString()))
+    ? employees.filter(e => !formData.branch_id || String(e.branch_id) === String(formData.branch_id))
     : ['fo'].includes(user?.role || '')
-      ? employees.filter(e => e.id === user?.id)
-      : employees.filter(e => e.branch_id === user?.branchId);
+      ? employees.filter(e => String(e.id) === String(user?.id))
+      : employees.filter(e => String(e.branch_id) === String(user?.branchId || user?.branch_id));
 
   useEffect(() => {
-    if (!id && ['fo'].includes(user?.role || '') && user?.id) {
-      if (formData.collector_id !== String(user.id)) {
-        setFormData(prev => ({ ...prev, collector_id: String(user.id) }));
-      }
+    if (!id && user) {
+      const bId = user.branchId || user.branch_id;
+      const isFo = ['fo'].includes(user.role || '');
+      setFormData(prev => {
+        const updated = { ...prev };
+        if (bId && !updated.branch_id) {
+          updated.branch_id = String(bId);
+        }
+        if (isFo && !updated.collector_id) {
+          updated.collector_id = String(user.id);
+        }
+        return updated;
+      });
     }
   }, [user, id]);
 
@@ -208,7 +217,7 @@ export default function GroupForm() {
               <div className="col-span-1">
                 <label className="block text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest mb-1.5 sm:mb-2 ml-1 sm:ml-0">Branch</label>
                 <div className="w-full border border-slate-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm bg-slate-100/50 text-slate-500 flex items-center shadow-inner cursor-not-allowed">
-                  {branches.find(b => b.id === user?.branchId)?.branch_name || 'Your Branch'}
+                  {branches.find(b => String(b.id) === String(user?.branchId || user?.branch_id))?.branch_name || 'Your Branch'}
                 </div>
               </div>
             )}
