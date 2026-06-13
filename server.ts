@@ -2735,6 +2735,37 @@ async function startServer() {
     }
   });
 
+  app.post("/api/loans/:id/reopen", verifyToken, async (req: any, res) => {
+    try {
+      const { role } = req.user;
+      if (!['superadmin', 'admin', 'branch_manager', 'manager'].includes(role)) {
+        return res.status(403).json({ error: 'Only administrative staff can reopen a closed loan.' });
+      }
+      
+      const loanId = req.params.id;
+      const [loanRows]: any = await pool.query('SELECT * FROM loans WHERE id = ?', [loanId]);
+      if (loanRows.length === 0) {
+        return res.status(404).json({ error: 'Loan not found' });
+      }
+      
+      const loan = loanRows[0];
+      if (loan.status !== 'closed') {
+        return res.status(400).json({ error: 'Only closed loans can be reopened.' });
+      }
+
+      // Update status to active
+      await pool.query('UPDATE loans SET status = "active" WHERE id = ?', [loanId]);
+      
+      // Delete pre-close collections if any exist
+      await pool.query('DELETE FROM collections WHERE loan_id = ? AND is_pre_close = 1', [loanId]);
+      
+      res.json({ success: true, message: 'Loan reopened successfully' });
+    } catch (err: any) {
+      console.error('Reopen loan error:', err);
+      res.status(500).json({ error: 'Failed to reopen loan: ' + err.message });
+    }
+  });
+
   app.get("/api/collections", verifyToken, async (req: any, res) => {
     const { loan_id } = req.query;
     try {

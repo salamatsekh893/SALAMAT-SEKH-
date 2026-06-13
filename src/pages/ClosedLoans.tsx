@@ -5,9 +5,11 @@ import { formatAmount } from '../lib/utils';
 import { Search, CheckCircle, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'motion/react';
+import { useAuth } from '../hooks/useAuth';
 
 export default function ClosedLoans() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [closedLoans, setClosedLoans] = useState<any[]>([]);
 
   // Table Filters state
@@ -44,6 +46,20 @@ export default function ClosedLoans() {
 
   const totalClosedCount = closedLoans.length;
   const totalRecovered = closedLoans.reduce((acc, loan) => acc + (Number(loan.total_paid) || 0), 0);
+  
+  const handleReopen = async (loanId: number) => {
+    if (!confirm('আপনি কি নিশ্চিত যে আপনি এই লোনটি পুনরায় চালু (Reopen) করতে চান? এটি লোন স্ট্যাটাস একটিভ করবে এবং ভুল করে করা প্রাক-ক্লোজার ডাটা ডিলিট করবে।')) return;
+    try {
+      setLoading(true);
+      await fetchWithAuth(`/loans/${loanId}/reopen`, { method: 'POST' });
+      fetchLoans();
+      alert('সফলভাবে লোনটি পুনরায় চালু করা হয়েছে।');
+    } catch (err: any) {
+      alert('লোন পুনরায় চালু করতে সমস্যা হয়েছে: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const handleFind = () => {
     setIsSearching(true);
@@ -203,12 +219,22 @@ export default function ClosedLoans() {
                         <td className="py-3 px-3 text-slate-700">{loan.closed_by_name || '-'}</td>
                         <td className="py-3 px-3 text-slate-400 italic">Auto/System</td>
                         <td className="py-3 px-3 text-center">
-                          <button 
-                            onClick={() => navigate(`/loans/noc/${loan.id}`)}
-                            className="bg-slate-800 hover:bg-black text-white px-3 py-1 rounded text-[11px] font-medium uppercase transition-all shadow-sm whitespace-nowrap"
-                          >
-                            NOC
-                          </button>
+                          <div className="flex items-center justify-center gap-2">
+                            <button 
+                              onClick={() => navigate(`/loans/noc/${loan.id}`)}
+                              className="bg-slate-800 hover:bg-black text-white px-3 py-1 rounded text-[11px] font-medium uppercase transition-all shadow-sm whitespace-nowrap"
+                            >
+                              NOC
+                            </button>
+                            {['superadmin', 'admin', 'branch_manager', 'manager'].includes(user?.role || '') && (
+                              <button 
+                                onClick={() => handleReopen(loan.id)}
+                                className="bg-sky-600 hover:bg-sky-700 text-white px-3 py-1 rounded text-[11px] font-medium uppercase transition-all shadow-sm whitespace-nowrap"
+                              >
+                                Reopen
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
