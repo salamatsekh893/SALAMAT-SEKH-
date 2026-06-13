@@ -2396,7 +2396,6 @@ async function startServer() {
         LEFT JOIN users u_lump_coll ON col_lump.collected_by = u_lump_coll.id
         LEFT JOIN users u_lump_appr ON col_lump.approved_by = u_lump_appr.id
         ${whereSql}
-        GROUP BY l.id
         ORDER BY l.created_at DESC
       `, params);
       res.json(rows);
