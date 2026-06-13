@@ -46,8 +46,22 @@ export default function ClosedLoans() {
     }
   };
 
-  const totalClosedCount = closedLoans.length;
-  const totalRecovered = closedLoans.reduce((acc, loan) => acc + (Number(loan.total_paid) || 0), 0);
+  const formatDateSafe = (dateStr: any) => {
+    if (!dateStr) return '-';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return '-';
+      return format(d, 'dd/MM/yyyy');
+    } catch (e) {
+      return '-';
+    }
+  };
+
+  const safeLoans = Array.isArray(closedLoans) ? closedLoans : [];
+  const safeGroups = Array.isArray(groups) ? groups : [];
+
+  const totalClosedCount = safeLoans.length;
+  const totalRecovered = safeLoans.reduce((acc, loan) => acc + (Number(loan.total_paid) || 0), 0);
   
   const handleReopen = async (loanId: number) => {
     if (!confirm('আপনি কি নিশ্চিত যে আপনি এই লোনটি পুনরায় চালু (Reopen) করতে চান? এটি লোন স্ট্যাটাস একটিভ করবে এবং ভুল করে করা প্রাক-ক্লোজার ডাটা ডিলিট করবে।')) return;
@@ -75,22 +89,27 @@ export default function ClosedLoans() {
     setToDate('');
   };
 
-  const currentTableData = closedLoans.filter(loan => {
+  const currentTableData = safeLoans.filter(loan => {
     if (filterGroup !== 'All Groups' && loan.group_name !== filterGroup) return false;
     if (filterSearch && !loan.member_name?.toLowerCase().includes(filterSearch.toLowerCase()) && !loan.loan_no?.toLowerCase().includes(filterSearch.toLowerCase()) && !loan.member_code?.toLowerCase().includes(filterSearch.toLowerCase())) return false;
     
-    const targetDateStr = loan.disbursed_date || loan.created_at;
+    const targetDateStr = loan.last_payment_date;
     if (targetDateStr) {
       const loanDate = new Date(targetDateStr);
+      if (isNaN(loanDate.getTime())) {
+        return !fromDate && !toDate;
+      }
       loanDate.setHours(0, 0, 0, 0);
       
       if (fromDate) {
         const from = new Date(fromDate);
+        if (isNaN(from.getTime())) return true;
         from.setHours(0, 0, 0, 0);
         if (loanDate < from) return false;
       }
       if (toDate) {
         const to = new Date(toDate);
+        if (isNaN(to.getTime())) return true;
         to.setHours(0, 0, 0, 0);
         if (loanDate > to) return false;
       }
@@ -103,113 +122,91 @@ export default function ClosedLoans() {
 
   return (
     <div className="max-w-[1400px] mx-auto pb-10 xl:px-4 space-y-4 pt-2">
-      {/* Header Row */}
-      <div className="flex flex-row items-center justify-between gap-4 px-2 sm:px-0">
-         <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white shadow-sm shrink-0">
-               <CheckCircle className="w-5 h-5" />
-            </div>
-            <h1 className="text-xl sm:text-2xl font-normal text-slate-800 tracking-tight">Closed Loans</h1>
-         </div>
-         
-         <div className="flex items-center gap-2">
-           <button className="flex items-center gap-1.5 bg-[#3b434a] hover:bg-[#2a3035] active:scale-95 transition-all text-white px-3 sm:px-4 py-2 rounded text-[10px] sm:text-[13px] font-medium uppercase tracking-wide shadow-sm">
-             <Download className="w-4 h-4" />
-             EXCEL
-           </button>
-         </div>
-      </div>
+      {/* Upper Section: Header & Small Metrics */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 px-3 sm:px-0">
+        <div className="flex flex-wrap items-center gap-3">
+           <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center text-white shadow-sm shrink-0">
+                 <CheckCircle className="w-4 h-4" />
+              </div>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-800 tracking-tight">Closed Loans</h1>
+           </div>
 
-      {/* Metric Cards Banner */}
-      <div className="grid grid-cols-2 gap-3 px-2 sm:px-0">
-         <motion.div 
-           initial={{ opacity: 0, y: 10 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ delay: 0.1 }}
-           className="bg-gradient-to-br from-emerald-500 to-teal-600 text-left border-l-[6px] border-emerald-700/50 rounded-lg p-3 sm:p-5 shadow-md flex flex-col justify-center min-h-[90px] relative overflow-hidden group hover:-translate-y-1 transition-transform"
-         >
-            <motion.div
-              animate={{ x: ["-200%", "300%"] }}
-              transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut", repeatDelay: 1 }}
-              className="absolute inset-0 z-0 w-1/2 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12"
-            />
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-               <CheckCircle className="w-16 h-16 text-white" />
-            </div>
-            <h3 className="text-[11px] sm:text-xs font-bold text-emerald-100 uppercase mb-1 z-10 relative">Total Closed</h3>
-            <div className="text-2xl sm:text-3xl font-black text-white z-10 relative drop-shadow-sm">{totalClosedCount}</div>
-         </motion.div>
-         
-         <motion.div 
-           initial={{ opacity: 0, y: 10 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ delay: 0.2 }}
-           className="bg-gradient-to-br from-blue-500 to-indigo-600 text-left border-l-[6px] border-blue-700/50 rounded-lg p-3 sm:p-5 shadow-md flex flex-col justify-center min-h-[90px] relative overflow-hidden group hover:-translate-y-1 transition-transform"
-         >
-            <motion.div
-              animate={{ x: ["-200%", "300%"] }}
-              transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut", repeatDelay: 1.5 }}
-              className="absolute inset-0 z-0 w-1/2 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12"
-            />
-            <h3 className="text-[11px] sm:text-xs font-bold text-blue-100 uppercase mb-1 z-10 relative">Recovered Amount</h3>
-            <div className="text-2xl sm:text-3xl font-black text-white z-10 relative drop-shadow-sm">₹{formatAmount(totalRecovered)}</div>
-         </motion.div>
+           {/* Compact Total Closed Card */}
+           <div className="bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-1.5 flex items-center gap-2 shadow-sm">
+             <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Total Closed:</span>
+             <span className="text-sm font-black text-emerald-800">{totalClosedCount}</span>
+           </div>
+
+           {/* Compact Recovered Card */}
+           <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-1.5 flex items-center gap-2 shadow-sm">
+             <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Recovered:</span>
+             <span className="text-sm font-black text-blue-800">₹{formatAmount(totalRecovered)}</span>
+           </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <button className="flex items-center gap-1.5 bg-[#3b434a] hover:bg-[#2a3035] active:scale-95 transition-all text-white px-3 py-1.5 rounded text-xs font-semibold uppercase tracking-wide shadow-sm">
+            <Download className="w-4 h-4" />
+            EXCEL
+          </button>
+        </div>
       </div>
 
       {/* Filters Row */}
-      <div className="bg-white p-3.5 sm:p-4 rounded-lg border border-slate-200 shadow-sm">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-          <div className="col-span-1">
-             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Group</label>
+      <div className="bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm mx-3 sm:mx-0">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+          <div>
+             <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Group</label>
              <select 
                value={filterGroup}
                onChange={(e) => setFilterGroup(e.target.value)}
-               className="w-full h-[42px] px-3 bg-white border border-slate-200 rounded text-[13px] text-slate-700 outline-none focus:border-indigo-500"
+               className="w-full h-[36px] px-2 bg-slate-50 border border-slate-200 rounded text-xs text-slate-700 outline-none focus:border-indigo-500 cursor-pointer"
              >
                <option value="All Groups">All Groups</option>
-               {groups.map(g => <option key={g.id} value={g.group_name}>{g.group_name}</option>)}
+               {safeGroups.map(g => <option key={g.id} value={g.group_name}>{g.group_name}</option>)}
              </select>
           </div>
-          <div className="col-span-1">
-             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Search</label>
+          <div>
+             <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Search</label>
              <input 
                type="text" 
-               placeholder="Search..." 
+               placeholder="Search name, code..." 
                value={filterSearch}
                onChange={(e) => setFilterSearch(e.target.value)}
-               className="w-full h-[42px] px-3 bg-white border border-slate-200 rounded text-[13px] text-slate-700 outline-none focus:border-indigo-500 placeholder:text-slate-400"
+               className="w-full h-[36px] px-2 bg-slate-50 border border-slate-200 rounded text-xs text-slate-700 outline-none focus:border-indigo-500 placeholder:text-slate-400"
              />
           </div>
-          <div className="col-span-1">
-             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">From Date</label>
+          <div>
+             <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">From Date</label>
              <input 
                type="date" 
                value={fromDate}
                onChange={(e) => setFromDate(e.target.value)}
-               className="w-full h-[42px] px-3 bg-white border border-slate-200 rounded text-[13px] text-slate-700 outline-none focus:border-indigo-500"
+               className="w-full h-[36px] px-2 bg-slate-50 border border-slate-200 rounded text-xs text-slate-700 outline-none focus:border-indigo-500"
              />
           </div>
-          <div className="col-span-1">
-             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">To Date</label>
+          <div>
+             <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">To Date</label>
              <input 
                type="date" 
                value={toDate}
                onChange={(e) => setToDate(e.target.value)}
-               className="w-full h-[42px] px-3 bg-white border border-slate-200 rounded text-[13px] text-slate-700 outline-none focus:border-indigo-500"
+               className="w-full h-[36px] px-2 bg-slate-50 border border-slate-200 rounded text-xs text-slate-700 outline-none focus:border-indigo-500"
              />
           </div>
-          <div className="col-span-1 sm:col-span-1 flex items-end">
+          <div className="flex items-end">
              <button 
                onClick={handleFind}
-               className="w-full h-[42px] bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded font-medium tracking-wide text-[13px] transition-all shadow-sm uppercase"
+               className="w-full h-[36px] bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded font-semibold tracking-wide text-xs transition-all shadow-sm uppercase"
              >
-               {isSearching ? 'SEARCHING...' : 'FIND'}
+               {isSearching ? '...' : 'FIND'}
              </button>
           </div>
-          <div className="col-span-1 sm:col-span-1 flex items-end">
+          <div className="flex items-end">
              <button 
                onClick={handleReset}
-               className="w-full h-[42px] bg-[#6c757d] hover:bg-slate-600 active:scale-[0.98] text-white rounded font-medium tracking-wide text-[13px] transition-all shadow-sm uppercase"
+               className="w-full h-[36px] bg-[#6c757d] hover:bg-slate-600 active:scale-[0.98] text-white rounded font-semibold tracking-wide text-xs transition-all shadow-sm uppercase"
              >
                RESET
              </button>
@@ -218,8 +215,8 @@ export default function ClosedLoans() {
       </div>
 
       {/* Table Area */}
-      <div className="w-full px-2 sm:px-0">
-        <div className="bg-white rounded overflow-hidden shadow-sm border border-slate-200">
+      <div className="w-full px-0 sm:px-0">
+        <div className="bg-white rounded-none sm:rounded overflow-hidden shadow-sm border-t border-b sm:border border-slate-200">
           {loading ? (
             <div className="text-center py-10 sm:py-16 text-slate-400">
               <div className="w-8 h-8 sm:w-10 sm:h-10 border-4 border-slate-100 border-t-slate-400 rounded-full animate-spin mx-auto mb-3"></div>
@@ -259,8 +256,8 @@ export default function ClosedLoans() {
                         <td className="py-3 px-3 text-slate-800 font-medium uppercase">{loan.member_name}</td>
                         <td className="py-3 px-3 text-indigo-600 font-medium">{loan.member_code || '-'}</td>
                         <td className="py-3 px-3 text-slate-600">{loan.member_mobile || '-'}</td>
-                        <td className="py-3 px-3 text-slate-600">{loan.disbursed_date ? format(new Date(loan.disbursed_date), 'dd/MM/yyyy') : (loan.created_at ? format(new Date(loan.created_at), 'dd/MM/yyyy') : '-')}</td>
-                        <td className="py-3 px-3 text-emerald-600 font-bold">{loan.last_payment_date ? format(new Date(loan.last_payment_date), 'dd/MM/yyyy') : '-'}</td>
+                        <td className="py-3 px-3 text-slate-600">{formatDateSafe(loan.disbursed_date || loan.created_at)}</td>
+                        <td className="py-3 px-3 text-emerald-600 font-bold">{formatDateSafe(loan.last_payment_date)}</td>
                         <td className="py-3 px-3 text-slate-700">{loan.group_name || '-'}</td>
                         <td className="py-3 px-3 text-slate-700">{loan.branch_name || '-'}</td>
                         <td className="py-3 px-3 text-slate-700">{loan.staff_name || '-'}</td>
