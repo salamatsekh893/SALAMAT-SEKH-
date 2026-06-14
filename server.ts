@@ -181,26 +181,56 @@ async function startServer() {
         const frequency = (loan.emi_frequency || 'weekly').toLowerCase();
         
         let expectedEmis = 0;
-        const daysPassed = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        const diffDays = Math.max(0, Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
         
-        if (daysPassed >= 0) {
-          if (frequency === 'daily') expectedEmis = daysPassed;
-          else if (frequency === 'weekly') expectedEmis = Math.floor(daysPassed / 7);
-          else if (frequency === 'bi-weekly' || frequency === 'biweekly') expectedEmis = Math.floor(daysPassed / 14);
-          else if (frequency === 'monthly') {
-            expectedEmis = (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth());
-          }
+        if (frequency === 'daily') {
+          expectedEmis = diffDays + 1;
+        } else if (frequency === 'bi-weekly' || frequency === 'biweekly') {
+          expectedEmis = Math.floor(diffDays / 14) + 1;
+        } else if (frequency === 'monthly') {
+          const months = (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth());
+          expectedEmis = months + 1;
+        } else { // weekly or default
+          expectedEmis = Math.floor(diffDays / 7) + 1;
         }
         
         const duration = Number(loan.duration_weeks) || 0;
-        expectedEmis = Math.min(expectedEmis, duration);
-        
+        let termOver = false;
+        if (duration > 0 && expectedEmis > duration) {
+          termOver = true;
+          expectedEmis = duration;
+        }
+
+        // Check if today is the exact collection/demand day for the newest EMI
+        let isCollectionDay = false;
+        if (frequency === 'daily') {
+          isCollectionDay = true;
+        } else if (frequency === 'bi-weekly' || frequency === 'biweekly') {
+          isCollectionDay = (diffDays % 14 === 0);
+        } else if (frequency === 'monthly') {
+          if (today.getDate() === startDate.getDate()) {
+            isCollectionDay = true;
+          } else {
+            const lastDayOfCurrent = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+            if (today.getDate() === lastDayOfCurrent && startDate.getDate() > lastDayOfCurrent) {
+              isCollectionDay = true;
+            }
+          }
+        } else { // weekly or default
+          isCollectionDay = (diffDays % 7 === 0);
+        }
+
+        let overdueExpectedEmis = expectedEmis;
+        if (isCollectionDay && !termOver && overdueExpectedEmis > 0) {
+          overdueExpectedEmis = overdueExpectedEmis - 1;
+        }
+
         const emiAmount = Number(loan.emi_amount) || 0;
         const expectedAmount = expectedEmis * emiAmount;
         const totalPaid = Number(loan.total_paid) || 0;
-        const overdueAmount = Math.max(0, expectedAmount - totalPaid);
+        const overdueAmount = Math.max(0, (overdueExpectedEmis * emiAmount) - totalPaid);
         const paidCount = Number(loan.paid_emi_count) || 0;
-        const missedEmis = Math.max(0, expectedEmis - paidCount);
+        const missedEmis = Math.max(0, overdueExpectedEmis - paidCount);
         
         let dpd = 0;
         if (overdueAmount > 10) { // Using 10 as buffer

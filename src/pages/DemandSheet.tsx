@@ -95,9 +95,20 @@ export default function DemandSheet() {
     const totalDemand = individualInstallment * matchCount;
     
     // Calculate Arrear
-    const allExpectedDates = getDemandCyclesInPeriod(loan, loan.start_date || loan.disbursement_date || loan.created_at, new Date().toISOString().split('T')[0]);
-    const expectedEmiCount = allExpectedDates.length;
-    let expectedAmount = expectedEmiCount * individualInstallment;
+    const todayStr = new Date().toISOString().split('T')[0];
+    const allExpectedDates = getDemandCyclesInPeriod(loan, loan.start_date || loan.disbursement_date || loan.created_at, todayStr);
+    let expectedEmiCountForArrear = allExpectedDates.length;
+    
+    // If today is a cycle day and term is not over, do not treat today's unpaid installment as overdue (arrear) yet
+    if (expectedEmiCountForArrear > 0 && allExpectedDates[expectedEmiCountForArrear - 1] === todayStr) {
+      // Check if term over has been reached (if current expected emi count exceeds duration)
+      const maxEmis = parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 0;
+      if (maxEmis === 0 || expectedEmiCountForArrear <= maxEmis) {
+        expectedEmiCountForArrear = Math.max(0, expectedEmiCountForArrear - 1);
+      }
+    }
+    
+    let expectedAmount = expectedEmiCountForArrear * individualInstallment;
     
     // Never expect more than total repayment
     const maxRepayment = Number(loan.total_repayment) || (individualInstallment * Number(loan.duration_weeks || loan.no_of_emis || 0));

@@ -66,14 +66,14 @@ const calculateOverdueInfo = (loan: any, selectedDate: string, totalPaid: number
   const paidEmisCount = installment > 0 ? Math.round(totalPaid / installment) : 0;
 
   if (!baseDateStr || !selectedDate) {
-    return { overdue: 0, expected: 0, emisDue: 0, advance: 0, maxEmis, paidEmisCount, termOver: false };
+    return { overdue: 0, expected: 0, emisDue: 0, overdueEmisDue: 0, advance: 0, maxEmis, paidEmisCount, termOver: false };
   }
   
   const start = parseISO(baseDateStr);
   const current = parseISO(selectedDate);
   
   if (current < start) {
-    return { overdue: 0, expected: 0, emisDue: 0, advance: 0, maxEmis, paidEmisCount, termOver: false };
+    return { overdue: 0, expected: 0, emisDue: 0, overdueEmisDue: 0, advance: 0, maxEmis, paidEmisCount, termOver: false };
   }
   
   let expectedEmis = 0;
@@ -97,14 +97,40 @@ const calculateOverdueInfo = (loan: any, selectedDate: string, totalPaid: number
     expectedEmis = maxEmis;
   }
   
+  // Check if today is the exact collection/demand day for the newest EMI
+  let isCollectionDay = false;
+  if (freq.includes('day')) {
+    isCollectionDay = true;
+  } else if (freq.includes('bi')) {
+    isCollectionDay = (diffDays % 14 === 0);
+  } else if (freq.includes('month')) {
+    if (current.getDate() === start.getDate()) {
+      isCollectionDay = true;
+    } else {
+      const lastDayOfCurrent = new Date(current.getFullYear(), current.getMonth() + 1, 0).getDate();
+      if (current.getDate() === lastDayOfCurrent && start.getDate() > lastDayOfCurrent) {
+        isCollectionDay = true;
+      }
+    }
+  } else { // default to weekly
+    isCollectionDay = (diffDays % 7 === 0);
+  }
+
+  let overdueExpectedEmis = expectedEmis;
+  if (isCollectionDay && !termOver && overdueExpectedEmis > 0) {
+    overdueExpectedEmis = overdueExpectedEmis - 1;
+  }
+  
   const expectedDemand = expectedEmis * installment;
-  const overdue = Math.max(0, expectedDemand - totalPaid);
+  const overdueDemand = overdueExpectedEmis * installment;
+  const overdue = Math.max(0, overdueDemand - totalPaid);
   const advance = Math.max(0, totalPaid - expectedDemand);
   
   return { 
     overdue: roundVal(overdue), 
     expected: roundVal(expectedDemand),
     emisDue: expectedEmis,
+    overdueEmisDue: overdueExpectedEmis,
     advance: roundVal(advance),
     maxEmis,
     paidEmisCount,
@@ -147,6 +173,25 @@ export default function BatchCollection() {
     });
     return sums;
   }, [collections]);
+
+  const hadCollectionToday = React.useMemo(() => {
+    const hasToday: Record<string, boolean> = {};
+    collections.forEach(c => {
+      if (c.status === 'rejected') return;
+      const lid = c.loan_id?.toString();
+      if (lid && c.payment_date) {
+        try {
+          const colDateStr = format(new Date(c.payment_date), 'yyyy-MM-dd');
+          if (colDateStr === date) {
+            hasToday[lid] = true;
+          }
+        } catch (e) {
+          // skip
+        }
+      }
+    });
+    return hasToday;
+  }, [collections, date]);
 
   // Track modal state
   const [trackingLoanId, setTrackingLoanId] = useState<string | null>(null);
@@ -586,9 +631,14 @@ export default function BatchCollection() {
                                   checked={isSelected}
                                   onChange={(e) => handleToggleLoan(loan.id, e)}
                                 />
-                                <h4 className="font-black text-[12px] text-slate-800 uppercase tracking-tight truncate max-w-[150px]" title={loan.member_name}>
-                                  {loan.member_name}
-                                </h4>
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <h4 className="font-black text-[12px] text-slate-800 uppercase tracking-tight truncate max-w-[150px]" title={loan.member_name}>
+                                    {loan.member_name}
+                                  </h4>
+                                  {hadCollectionToday[loan.id.toString()] && (
+                                    <CheckCircle className="w-4 h-4 text-emerald-600 fill-emerald-50 flex-shrink-0" />
+                                  )}
+                                </div>
                              </div>
                           </td>
                           <td className="py-2 px-2 text-center">
@@ -726,7 +776,12 @@ export default function BatchCollection() {
                   return (
                     <div key={loan.id} className={`bg-white p-5 shadow-sm border-y border-slate-200 transition-all ${isSelected ? 'border-pink-400 bg-pink-50/10' : ''}`}>
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-black text-slate-900 uppercase text-[15px] tracking-tight">{loan.member_name}</h3>
+                        <div className="flex items-center gap-1.5">
+                          <h3 className="font-black text-slate-900 uppercase text-[15px] tracking-tight">{loan.member_name}</h3>
+                          {hadCollectionToday[loan.id.toString()] && (
+                            <CheckCircle className="w-4 h-4 text-emerald-600 fill-emerald-50 flex-shrink-0 animate-pulse" />
+                          )}
+                        </div>
                         <div className="text-right">
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-tight leading-none mb-1">Balance</p>
                           <p className="text-[17px] font-black text-rose-600 leading-none">{formatAmount(balance)}</p>
