@@ -49,11 +49,14 @@ export default function BranchWallet() {
   const loadData = async () => {
     try {
       setLoading(true);
+      const userRole = user?.role || '';
+      const userIsSuperAdmin = ['superadmin', 'dm', 'am'].includes(userRole);
+
       const [balData, reqData, bankData, branchData] = await Promise.all([
         fetchWithAuth('/branch-wallet/balances').catch(() => []),
         fetchWithAuth('/branch-wallet/requests').catch(() => []),
-        isSuperAdmin ? fetchWithAuth('/banks').catch(() => []) : Promise.resolve([]),
-        isSuperAdmin ? fetchWithAuth('/branches').catch(() => []) : Promise.resolve([])
+        userIsSuperAdmin ? fetchWithAuth('/banks').catch(() => []) : Promise.resolve([]),
+        userIsSuperAdmin ? fetchWithAuth('/branches').catch(() => []) : Promise.resolve([])
       ]);
 
       setBalances(balData || []);
@@ -73,8 +76,10 @@ export default function BranchWallet() {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (user) {
+      loadData();
+    }
+  }, [user]);
 
   const handleCreateRequest = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,7 +200,7 @@ export default function BranchWallet() {
       <div className="flex flex-col items-center justify-center min-h-[400px] py-12">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mb-4" />
         <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">
-          Loading Wallet details... অনুগ্রহ করে অপেক্ষা করুন
+          Loading Wallet details... Please wait
         </p>
       </div>
     );
@@ -227,23 +232,33 @@ export default function BranchWallet() {
       {/* 1. Header Banner */}
       <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
               <Wallet className="w-6 h-6" />
             </span>
             <div>
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                Branch Wallet Management
-              </h1>
-              <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  Branch Wallet Management
+                </h1>
+                
+                {/* Header balance with a small icon showing the amount to disburse/approve or current status */}
+                <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full text-emerald-800 shadow-sm shrink-0">
+                  <Wallet className="w-3.5 h-3.5 text-emerald-600 font-bold" />
+                  <span className="text-xs font-black">
+                    ₹{formatAmount(isSuperAdmin ? balances.reduce((sum, b) => sum + parseFloat(b.wallet_balance || 0), 0) : (myBranchBalance?.wallet_balance || 0))}
+                  </span>
+                </div>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md inline-block mt-1">
                 {isSuperAdmin ? 'SUPER ADMIN ACCESS' : 'BRANCH ACCESS PORTAL'}
               </span>
             </div>
           </div>
           <p className="text-xs sm:text-sm font-bold text-slate-500 mt-2">
             {isSuperAdmin 
-              ? 'ব্রাঞ্চ ক্যাশ ব্যালেন্স ও অফলাইন ফান্ড আপ্রুভাল সিস্টেম।' 
-              : `ব্রাঞ্চ ক্যাশ ব্যালেন্স ম্যানেজমেন্ট এবং হেড অফিস ফান্ড রিকোয়েস্ট পোর্টাল।`}
+              ? 'Branch Cash Balance & Offline Fund Approval System (India Portal)' 
+              : 'Branch Cash Balance Management and Head Office Fund Request Portal (India Portal)'}
           </p>
         </div>
 
@@ -296,8 +311,8 @@ export default function BranchWallet() {
                   </div>
                   <div className="relative z-10 space-y-4">
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-indigo-200">Current Branch Balance (হাতে নগদ ক্যাশ)</span>
-                      <h2 className="text-3xl font-black mt-1 text-emerald-400">৳{formatAmount(myBranchBalance.wallet_balance || 0)}</h2>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-indigo-200">Current Branch Balance (Cash In Hand)</span>
+                      <h2 className="text-3xl font-black mt-1 text-emerald-400">₹{formatAmount(myBranchBalance.wallet_balance || 0)}</h2>
                     </div>
                     <div className="pt-3 border-t border-white/10 flex justify-between text-[11px] font-extrabold text-indigo-200">
                       <span>Code: {myBranchBalance.branch_code}</span>
@@ -321,7 +336,7 @@ export default function BranchWallet() {
                           </span>
                         </div>
                         <span className="text-xs font-black text-slate-900 bg-white border px-2.5 py-1 rounded-xl shadow-sm">
-                          ৳{formatAmount(b.wallet_balance || 0)}
+                          ₹{formatAmount(b.wallet_balance || 0)}
                         </span>
                       </div>
                     ))}
@@ -341,7 +356,7 @@ export default function BranchWallet() {
                 <form onSubmit={handleCreateRequest} className="space-y-4">
                   {isSuperAdmin && branches.length > 0 && (
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Recipient Branch (প্রাপক ব্রাঞ্চ)</label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Recipient Branch</label>
                       <select
                         value={selectedBranchId}
                         onChange={(e) => setSelectedBranchId(e.target.value)}
@@ -355,14 +370,14 @@ export default function BranchWallet() {
                   )}
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Request Amount (টাকার পরিমাণ)</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Request Amount</label>
                     <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-black text-slate-400 text-sm">৳</span>
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-black text-slate-400 text-sm">₹</span>
                       <input
                         type="number"
                         value={requestAmount}
                         onChange={(e) => setRequestAmount(e.target.value)}
-                        placeholder="Enter amount in BDT"
+                        placeholder="Enter amount in INR"
                         className="w-full bg-slate-50 border border-slate-200 pl-8 pr-3 py-3 rounded-2xl text-sm font-bold text-slate-950 focus:border-indigo-500 focus:bg-white outline-none transition-all shadow-sm"
                         required
                       />
@@ -370,11 +385,11 @@ export default function BranchWallet() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Purpose Remarks (কারণ / মন্তব্য)</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Purpose Remarks (Reason)</label>
                     <textarea
                       value={requestRemarks}
                       onChange={(e) => setRequestRemarks(e.target.value)}
-                      placeholder="কারণ উল্লেখ করুন (যেমন: দৈনিক ঋণ বিতরণ, জরুরি খরচ, ইত্যাদি)"
+                      placeholder="Specify reason (e.g., daily loan disbursement, emergency expense, etc.)"
                       rows={3}
                       className="w-full bg-slate-50 border border-slate-200 p-3 rounded-2xl text-xs font-bold text-slate-950 focus:border-indigo-500 focus:bg-white outline-none transition-all shadow-sm resize-none"
                     />
@@ -409,9 +424,9 @@ export default function BranchWallet() {
                     <Clock className="w-5 h-5 text-indigo-600" />
                     <div>
                       <h3 className="text-sm font-black text-slate-950 uppercase tracking-wider">
-                        Pending Approvals (অপেক্ষারত রিকোয়েস্ট)
+                        Pending Approvals (Awaiting Review)
                       </h3>
-                      <p className="text-[10px] font-bold text-slate-500"> হেড অফিস রিভিউ এর অপেক্ষায় রয়েছে </p>
+                      <p className="text-[10px] font-bold text-slate-500"> Awaiting review and approval from Head Office </p>
                     </div>
                   </div>
                   <span className="bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded-full text-[10px] border border-amber-200 uppercase tracking-wider font-black">
@@ -425,7 +440,7 @@ export default function BranchWallet() {
                     <span className="text-xs uppercase font-extrabold tracking-widest text-slate-500">
                       No pending wallet requests
                     </span>
-                    <p className="text-[10px] text-slate-400 mt-1">সব রিকোয়েস্ট প্রসেস করা হয়েছে।</p>
+                    <p className="text-[10px] text-slate-400 mt-1">All fund requests processed.</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -450,7 +465,7 @@ export default function BranchWallet() {
                               </div>
                             </td>
                             <td className="py-3 font-black text-sm text-slate-950">
-                              ৳{formatAmount(req.amount)}
+                              ₹{formatAmount(req.amount)}
                             </td>
                             <td className="py-3 text-[10px] text-slate-600 font-serif">
                               {req.remarks ? `"${req.remarks}"` : <span className="text-slate-300">-</span>}
@@ -505,7 +520,7 @@ export default function BranchWallet() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-black text-slate-900">৳{formatAmount(r.amount)}</span>
+                        <span className="text-xs font-black text-slate-900">₹{formatAmount(r.amount)}</span>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider ${getStatusBadgeClass(r.status)}`}>
                           {r.status}
                         </span>
@@ -547,7 +562,7 @@ export default function BranchWallet() {
                   Wallet Refills & Dispatches History
                 </h3>
                 <p className="text-[11px] font-bold text-slate-500">
-                  {isSuperAdmin ? 'সকল ব্রাঞ্চের ক্যাশ রিফিল হিস্ট্রি রেজিস্ট্রি রিপোর্ট' : 'হেড অফিসে পাঠানো সমস্ত ওয়ালেট ফান্ড রিকোয়েস্ট ইতিহাস'}
+                  {isSuperAdmin ? 'All branch cash refill history logs' : 'All your wallet fund requests sent to Head Office'}
                 </p>
               </div>
 
@@ -583,10 +598,10 @@ export default function BranchWallet() {
                   onChange={(e) => setStatusFilter(e.target.value)}
                   className="w-full bg-white border border-slate-200 p-2 rounded-xl text-xs font-bold text-slate-700 focus:border-indigo-500 outline-none cursor-pointer shadow-sm"
                 >
-                  <option value="all">All Statuses (সব স্ট্যাটাস)</option>
-                  <option value="pending">Pending Review (অপেক্ষারত)</option>
-                  <option value="approved">Approved & Paid (আপ্রুভড)</option>
-                  <option value="rejected">Rejected (বাতিলকৃত)</option>
+                  <option value="all">All Statuses</option>
+                  <option value="pending">Pending Review</option>
+                  <option value="approved">Approved & Paid</option>
+                  <option value="rejected">Rejected</option>
                 </select>
               </div>
 
@@ -598,7 +613,7 @@ export default function BranchWallet() {
                     onChange={(e) => setBranchFilter(e.target.value)}
                     className="w-full bg-white border border-slate-200 p-2 rounded-xl text-xs font-bold text-slate-700 focus:border-indigo-500 outline-none cursor-pointer shadow-sm"
                   >
-                    <option value="all">All Branches (সব ব্রাঞ্চ)</option>
+                    <option value="all">All Branches</option>
                     {balances.map((b) => (
                       <option key={b.id} value={b.id.toString()}>{b.branch_name}</option>
                     ))}
@@ -617,7 +632,7 @@ export default function BranchWallet() {
               <div className="text-center py-16 text-slate-400">
                 <Filter className="w-8 h-8 opacity-30 mx-auto mb-2.5" />
                 <span className="text-xs uppercase font-extrabold tracking-widest text-slate-500">No transactions match filters</span>
-                <p className="text-[10px] text-slate-400 mt-1">অনুগ্রহ করে অন্য ফিল্টারিং সিলেক্ট করুন।</p>
+                <p className="text-[10px] text-slate-400 mt-1">Please select different filtering rules.</p>
               </div>
             ) : (
               <div className="overflow-x-auto rounded-2xl border border-slate-100 shadow-sm">
@@ -653,7 +668,7 @@ export default function BranchWallet() {
 
                         {/* Amount */}
                         <td className="py-3.5 px-4 font-black text-[13px] text-slate-950">
-                          ৳{formatAmount(req.amount)}
+                          ₹{formatAmount(req.amount)}
                         </td>
 
                         {/* status badge */}
@@ -737,10 +752,20 @@ export default function BranchWallet() {
                 }`}>
                   {actionModal.type === 'approve' ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
                 </div>
-                <div>
-                  <h3 className="text-base font-black text-slate-950 uppercase tracking-tight">
-                    {actionModal.type === 'approve' ? 'Disburse Funds' : 'Reject Fund Request'}
-                  </h3>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-base font-black text-slate-950 uppercase tracking-tight">
+                      {actionModal.type === 'approve' ? 'Disburse Funds' : 'Reject Fund Request'}
+                    </h3>
+                    
+                    {/* Tiny header icon and amount representing the balance to approve */}
+                    {actionModal.type === 'approve' && (
+                      <div className="flex items-center gap-1 bg-emerald-50 text-emerald-800 px-2.5 py-0.5 rounded-full text-xs font-black border border-emerald-200 shrink-0">
+                        <Wallet className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>₹{formatAmount(actionModal.request.amount)}</span>
+                      </div>
+                    )}
+                  </div>
                   <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mt-0.5 block">
                     Request ID: #{actionModal.request.id}
                   </span>
@@ -759,7 +784,7 @@ export default function BranchWallet() {
                   </div>
                   <div className="space-y-1">
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Amount</span>
-                    <span className="text-slate-950 font-black block">৳{formatAmount(actionModal.request.amount)}</span>
+                    <span className="text-slate-950 font-black block">₹{formatAmount(actionModal.request.amount)}</span>
                   </div>
                 </div>
               </div>
@@ -775,7 +800,7 @@ export default function BranchWallet() {
                     >
                       <option value="">-- Select Funding Bank --</option>
                       {banks.map((b) => (
-                        <option key={b.id} value={b.id}>{b.bank_name} - ({b.account_number.slice(-4)}) - ৳{formatAmount(b.current_balance)}</option>
+                        <option key={b.id} value={b.id}>{b.bank_name} - ({b.account_number.slice(-4)}) - ₹{formatAmount(b.current_balance)}</option>
                       ))}
                     </select>
                   </div>
