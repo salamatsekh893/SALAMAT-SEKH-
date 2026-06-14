@@ -1267,6 +1267,43 @@ async function startServer() {
         console.error("expenses table creation failed:", e);
       }
 
+      // Ensure branches.wallet_balance and loans.disbursement_method columns exist
+      try {
+        await conn.query("ALTER TABLE branches ADD COLUMN wallet_balance DECIMAL(15, 2) DEFAULT 0.00");
+        console.log("Added wallet_balance column to branches table");
+      } catch (colErr) {
+        // Already exists or other harmless error
+      }
+
+      try {
+        await conn.query("ALTER TABLE loans ADD COLUMN disbursement_method VARCHAR(20) DEFAULT 'wallet'");
+        console.log("Added disbursement_method column to loans table");
+      } catch (colErr) {
+        // Already exists or other harmless error
+      }
+
+      // Create branch_wallet_requests table
+      try {
+        await conn.query(`
+          CREATE TABLE IF NOT EXISTS branch_wallet_requests (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            branch_id INT NOT NULL,
+            amount DECIMAL(15, 2) NOT NULL,
+            request_date DATE NOT NULL,
+            remarks TEXT,
+            status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+            approved_by INT NULL,
+            approved_at DATETIME NULL,
+            bank_id INT NULL,
+            admin_remarks TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        console.log("branch_wallet_requests table ensured");
+      } catch (tblErr: any) {
+        console.error("branch_wallet_requests table creation failed:", tblErr);
+      }
+
       console.log("Database initialized successfully");
     } catch (e: any) {
       console.error("Database initialization failed:", e);
@@ -2686,7 +2723,7 @@ async function startServer() {
     try {
       await conn.beginTransaction();
 
-      const { status, disbursement_date, first_emi_date, bank_id } = req.body;
+      const { status, disbursement_date, first_emi_date, bank_id, disbursement_method } = req.body;
       const validStatuses = ['pending', 'approved', 'active', 'closed', 'rejected'];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({ error: 'Invalid status' });
@@ -2710,32 +2747,55 @@ async function startServer() {
 
       await conn.query(updateQuery, params);
 
-      // If disbursing (setting to active) and bank_id is provided, deduct from bank
-      if (status === 'active' && bank_id) {
-        const [loanRows]: any = await conn.query('SELECT amount, processing_fee, insurance_fee, loan_no FROM loans WHERE id = ?', [req.params.id]);
+      // If disbursing (setting to active)
+      if (status === 'active') {
+        const [loanRows]: any = await conn.query('SELECT amount, processing_fee, insurance_fee, loan_no, branch_id FROM loans WHERE id = ?', [req.params.id]);
         if (loanRows.length > 0) {
           const loanData = loanRows[0];
           const amount = parseFloat(loanData.amount || 0);
-          const pfee = parseFloat(loanData.processing_fee || 0);
-          const ifee = parseFloat(loanData.insurance_fee || 0);
           const disbDate = disbursement_date || new Date().toISOString().split('T')[0];
-          
-          if (bank_id) {
+          const isWallet = disbursement_method === 'wallet' || !bank_id;
+
+          if (isWallet) {
+            // Check branch wallet balance
+            const branchId = loanData.branch_id;
+            const [branchCheck]: any = await conn.query('SELECT wallet_balance FROM branches WHERE id = ? FOR UPDATE', [branchId]);
+            if (!branchCheck.length) {
+              await conn.rollback();
+              return res.status(400).json({ error: 'Loan branch not found' });
+            }
+            if (parseFloat(branchCheck[0].wallet_balance) < amount) {
+              await conn.rollback();
+              return res.status(400).json({ error: `Insufficient branch wallet balance: Current balance is ৳${parseFloat(branchCheck[0].wallet_balance).toLocaleString('en-IN')}` });
+            }
+
+            // Deduct from branch wallet
+            await conn.query('UPDATE branches SET wallet_balance = wallet_balance - ? WHERE id = ?', [amount, branchId]);
+
+            // Update loan record to reflect wallet disbursement
+            await conn.query("UPDATE loans SET disbursement_method = 'wallet', bank_id = NULL WHERE id = ?", [req.params.id]);
+          } else {
+            // HO Bank disbursement
             const [bankCheck]: any = await conn.query('SELECT current_balance FROM bank_accounts WHERE id = ? FOR UPDATE', [bank_id]);
             if (!bankCheck.length || parseFloat(bankCheck[0].current_balance) < amount) {
               await conn.rollback();
               return res.status(400).json({ error: 'Insufficient bank balance for disbursement' });
             }
+
+            // Deduct from HO bank
+            await conn.query(`
+              UPDATE bank_accounts SET current_balance = current_balance - ? WHERE id = ?
+            `, [amount, bank_id]);
+            
+            // Insert transaction in bank_transactions
+            await conn.query(`
+              INSERT INTO bank_transactions (bank_id, date, type, source_type, source_id, amount, purpose)
+              VALUES (?, ?, 'withdrawal', 'other', ?, ?, ?)
+            `, [bank_id, disbDate, req.params.id, amount, `Loan Disbursed (Full) - ${loanData.loan_no}`]);
+
+            // Update loan record to reflect bank disbursement
+            await conn.query("UPDATE loans SET disbursement_method = 'bank', bank_id = ? WHERE id = ?", [bank_id, req.params.id]);
           }
-          
-          await conn.query(`
-            UPDATE bank_accounts SET current_balance = current_balance - ? WHERE id = ?
-          `, [amount, bank_id]);
-          
-          await conn.query(`
-            INSERT INTO bank_transactions (bank_id, date, type, source_type, source_id, amount, purpose)
-            VALUES (?, ?, 'withdrawal', 'other', ?, ?, ?)
-          `, [bank_id, disbDate, req.params.id, amount, `Loan Disbursed (Full) - ${loanData.loan_no}`]);
         }
       }
 
@@ -3018,11 +3078,20 @@ async function startServer() {
 
   app.delete("/api/collections/:id", async (req, res) => {
     try {
-      const [collRows]: any = await pool.query('SELECT branch_id, DATE_FORMAT(payment_date, "%Y-%m-%d") as payment_date FROM collections WHERE id = ?', [req.params.id]);
+      const [collRows]: any = await pool.query('SELECT branch_id, DATE_FORMAT(payment_date, "%Y-%m-%d") as payment_date, amount_paid, status FROM collections WHERE id = ?', [req.params.id]);
       if (collRows && collRows.length > 0) {
          const checkStatus = await verifyDayBookActive(collRows[0].branch_id, collRows[0].payment_date);
          if (!checkStatus.active) {
             return res.status(400).json({ error: checkStatus.error });
+         }
+
+         // Deduct from wallet if status was approved
+         if (collRows[0].status === 'approved') {
+           const branchId = collRows[0].branch_id;
+           const amountPaid = parseFloat(collRows[0].amount_paid || 0);
+           if (branchId && amountPaid > 0) {
+             await pool.query('UPDATE branches SET wallet_balance = GREATEST(0, wallet_balance - ?) WHERE id = ?', [amountPaid, branchId]);
+           }
          }
       }
 
@@ -3559,19 +3628,27 @@ async function startServer() {
         return res.status(400).json({ error: 'Invalid status' });
       }
 
-      const [colRows]: any = await pool.query('SELECT loan_id, is_pre_close, amount_paid FROM collections WHERE id = ?', [req.params.id]);
+      const [colRows]: any = await pool.query('SELECT loan_id, is_pre_close, amount_paid, branch_id, status as old_status FROM collections WHERE id = ?', [req.params.id]);
       if (!colRows || colRows.length === 0) {
         return res.status(404).json({ error: 'Collection not found' });
       }
 
       const loanId = colRows[0].loan_id;
+      const branchId = colRows[0].branch_id;
+      const amountPaid = parseFloat(colRows[0].amount_paid || 0);
+      const oldStatus = colRows[0].old_status;
 
       await pool.query(
         'UPDATE collections SET status = ?, approved_by = ?, approved_at = NOW() WHERE id = ?',
-        [status, userId, req.params.id]
+         [status, userId, req.params.id]
       );
       
       if (status === 'approved') {
+        // If transitioning from non-approved to approved, add to branch wallet balance
+        if (oldStatus !== 'approved' && branchId && amountPaid > 0) {
+          await pool.query('UPDATE branches SET wallet_balance = wallet_balance + ? WHERE id = ?', [amountPaid, branchId]);
+        }
+
         // Option 1: It's an explicit pre-close
         if (colRows[0].is_pre_close) {
           await pool.query('UPDATE loans SET status = ? WHERE id = ?', ['closed', loanId]);
@@ -3580,6 +3657,11 @@ async function startServer() {
           await autoCloseFullyPaidLoans();
         }
       } else if (status === 'rejected') {
+        // If transitioning from approved to rejected, deduct from branch wallet balance
+        if (oldStatus === 'approved' && branchId && amountPaid > 0) {
+          await pool.query('UPDATE branches SET wallet_balance = GREATEST(0, wallet_balance - ?) WHERE id = ?', [amountPaid, branchId]);
+        }
+
         // If a collection is rejected, check if we need to reopen the loan
         const [loanRows]: any = await pool.query('SELECT total_repayment, status FROM loans WHERE id = ?', [loanId]);
         if (loanRows.length > 0 && loanRows[0].status === 'closed') {
@@ -4363,6 +4445,8 @@ async function startServer() {
 
       // If bank payment, verify balance first
       const isBankType = data.payment_method === 'bank' && data.bank_id;
+      const isCashBranchType = data.payment_method === 'cash' && data.branch_id;
+
       if (isBankType) {
         const [bankCheck]: any = await conn.query(
           'SELECT current_balance FROM bank_accounts WHERE id = ? FOR UPDATE', 
@@ -4375,6 +4459,20 @@ async function startServer() {
         if (parseFloat(bankCheck[0].current_balance) < parseFloat(data.amount)) {
           await conn.rollback();
           return res.status(400).json({ error: `Insufficient bank balance: Current balance is ৳${bankCheck[0].current_balance}` });
+        }
+      } else if (isCashBranchType) {
+        // Cash payment in a specific branch - deduct from branch wallet balance
+        const [branchCheck]: any = await conn.query(
+          'SELECT wallet_balance FROM branches WHERE id = ? FOR UPDATE',
+          [data.branch_id]
+        );
+        if (!branchCheck.length) {
+          await conn.rollback();
+          return res.status(400).json({ error: 'Selected branch was not found' });
+        }
+        if (parseFloat(branchCheck[0].wallet_balance) < parseFloat(data.amount)) {
+          await conn.rollback();
+          return res.status(400).json({ error: `Insufficient branch wallet balance for cash expense: Current balance is ৳${parseFloat(branchCheck[0].wallet_balance).toLocaleString('en-IN')}` });
         }
       }
 
@@ -4399,6 +4497,12 @@ async function startServer() {
           `INSERT INTO bank_transactions (bank_id, date, type, source_type, source_id, amount, purpose) 
            VALUES (?, ?, 'withdrawal', 'other', ?, ?, ?)`,
           [data.bank_id, txDate, insertedExpenseId, data.amount, txnPurpose]
+        );
+      } else if (isCashBranchType) {
+        // Deduct from branch wallet
+        await conn.query(
+          `UPDATE branches SET wallet_balance = wallet_balance - ? WHERE id = ?`,
+          [data.amount, data.branch_id]
         );
       }
 
@@ -5345,6 +5449,204 @@ async function startServer() {
     } catch (err) {
       console.error('Delete member error:', err);
       res.status(500).json({ error: "ডাটাবেস এরর। সদস্য ডিলিট করা সম্ভব হয়নি।" });
+    }
+  });
+
+  // --- BRANCH WALLET ENDPOINTS ---
+
+  // Get current wallet balances of all branches
+  app.get("/api/branch-wallet/balances", verifyToken, async (req: any, res) => {
+    try {
+      const { role, branchId } = req.user;
+      let query = 'SELECT id, branch_name, branch_code, wallet_balance, manager_name, manager_phone FROM branches';
+      const params: any[] = [];
+      
+      if (role === 'branch_manager' || !['superadmin', 'dm', 'am'].includes(role)) {
+        query += ' WHERE id = ?';
+        params.push(branchId);
+      }
+      
+      const [rows]: any = await pool.query(query, params);
+      res.json(rows);
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to fetch branch wallet balances' });
+    }
+  });
+
+  // Get all wallet requests
+  app.get("/api/branch-wallet/requests", verifyToken, async (req: any, res) => {
+    try {
+      const { role, branchId } = req.user;
+      let query = `
+        SELECT r.*, b.branch_name, b.branch_code, u.name as approved_by_name, ba.bank_name as ho_bank_name
+        FROM branch_wallet_requests r
+        LEFT JOIN branches b ON r.branch_id = b.id
+        LEFT JOIN users u ON r.approved_by = u.id
+        LEFT JOIN bank_accounts ba ON r.bank_id = ba.id
+      `;
+      const params: any[] = [];
+
+      if (role === 'branch_manager' || !['superadmin', 'dm', 'am'].includes(role)) {
+        query += ' WHERE r.branch_id = ?';
+        params.push(branchId);
+      }
+
+      query += ' ORDER BY r.created_at DESC';
+
+      const [rows]: any = await pool.query(query, params);
+      res.json(rows);
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to fetch branch wallet requests' });
+    }
+  });
+
+  // Create a new wallet request
+  app.post("/api/branch-wallet/requests", verifyToken, async (req: any, res) => {
+    try {
+      let { branch_id, amount, remarks } = req.body;
+      const { role, branchId: userBranchId } = req.user;
+
+      // Force own branch id for non-admins
+      if (role === 'branch_manager' || !['superadmin', 'dm', 'am'].includes(role)) {
+        branch_id = userBranchId;
+      }
+
+      if (!branch_id) {
+        return res.status(400).json({ error: 'Branch is required' });
+      }
+      if (!amount || parseFloat(amount) <= 0) {
+        return res.status(400).json({ error: 'Invalid request amount' });
+      }
+
+      const txDate = new Date().toISOString().split('T')[0];
+
+      await pool.query(
+        `INSERT INTO branch_wallet_requests (branch_id, amount, request_date, remarks, status) 
+         VALUES (?, ?, ?, ?, 'pending')`,
+        [branch_id, amount, txDate, remarks || '']
+      );
+
+      res.status(201).json({ success: true, message: 'Request submitted successfully' });
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to submit wallet request' });
+    }
+  });
+
+  // Approve a wallet request
+  app.post("/api/branch-wallet/requests/:id/approve", verifyToken, async (req: any, res) => {
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const requestId = req.params.id;
+      const { bank_id, admin_remarks } = req.body;
+      const { id: adminUserId, role } = req.user;
+
+      if (!['superadmin', 'dm', 'am', 'admin'].includes(role)) {
+        await conn.rollback();
+        return res.status(403).json({ error: 'Unauthorized to approve wallet requests' });
+      }
+
+      if (!bank_id) {
+        await conn.rollback();
+        return res.status(400).json({ error: 'HO Bank Account is required for approval' });
+      }
+
+      // Check request details
+      const [reqRows]: any = await conn.query('SELECT r.*, b.branch_name FROM branch_wallet_requests r JOIN branches b ON r.branch_id = b.id WHERE r.id = ? FOR UPDATE', [requestId]);
+      if (!reqRows.length) {
+        await conn.rollback();
+        return res.status(404).json({ error: 'Request not found' });
+      }
+
+      const request = reqRows[0];
+      if (request.status !== 'pending') {
+        await conn.rollback();
+        return res.status(400).json({ error: 'Request is already processed' });
+      }
+
+      const amountToTransfer = parseFloat(request.amount);
+
+      // Verify HO Bank Balance
+      const [bankCheck]: any = await conn.query('SELECT current_balance, bank_name, account_number FROM bank_accounts WHERE id = ? FOR UPDATE', [bank_id]);
+      if (!bankCheck.length) {
+        await conn.rollback();
+        return res.status(404).json({ error: 'Selected HO Bank Account was not found' });
+      }
+
+      const bank = bankCheck[0];
+      if (parseFloat(bank.current_balance) < amountToTransfer) {
+        await conn.rollback();
+        return res.status(400).json({ error: `Insufficient bank balance: Current HO Bank balance is ৳${bank.current_balance}` });
+      }
+
+      // 1. Deduct from HO bank
+      await conn.query('UPDATE bank_accounts SET current_balance = current_balance - ? WHERE id = ?', [amountToTransfer, bank_id]);
+
+      // 2. Add to Branch Wallet
+      await conn.query('UPDATE branches SET wallet_balance = wallet_balance + ? WHERE id = ?', [amountToTransfer, request.branch_id]);
+
+      // 3. Insert withdrawal bank transaction
+      const txPurpose = `Wallet Refill Trsf to ${request.branch_name} (Req #${requestId})`;
+      const txDate = new Date().toISOString().split('T')[0];
+      await conn.query(
+        `INSERT INTO bank_transactions (bank_id, date, type, source_type, source_id, amount, purpose) 
+         VALUES (?, ?, 'withdrawal', 'branch', ?, ?, ?)`,
+        [bank_id, txDate, request.branch_id, amountToTransfer, txPurpose]
+      );
+
+      // 4. Update request status
+      await conn.query(
+        `UPDATE branch_wallet_requests 
+         SET status = 'approved', approved_by = ?, approved_at = NOW(), bank_id = ?, admin_remarks = ?
+         WHERE id = ?`,
+         [adminUserId, bank_id, admin_remarks || '', requestId]
+      );
+
+      await conn.commit();
+      res.json({ success: true, message: 'Wallet request approved and funds transferred' });
+    } catch (err: any) {
+      await conn.rollback();
+      console.error(err);
+      res.status(500).json({ error: 'Failed to approve wallet request: ' + err.message });
+    } finally {
+      conn.release();
+    }
+  });
+
+  // Reject a wallet request
+  app.post("/api/branch-wallet/requests/:id/reject", verifyToken, async (req: any, res) => {
+    try {
+      const requestId = req.params.id;
+      const { admin_remarks } = req.body;
+      const { id: adminUserId, role } = req.user;
+
+      if (!['superadmin', 'dm', 'am', 'admin'].includes(role)) {
+        return res.status(403).json({ error: 'Unauthorized to reject wallet requests' });
+      }
+
+      const [reqRows]: any = await pool.query('SELECT status FROM branch_wallet_requests WHERE id = ?', [requestId]);
+      if (!reqRows.length) {
+        return res.status(404).json({ error: 'Request not found' });
+      }
+
+      if (reqRows[0].status !== 'pending') {
+        return res.status(400).json({ error: 'Request already processed' });
+      }
+
+      await pool.query(
+        `UPDATE branch_wallet_requests 
+         SET status = 'rejected', approved_by = ?, approved_at = NOW(), admin_remarks = ?
+         WHERE id = ?`,
+        [adminUserId, admin_remarks || '', requestId]
+      );
+
+      res.json({ success: true, message: 'Wallet request rejected' });
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to reject wallet request' });
     }
   });
 

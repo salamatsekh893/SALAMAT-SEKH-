@@ -163,6 +163,7 @@ export default function Layout({ user, onLogout }: LayoutProps) {
         { name: 'Day Book', href: '/accounts/daybook', permissionId: 'sub_acc_daybook' },
         { name: 'Add Expense', href: '/accounts/expense', permissionId: 'sub_acc_expense' },
         { name: 'Profit & Loss', href: '/accounts/pl', permissionId: 'sub_acc_pl' },
+        { name: 'Branch Wallet', href: '/accounts/branch-wallet', permissionId: 'PUBLIC' },
       ]
     },
     { 

@@ -49,6 +49,7 @@ import AddCapital from './pages/AddCapital';
 import DayBook from './pages/DayBook';
 import ProfitLoss from './pages/ProfitLoss';
 import Expenses from './pages/Expenses';
+import BranchWallet from './pages/BranchWallet';
 import Savings from './pages/Savings';
 import CreateSavings from './pages/CreateSavings';
 import RDPassbook from './pages/RDPassbook';
@@ -107,6 +108,7 @@ export default function App() {
               <Route path="/accounts/daybook" element={<DayBook />} />
               <Route path="/accounts/expense" element={<Expenses />} />
               <Route path="/accounts/pl" element={<ProfitLoss />} />
+              <Route path="/accounts/branch-wallet" element={<BranchWallet />} />
               <Route path="/salary" element={<Salary />} />
               <Route path="/schemes" element={<Schemes />} />
               <Route path="/schemes/new" element={<SchemeForm />} />

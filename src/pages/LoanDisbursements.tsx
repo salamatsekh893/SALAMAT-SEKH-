@@ -46,9 +46,10 @@ export default function LoanDisbursements() {
   const [confirmAction, setConfirmAction] = useState<{id: number, status: string} | null>(null);
   const [disbursementDate, setDisbursementDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [firstEmiDate, setFirstEmiDate] = useState<string>('');
+  const [disbursementMethod, setDisbursementMethod] = useState<'wallet' | 'bank'>('wallet');
 
   const executeStatusChange = async (id: number, newStatus: string) => {
-    if (newStatus === 'active' && !selectedBankId) {
+    if (newStatus === 'active' && disbursementMethod === 'bank' && !selectedBankId) {
       voiceFeedback.error();
       alert('Please select a Bank Account to disburse from.');
       return;
@@ -62,7 +63,8 @@ export default function LoanDisbursements() {
           status: newStatus,
           disbursement_date: newStatus === 'active' ? disbursementDate : undefined,
           first_emi_date: newStatus === 'active' ? (firstEmiDate || undefined) : undefined,
-          bank_id: newStatus === 'active' ? parseInt(selectedBankId, 10) : undefined
+          disbursement_method: newStatus === 'active' ? disbursementMethod : undefined,
+          bank_id: newStatus === 'active' && disbursementMethod === 'bank' ? parseInt(selectedBankId, 10) : undefined
         }),
       });
       voiceFeedback.success();
@@ -74,6 +76,7 @@ export default function LoanDisbursements() {
     } catch (err: any) {
       console.error(err);
       voiceFeedback.error();
+      alert(err.message || 'Disbursement failed.');
     } finally {
       setProcessingId(null);
     }
@@ -204,18 +207,31 @@ export default function LoanDisbursements() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">HO Bank A/C</label>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Disbursement Method</label>
                     <select
-                      value={selectedBankId}
-                      onChange={(e) => setSelectedBankId(e.target.value)}
+                      value={disbursementMethod}
+                      onChange={(e) => setDisbursementMethod(e.target.value as 'wallet' | 'bank')}
                       className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-sm font-bold text-slate-700 focus:border-emerald-300 focus:bg-white outline-none transition-all cursor-pointer shadow-sm"
                     >
-                      <option value="">-- Select Bank --</option>
-                      {banks.map((b: any) => (
-                         <option key={b.id} value={b.id}>{b.bank_name} - ₹{formatAmount(b.current_balance)}</option>
-                      ))}
+                      <option value="wallet">Branch Wallet (Cash)</option>
+                      <option value="bank">HO Bank Account</option>
                     </select>
                   </div>
+                  {disbursementMethod === 'bank' && (
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">HO Bank A/C</label>
+                      <select
+                        value={selectedBankId}
+                        onChange={(e) => setSelectedBankId(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-sm font-bold text-slate-700 focus:border-emerald-300 focus:bg-white outline-none transition-all cursor-pointer shadow-sm"
+                      >
+                        <option value="">-- Select Bank --</option>
+                        {banks.map((b: any) => (
+                           <option key={b.id} value={b.id}>{b.bank_name} - ₹{formatAmount(b.current_balance)}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               )}
               <div className="flex w-full gap-3">
