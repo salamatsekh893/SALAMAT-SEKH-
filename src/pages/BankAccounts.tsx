@@ -543,15 +543,15 @@ export default function BankAccounts() {
                         onChange={e => setTransactionForm({...transactionForm, source_type: e.target.value, source_id: ''})} 
                         className="w-full px-3 py-2 border border-slate-300 rounded font-bold text-slate-700 focus:outline-none focus:border-[#00bcd4]"
                       >
-                        <option value="other">Other / অন্যান্য</option>
+                        <option value="other">Other</option>
                         <option value="branch">
-                          {transactionForm.type === 'deposit' ? 'From Branch / ব্রাঞ্চ থেকে' : 'To Branch / ব্রাঞ্চে পাঠানো'}
+                          {transactionForm.type === 'deposit' ? 'From Branch' : 'To Branch'}
                         </option>
                       </select>
                     </div>
                     {transactionForm.source_type === 'branch' && (
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-1.5">Branch / ব্রাঞ্চ</label>
+                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-1.5">Branch</label>
                         <select 
                           required 
                           value={transactionForm.source_id} 

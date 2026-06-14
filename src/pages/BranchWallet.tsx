@@ -81,6 +81,13 @@ export default function BranchWallet() {
     }
   }, [user]);
 
+  // Pre-select first HO funding bank account when the super admin opens approval modal
+  useEffect(() => {
+    if (actionModal?.type === 'approve' && banks && banks.length > 0 && !selectedHOAccountId) {
+      setSelectedHOAccountId(banks[0].id.toString());
+    }
+  }, [banks, actionModal, selectedHOAccountId]);
+
   const handleCreateRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!requestAmount || parseFloat(requestAmount) <= 0) {
