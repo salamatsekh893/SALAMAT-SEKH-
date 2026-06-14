@@ -55,9 +55,20 @@ export default function Dashboard({ user }: { user: any }) {
     <div className="flex flex-col gap-2 sm:gap-4 pb-10">
       {/* Welcome Section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-indigo-100 pb-1.5 gap-2">
-        <div>
-          <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">{getRoleLabel()}</h1>
-          <p className="text-slate-500 font-medium text-[9px] sm:text-[10px] mt-0.5 uppercase tracking-widest">Dashboard Overview</p>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div>
+            <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">{getRoleLabel()}</h1>
+            <p className="text-slate-500 font-medium text-[9px] sm:text-[10px] mt-0.5 uppercase tracking-widest">Dashboard Overview</p>
+          </div>
+          {user?.role === 'branch_manager' && stats?.branchWalletBalance !== undefined && (
+            <div className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-xl text-emerald-800 shadow-sm shrink-0 self-start sm:self-center ml-0 sm:ml-2">
+              <Wallet className="w-4 h-4 text-emerald-600" />
+              <div className="flex flex-col">
+                <span className="text-[7.5px] font-black uppercase tracking-widest text-emerald-600/80 leading-none">Branch Wallet (ওয়ালেট ব্যালেন্স)</span>
+                <span className="text-xs font-black leading-none mt-0.5">₹{formatAmount(stats?.branchWalletBalance || 0)}</span>
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="hidden sm:flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-100">

@@ -600,10 +600,13 @@ async function startServer() {
           processing_fee DECIMAL(15, 2) DEFAULT 0.00,
           insurance_fee DECIMAL(15, 2) DEFAULT 0.00,
           emi_frequency VARCHAR(50) DEFAULT 'weekly',
+          disbursement_method VARCHAR(20) DEFAULT 'wallet',
+          bank_id INT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (customer_id) REFERENCES members(id) ON DELETE CASCADE,
           FOREIGN KEY (scheme_id) REFERENCES schemes(id),
-          FOREIGN KEY (branch_id) REFERENCES branches(id)
+          FOREIGN KEY (branch_id) REFERENCES branches(id),
+          FOREIGN KEY (bank_id) REFERENCES bank_accounts(id)
         )
       `);
       console.log("loans table ensured");
@@ -1146,8 +1149,66 @@ async function startServer() {
           )
         `);
         console.log("role_permissions table ensured");
+
+        // Seed default permissions for roles
+        const defaultRolePerms = [
+          {
+            role: 'branch_manager',
+            permissions: [
+              'sub_dash_stat_branches', 'sub_dash_stat_customers', 'sub_dash_stat_loans_pending', 'sub_dash_stat_loans_awaiting', 'sub_dash_stat_loans_active', 'sub_dash_stat_collection', 'sub_dash_portfolio', 'sub_dash_chart_trend',
+              'sub_dash_quick_close', 'sub_dash_quick_loan', 'sub_dash_quick_col', 'sub_dash_quick_member', 'sub_dash_quick_group_shift', 'sub_dash_quick_staff_shift', 'sub_dash_quick_day_shift', 'sub_dash_quick_branch_shift', 'sub_dash_quick_travel_log', 'sub_dash_quick_travel_approve',
+              'sub_hr_employee', 'sub_hr_attendance', 'sub_hr_salary',
+              'sub_member_group_list', 'sub_member_create_group', 'sub_member_add', 'sub_member_list', 'sub_member_group_shift', 'sub_member_staff_shift', 'sub_member_day_shift', 'sub_member_branch_shift',
+              'sub_loan_schemes', 'sub_loan_new', 'sub_loan_approvals', 'sub_loan_disburse', 'sub_loan_accounts',
+              'sub_col_daily', 'sub_col_approve', 'sub_col_view', 'sub_col_demand', 'sub_col_preclose', 'sub_col_overdue',
+              'sub_acc_daybook', 'sub_acc_expense', 'sub_acc_pl',
+              'sub_sav_accounts', 'sub_sav_rd',
+              'sub_sale_stock', 'sub_sale_new', 'sub_sale_history',
+              'sub_report_daily', 'sub_travel_log', 'sub_travel_approve',
+              'action_create', 'action_edit', 'action_delete'
+            ]
+          },
+          {
+            role: 'fo',
+            permissions: [
+              'sub_dash_stat_customers', 'sub_dash_stat_loans_pending', 'sub_dash_stat_loans_active', 'sub_dash_stat_collection', 'sub_dash_chart_trend',
+              'sub_dash_quick_col', 'sub_dash_quick_member', 'sub_dash_quick_travel_log',
+              'sub_member_group_list', 'sub_member_add', 'sub_member_list',
+              'sub_loan_schemes', 'sub_loan_new', 'sub_loan_accounts',
+              'sub_col_daily', 'sub_col_view', 'sub_col_demand',
+              'sub_sav_accounts',
+              'sub_travel_log',
+              'action_create', 'action_edit'
+            ]
+          },
+          {
+            role: 'manager',
+            permissions: [
+              'sub_dash_stat_branches', 'sub_dash_stat_customers', 'sub_dash_stat_loans_pending', 'sub_dash_stat_loans_awaiting', 'sub_dash_stat_loans_active', 'sub_dash_stat_bank', 'sub_dash_stat_collection', 'sub_dash_portfolio', 'sub_dash_chart_trend',
+              'sub_dash_quick_close', 'sub_dash_quick_loan', 'sub_dash_quick_col', 'sub_dash_quick_member', 'sub_dash_quick_group_shift', 'sub_dash_quick_staff_shift', 'sub_dash_quick_day_shift', 'sub_dash_quick_branch_shift', 'sub_dash_quick_travel_log', 'sub_dash_quick_travel_approve',
+              'sub_hr_employee', 'sub_hr_attendance', 'sub_hr_salary',
+              'sub_member_group_list', 'sub_member_create_group', 'sub_member_add', 'sub_member_list', 'sub_member_group_shift', 'sub_member_staff_shift', 'sub_member_day_shift', 'sub_member_branch_shift',
+              'sub_loan_schemes', 'sub_loan_new', 'sub_loan_approvals', 'sub_loan_disburse', 'sub_loan_accounts',
+              'sub_col_daily', 'sub_col_approve', 'sub_col_view', 'sub_col_demand', 'sub_col_preclose', 'sub_col_overdue',
+              'sub_acc_daybook', 'sub_acc_expense', 'sub_acc_pl',
+              'sub_sav_accounts', 'sub_sav_rd',
+              'sub_sale_stock', 'sub_sale_new', 'sub_sale_history',
+              'sub_report_daily', 'sub_travel_log', 'sub_travel_approve',
+              'action_create', 'action_edit', 'action_delete'
+            ]
+          }
+        ];
+
+        for (const item of defaultRolePerms) {
+          await conn.query(`
+            INSERT INTO role_permissions (role, permissions) 
+            VALUES (?, ?) 
+            ON DUPLICATE KEY UPDATE permissions = VALUES(permissions)
+          `, [item.role, JSON.stringify(item.permissions)]);
+        }
+        console.log("Default role permissions seeded successfully");
       } catch (e: any) {
-        console.error("role_permissions table creation failed:", e);
+        console.error("role_permissions table creation or seeding failed:", e);
       }
 
       try {
@@ -1278,6 +1339,13 @@ async function startServer() {
       try {
         await conn.query("ALTER TABLE loans ADD COLUMN disbursement_method VARCHAR(20) DEFAULT 'wallet'");
         console.log("Added disbursement_method column to loans table");
+      } catch (colErr) {
+        // Already exists or other harmless error
+      }
+
+      try {
+        await conn.query("ALTER TABLE loans ADD COLUMN bank_id INT NULL");
+        console.log("Added bank_id column to loans table");
       } catch (colErr) {
         // Already exists or other harmless error
       }
@@ -2035,6 +2103,14 @@ async function startServer() {
         trends = [{ month: 'Current', amount: collectionStats[0].total }];
       }
 
+      let branchWalletBalance = 0;
+      if (role === 'branch_manager' && branchId) {
+        const branchRows: any = await queryWithRetry('SELECT wallet_balance FROM branches WHERE id = ?', [branchId]);
+        if (branchRows && branchRows.length > 0) {
+          branchWalletBalance = Number(branchRows[0].wallet_balance) || 0;
+        }
+      }
+
       res.json({
         branches: counts[0].branches,
         customers: counts[0].customers,
@@ -2045,6 +2121,7 @@ async function startServer() {
         collections: collectionStats[0].total,
         totalBankBalance: Number(bankStats[0].total) || 0,
         totalCapital: Number(capitalStats[0].total) || 0,
+        branchWalletBalance,
         trends: trends.length > 0 ? trends : [{ month: 'Total', amount: collectionStats[0].total }],
         financeStats: {
           totalPrincipal: p,
