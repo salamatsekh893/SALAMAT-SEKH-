@@ -73,7 +73,7 @@ export default function DemandSheet() {
       } else if (loan.emi_frequency === 'weekly' || !loan.emi_frequency) {
         if (loan.meeting_day && loan.meeting_day === dayOfWeek) isMatch = true;
       } else if (loan.emi_frequency === 'monthly') {
-        const startVal = loan.disbursement_date || loan.start_date;
+        const startVal = loan.start_date || loan.disbursement_date;
         if (startVal) {
           const lStartDate = new Date(startVal);
           if (lStartDate.getDate() === current.getDate()) isMatch = true;
@@ -95,7 +95,7 @@ export default function DemandSheet() {
     const totalDemand = individualInstallment * matchCount;
     
     // Calculate Arrear
-    const allExpectedDates = getDemandCyclesInPeriod(loan, loan.disbursement_date || loan.start_date || loan.created_at, new Date().toISOString().split('T')[0]);
+    const allExpectedDates = getDemandCyclesInPeriod(loan, loan.start_date || loan.disbursement_date || loan.created_at, new Date().toISOString().split('T')[0]);
     const expectedEmiCount = allExpectedDates.length;
     let expectedAmount = expectedEmiCount * individualInstallment;
     
@@ -135,7 +135,7 @@ export default function DemandSheet() {
         'Group Day': loan.meeting_day || '-',
         'Loan Amount (INR)': Number(loan.amount || 0),
         'Disbursement Date': formatDate(loan.created_at),
-        'First EMI Date': formatDate(loan.disbursement_date || loan.start_date),
+        'First EMI Date': formatDate(loan.start_date || loan.disbursement_date),
         'EMIs (Paid/Total)': `${loan.paid_emi_count || 0}/${loan.duration_weeks || 0}`,
         'Balance (INR)': Math.round(balance * 100) / 100,
         'Demand (INR)': Math.round(Number(loan.calculatedDemand || 0) * 100) / 100,
@@ -353,7 +353,7 @@ export default function DemandSheet() {
                       <div className="font-extrabold">₹{formatAmount(Number(loan.amount || 0))}</div>
                       <div className="whitespace-nowrap text-[10px] print:text-[8px] text-slate-500 font-bold">{formatDate(loan.created_at)}</div>
                     </td>
-                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-black font-medium whitespace-nowrap">{formatDate(loan.disbursement_date || loan.start_date)}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-black font-medium whitespace-nowrap">{formatDate(loan.start_date || loan.disbursement_date)}</td>
                     <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-center text-[10px] print:text-[9.5px] font-bold text-black print:whitespace-nowrap">
                       {loan.paid_emi_count || 0}/{loan.duration_weeks || 0}
                       {((loan.paid_emi_count || 0) >= (loan.duration_weeks || 0)) && (

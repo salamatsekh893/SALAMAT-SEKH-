@@ -153,7 +153,7 @@ async function startServer() {
       const query = `
         SELECT 
           l.id, l.loan_no, l.amount as principal_amount, l.duration_weeks, l.interest, 
-          l.installment as emi_amount, COALESCE(l.disbursement_date, l.start_date) as start_date, l.emi_frequency, l.total_repayment, l.branch_id,
+          l.installment as emi_amount, COALESCE(l.start_date, l.disbursement_date) as start_date, l.emi_frequency, l.total_repayment, l.branch_id,
           m.full_name as member_name, m.member_code, m.mobile_no, m.profile_image, m.group_id,
           g.group_name, g.group_code, b.branch_name,
           COALESCE(c_stats.total_paid, 0) as total_paid,

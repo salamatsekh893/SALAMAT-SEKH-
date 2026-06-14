@@ -58,17 +58,26 @@ const getScheduleBadge = (loan: any, selectedDate: string) => {
 };
 
 const calculateOverdueInfo = (loan: any, selectedDate: string, totalPaid: number) => {
-  const baseDateStr = loan.disbursement_date || loan.start_date;
-  if (!baseDateStr || !selectedDate) return { overdue: 0, expected: 0, emisDue: 0 };
+  const baseDateStr = loan.start_date || loan.disbursement_date;
+  
+  const freq = (loan.emi_frequency || loan.term_type || 'weekly').toLowerCase();
+  const installment = parseFloat(loan.installment) || 0;
+  const maxEmis = parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 0;
+  const paidEmisCount = installment > 0 ? Math.round(totalPaid / installment) : 0;
+
+  if (!baseDateStr || !selectedDate) {
+    return { overdue: 0, expected: 0, emisDue: 0, advance: 0, maxEmis, paidEmisCount, termOver: false };
+  }
   
   const start = parseISO(baseDateStr);
   const current = parseISO(selectedDate);
   
-  if (current < start) return { overdue: 0, expected: 0, emisDue: 0 };
+  if (current < start) {
+    return { overdue: 0, expected: 0, emisDue: 0, advance: 0, maxEmis, paidEmisCount, termOver: false };
+  }
   
-  const freq = (loan.emi_frequency || loan.term_type || 'weekly').toLowerCase();
-  const installment = parseFloat(loan.installment) || 0;
   let expectedEmis = 0;
+  let termOver = false;
   
   const diffDays = Math.max(0, differenceInDays(current, start));
   
@@ -83,10 +92,9 @@ const calculateOverdueInfo = (loan: any, selectedDate: string, totalPaid: number
     expectedEmis = Math.floor(diffDays / 7) + 1;
   }
   
-  // Cap at max EMIs from loan duration
-  const maxEmis = parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 0;
-  if (maxEmis > 0) {
-    expectedEmis = Math.min(expectedEmis, maxEmis);
+  if (maxEmis > 0 && expectedEmis > maxEmis) {
+    termOver = true;
+    expectedEmis = maxEmis;
   }
   
   const expectedDemand = expectedEmis * installment;
@@ -97,7 +105,10 @@ const calculateOverdueInfo = (loan: any, selectedDate: string, totalPaid: number
     overdue: roundVal(overdue), 
     expected: roundVal(expectedDemand),
     emisDue: expectedEmis,
-    advance: roundVal(advance)
+    advance: roundVal(advance),
+    maxEmis,
+    paidEmisCount,
+    termOver
   };
 };
 
@@ -608,15 +619,32 @@ export default function BatchCollection() {
                              <span className="text-[11px] font-bold text-slate-500 whitespace-nowrap">{formatAmount(loan.amount)}</span>
                           </td>
                           <td className="py-2 px-2 text-right">
-                             <span className="text-[11px] font-black text-emerald-600 whitespace-nowrap">{formatAmount(totalPaidSum)}</span>
+                             <div className="flex flex-col items-end leading-none">
+                               <span className="text-[11px] font-black text-emerald-600 whitespace-nowrap">{formatAmount(totalPaidSum)}</span>
+                               <span className="text-[9px] font-bold text-slate-400 mt-0.5 whitespace-nowrap">({installmentAmt > 0 ? Math.round(totalPaidSum / installmentAmt) : 0}/{parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 0})</span>
+                             </div>
                           </td>
                           <td className="py-2 px-2 text-center">
                              <span className="text-[11px] font-black text-slate-900 whitespace-nowrap">{formatAmount(loan.installment)}</span>
                           </td>
                           <td className="py-2 px-2 text-center">
                              {(() => {
-                               const { overdue } = calculateOverdueInfo(loan, date, totalPaidSum);
-                               return overdue > 0 ? (
+                               const { overdue, termOver } = calculateOverdueInfo(loan, date, totalPaidSum);
+                               if (termOver) {
+                                  return (
+                                    <div className="flex flex-col items-center gap-1">
+                                      <span className="bg-amber-100 text-amber-800 text-[9px] font-black px-1.5 py-0.5 rounded border border-amber-300 uppercase tracking-tighter whitespace-nowrap leading-none">
+                                        TERM OVER
+                                      </span>
+                                      {overdue > 0 && (
+                                        <span className="text-[8px] font-bold text-rose-500 whitespace-nowrap">
+                                          OD: {formatAmount(overdue)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                }
+                                return overdue > 0 ? (
                                  <div className="flex flex-col items-center">
                                    <span className="bg-rose-50 text-rose-600 text-[9px] font-black px-1.5 py-0.5 rounded border border-rose-100 uppercase italic whitespace-nowrap leading-none">
                                      OD: {formatAmount(overdue)}
@@ -736,13 +764,28 @@ export default function BatchCollection() {
                           <div className="flex flex-wrap gap-1.5 mt-3">
                             <span className="bg-slate-50 text-slate-700 text-[9px] font-black px-2 py-1 rounded-md border border-slate-100 uppercase">EMI: {formatAmount(installmentAmt)}</span>
                             <span className="bg-slate-50 text-slate-500 text-[9px] font-black px-2 py-1 rounded-md border border-slate-100 uppercase">P: {formatAmount(principalAmt)}</span>
-                            <span className="bg-emerald-50 text-emerald-700 text-[9px] font-black px-2 py-1 rounded-md border border-emerald-100 uppercase">Paid: {formatAmount(totalPaidSum)}</span>
                             {(() => {
-                              const { overdue, advance } = calculateOverdueInfo(loan, date, totalPaidSum);
+                              const { paidEmisCount, maxEmis, termOver, overdue, advance } = calculateOverdueInfo(loan, date, totalPaidSum);
                               return (
                                 <>
-                                  {overdue > 0 && <span className="bg-rose-50 text-rose-600 text-[9px] font-black px-2 py-1 rounded-md border border-rose-100 uppercase">OD: {formatAmount(overdue)}</span>}
-                                  {advance > 0 && <span className="bg-indigo-50 text-indigo-600 text-[9px] font-black px-2 py-1 rounded-md border border-indigo-100 uppercase">ADV: {formatAmount(advance)}</span>}
+                                  <span className="bg-emerald-50 text-emerald-700 text-[9px] font-black px-2 py-1 rounded-md border border-emerald-100 uppercase">
+                                    Paid: {formatAmount(totalPaidSum)} ({paidEmisCount}/{maxEmis})
+                                  </span>
+                                  {termOver && (
+                                    <span className="bg-amber-100 text-amber-800 text-[9px] font-black px-2 py-1 rounded-md border border-amber-200 uppercase">
+                                      TERM OVER
+                                    </span>
+                                  )}
+                                  {overdue > 0 && (
+                                    <span className="bg-rose-50 text-rose-600 text-[9px] font-black px-2 py-1 rounded-md border border-rose-100 uppercase">
+                                      OD: {formatAmount(overdue)}
+                                    </span>
+                                  )}
+                                  {advance > 0 && (
+                                    <span className="bg-indigo-50 text-indigo-600 text-[9px] font-black px-2 py-1 rounded-md border border-indigo-100 uppercase">
+                                      ADV: {formatAmount(advance)}
+                                    </span>
+                                  )}
                                 </>
                               );
                             })()}
