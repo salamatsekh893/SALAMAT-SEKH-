@@ -65,7 +65,7 @@ export default function DailyDemand() {
 
     // IF collected today or in advance, don't show
     // Logic: check paid_emi_count vs expected_emi_count
-    const startDate = loan.start_date ? new Date(loan.start_date) : new Date(loan.created_at);
+    const startDate = new Date(loan.disbursement_date || loan.start_date || loan.created_at);
     startDate.setHours(0,0,0,0);
     
     if (startDate > today) return false;

@@ -229,7 +229,7 @@ export default function OverdueList() {
                     </div>
                   </td>
                   <td className="p-4 text-xs font-medium text-slate-600">
-                    {format(new Date(loan.start_date), 'dd-MMM-yyyy')}
+                    {format(new Date(loan.disbursement_date || loan.start_date), 'dd-MMM-yyyy')}
                   </td>
                   <td className="p-4 text-xs font-bold text-emerald-600">
                     ₹{formatAmount(loan.total_paid)}

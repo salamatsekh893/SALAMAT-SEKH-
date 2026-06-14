@@ -42,8 +42,9 @@ const getScheduleBadge = (loan: any, selectedDate: string) => {
       return loan.collection_week.toUpperCase();
     }
     // If it's the monthly anniversary of the first installment
-    if (loan.start_date) {
-        const firstDate = parseISO(loan.start_date);
+    const firstDateStr = loan.disbursement_date || loan.start_date;
+    if (firstDateStr) {
+        const firstDate = parseISO(firstDateStr);
         if (firstDate.getDate() === dayOfMonth) return "MONTHLY";
     }
     return `${weekOfMonth}${getOrdinal(weekOfMonth)} WEEK`;
@@ -57,9 +58,10 @@ const getScheduleBadge = (loan: any, selectedDate: string) => {
 };
 
 const calculateOverdueInfo = (loan: any, selectedDate: string, totalPaid: number) => {
-  if (!loan.start_date || !selectedDate) return { overdue: 0, expected: 0, emisDue: 0 };
+  const baseDateStr = loan.disbursement_date || loan.start_date;
+  if (!baseDateStr || !selectedDate) return { overdue: 0, expected: 0, emisDue: 0 };
   
-  const start = parseISO(loan.start_date);
+  const start = parseISO(baseDateStr);
   const current = parseISO(selectedDate);
   
   if (current < start) return { overdue: 0, expected: 0, emisDue: 0 };
