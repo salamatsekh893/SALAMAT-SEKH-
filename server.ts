@@ -2803,8 +2803,17 @@ async function startServer() {
       const { status, disbursement_date, first_emi_date, bank_id, disbursement_method } = req.body;
       const validStatuses = ['pending', 'approved', 'active', 'closed', 'rejected'];
       if (!validStatuses.includes(status)) {
+        await conn.rollback();
         return res.status(400).json({ error: 'Invalid status' });
       }
+
+      // Dynamically ensure columns exist to prevent crashes on live/shared environments
+      try {
+        await conn.query("ALTER TABLE loans ADD COLUMN disbursement_method VARCHAR(20) DEFAULT 'wallet'");
+      } catch (alterErr) {}
+      try {
+        await conn.query("ALTER TABLE loans ADD COLUMN bank_id INT NULL");
+      } catch (alterErr) {}
 
       let updateQuery = 'UPDATE loans SET status = ?';
       let params: any[] = [status];
@@ -2856,7 +2865,7 @@ async function startServer() {
             const [bankCheck]: any = await conn.query('SELECT current_balance FROM bank_accounts WHERE id = ? FOR UPDATE', [bank_id]);
             if (!bankCheck.length || parseFloat(bankCheck[0].current_balance) < amount) {
               await conn.rollback();
-              return res.status(400).json({ error: 'Insufficient bank balance for disbursement' });
+              return res.status(400).json({ error: `Insufficient bank balance for disbursement. Available: ৳${bankCheck.length ? parseFloat(bankCheck[0].current_balance).toLocaleString('en-IN') : 0}` });
             }
 
             // Deduct from HO bank
@@ -2878,10 +2887,10 @@ async function startServer() {
 
       await conn.commit();
       res.json({ success: true, status });
-    } catch (err) {
+    } catch (err: any) {
       await conn.rollback();
-      console.error(err);
-      res.status(500).json({ error: 'Database error' });
+      console.error("Disbursement update error details:", err);
+      res.status(500).json({ error: 'Database error: ' + err.message });
     } finally {
       conn.release();
     }
