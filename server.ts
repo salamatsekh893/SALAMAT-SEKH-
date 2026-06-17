@@ -2248,10 +2248,46 @@ async function startServer() {
         return res.status(400).json({ error: 'Missing targetGroupId or memberIds' });
       }
 
-      await pool.query(
-        `UPDATE members SET group_id = ? WHERE id IN (?)`,
-        [targetGroupId, memberIds]
+      // 1. Get the branch_id of the target group
+      const [groupRows]: any = await pool.query(
+        `SELECT branch_id FROM groups WHERE id = ?`,
+        [targetGroupId]
       );
+      
+      const targetBranchId = groupRows && groupRows.length > 0 ? groupRows[0].branch_id : null;
+
+      if (targetBranchId) {
+        // 2. Update members SET group_id and branch_id
+        await pool.query(
+          `UPDATE members SET group_id = ?, branch_id = ? WHERE id IN (?)`,
+          [targetGroupId, targetBranchId, memberIds]
+        );
+
+        // 3. Update loans SET branch_id
+        await pool.query(
+          `UPDATE loans SET branch_id = ? WHERE customer_id IN (?)`,
+          [targetBranchId, memberIds]
+        );
+
+        // 4. Update collections SET branch_id
+        const [memberLoans]: any = await pool.query(
+          `SELECT id FROM loans WHERE customer_id IN (?)`,
+          [memberIds]
+        );
+        if (memberLoans && memberLoans.length > 0) {
+          const loanIds = memberLoans.map((l: any) => l.id);
+          await pool.query(
+            `UPDATE collections SET branch_id = ? WHERE loan_id IN (?)`,
+            [targetBranchId, loanIds]
+          );
+        }
+      } else {
+        // Fallback if target group has no branch
+        await pool.query(
+          `UPDATE members SET group_id = ? WHERE id IN (?)`,
+          [targetGroupId, memberIds]
+        );
+      }
       
       res.json({ success: true, message: `${memberIds.length} members shifted to group ${targetGroupId}` });
     } catch (err: any) {
@@ -2319,6 +2355,19 @@ async function startServer() {
         [targetBranchId, memberIds]
       );
 
+      // CRITICAL: Update collections branch_id for these members' loans too
+      const [memberLoans]: any = await pool.query(
+        `SELECT id FROM loans WHERE customer_id IN (?)`,
+        [memberIds]
+      );
+      if (memberLoans && memberLoans.length > 0) {
+        const loanIds = memberLoans.map((l: any) => l.id);
+        await pool.query(
+          `UPDATE collections SET branch_id = ? WHERE loan_id IN (?)`,
+          [targetBranchId, loanIds]
+        );
+      }
+
       res.json({ success: true, message: `${memberIds.length} members shifted to branch ${targetBranchId} and group ${targetGroupId}` });
     } catch (err: any) {
       console.error(err);
@@ -2364,6 +2413,19 @@ async function startServer() {
           `UPDATE loans SET branch_id = ? WHERE customer_id IN (?)`,
           [targetBranchId, mIds]
         );
+
+        // Update collections branch_id for these loans too
+        const [groupLoans]: any = await conn.query(
+          `SELECT id FROM loans WHERE customer_id IN (?)`,
+          [mIds]
+        );
+        if (groupLoans && groupLoans.length > 0) {
+          const loanIds = groupLoans.map((l: any) => l.id);
+          await conn.query(
+            `UPDATE collections SET branch_id = ? WHERE loan_id IN (?)`,
+            [targetBranchId, loanIds]
+          );
+        }
       }
 
       await conn.commit();
@@ -2444,6 +2506,35 @@ async function startServer() {
           id
         ]
       );
+
+      // Cascade branch update to member, active loans & collections if group_id is provided
+      const targetGroupId = toInt(cleanData.group_id);
+      if (targetGroupId) {
+        const [gRows]: any = await pool.query("SELECT branch_id FROM groups WHERE id = ?", [targetGroupId]);
+        const targetBranchId = gRows && gRows.length > 0 ? gRows[0].branch_id : null;
+        if (targetBranchId) {
+          await pool.query(
+            "UPDATE members SET branch_id = ? WHERE id = ?",
+            [targetBranchId, id]
+          );
+          await pool.query(
+            "UPDATE loans SET branch_id = ? WHERE customer_id = ?",
+            [targetBranchId, id]
+          );
+          const [mLoans]: any = await pool.query(
+            "SELECT id FROM loans WHERE customer_id = ?",
+            [id]
+          );
+          if (mLoans && mLoans.length > 0) {
+            const loanIds = mLoans.map((l: any) => l.id);
+            await pool.query(
+              "UPDATE collections SET branch_id = ? WHERE loan_id IN (?)",
+              [targetBranchId, loanIds]
+            );
+          }
+        }
+      }
+
       res.json({ success: true });
     } catch (err: any) {
       console.error('Update member error:', err.message);
