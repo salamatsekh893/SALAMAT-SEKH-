@@ -4133,22 +4133,32 @@ async function startServer() {
         return isNaN(parsed) ? null : parsed;
       };
 
+      // Automatically determine branch_id based on selected group_id
+      let resolvedBranchId = null;
+      const targetGroupId = toInt(cleanData.group_id);
+      if (targetGroupId) {
+        const [gRows]: any = await pool.query("SELECT branch_id FROM groups WHERE id = ?", [targetGroupId]);
+        if (gRows && gRows.length > 0) {
+          resolvedBranchId = gRows[0].branch_id;
+        }
+      }
+
       const member_code = `MEM-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
       const [result]: any = await pool.query(
         `INSERT INTO members (
           member_code, full_name, aadhar_no, guardian_name, guardian_type, marital_status, gender, dob, age,
           religion, category, education, occupation, monthly_income, family_members, earning_members,
           house_type, residence_years, mobile_no, alt_mobile_no, pin_code, state, district,
-          post_office, police_station, village, voter_id, pan_no, group_id, 
+          post_office, police_station, village, voter_id, pan_no, group_id, branch_id,
           mem_bank_ifsc, mem_bank_name, mem_bank_ac, nominee_name, nominee_relation, nominee_aadhar,
           nominee_dob, nominee_age, profile_image, house_image, aadhar_image_front, aadhar_image_back,
           voter_image_front, voter_image_back, customer_signature, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           member_code, cleanData.full_name, cleanData.aadhar_no, cleanData.guardian_name, cleanData.guardian_type, cleanData.marital_status, cleanData.gender, cleanData.dob, toInt(cleanData.age),
           cleanData.religion, cleanData.category, cleanData.education, cleanData.occupation, toFloat(cleanData.monthly_income), toInt(cleanData.family_members), toInt(cleanData.earning_members),
           cleanData.house_type, toInt(cleanData.residence_years), cleanData.mobile_no, cleanData.alt_mobile_no, cleanData.pin_code, cleanData.state, cleanData.district,
-          cleanData.post_office, cleanData.police_station, cleanData.village, cleanData.voter_id, cleanData.pan_no, toInt(cleanData.group_id),
+          cleanData.post_office, cleanData.police_station, cleanData.village, cleanData.voter_id, cleanData.pan_no, targetGroupId, resolvedBranchId,
           cleanData.mem_bank_ifsc, cleanData.mem_bank_name, cleanData.mem_bank_ac, cleanData.nominee_name, cleanData.nominee_relation, cleanData.nominee_aadhar,
           cleanData.nominee_dob, toInt(cleanData.nominee_age), cleanData.profile_image, cleanData.house_image, cleanData.aadhar_image_front, cleanData.aadhar_image_back,
           cleanData.voter_image_front, cleanData.voter_image_back, cleanData.customer_signature, cleanData.status || 'Active'

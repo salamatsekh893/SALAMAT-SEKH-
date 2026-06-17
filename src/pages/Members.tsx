@@ -204,7 +204,7 @@ export default function Members() {
                       <td className="px-8 py-6">
                         <div className="flex flex-col gap-1.5">
                           <span className="inline-flex px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-xl border border-emerald-100 self-start">
-                            {member.group_id ? 'GROUP MEMBER' : 'INDIVIDUAL'}
+                            {member.group_name ? `👥 ${member.group_name}` : 'INDIVIDUAL'}
                           </span>
                           {member.join_date && (
                             <span className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">ENROLLED: {format(new Date(member.join_date), 'dd MMM yyyy')}</span>
@@ -394,9 +394,9 @@ export default function Members() {
                       <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-black tracking-widest uppercase rounded-lg border border-emerald-200">
                         {selectedMember.status || 'ACTIVE'}
                       </span>
-                      {selectedMember.group_id && (
+                      {selectedMember.group_name && (
                         <span className="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-black tracking-widest uppercase rounded-lg border border-amber-200">
-                          GROUP: {selectedMember.group_id}
+                          GROUP: {selectedMember.group_name}
                         </span>
                       )}
                     </div>
