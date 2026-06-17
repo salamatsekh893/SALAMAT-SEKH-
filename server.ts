@@ -5929,43 +5929,99 @@ ALWAYS SPEAK AND WRITE IN POLITE, ENGAGING, AND WARM BENGALI (বাংলা �
 Always address the user respectfully by their name (e.g., "${name} সাহেব", or "ছালামত ভাই / স্যার" if their name is Salamat/ছালামত).
 Be extremely polite, clear, analytical, and professional. Use Bangladesh/West Bengal style microfinance terminology.
 
-You are equipped with real-time operational data from our database:
-${statsSummaryStr}
+You have access to a tool called "query_database_read_only" that allows you to execute MySQL SELECT queries on the Aljooya database to fetch any required information in real-time. Use it whenever a user asks a specific question about members, collections, loans, expenses, branches, dates, or anything else you don't know naturally.
 
-To help users tracking data, here is the Database Schema outline for Aljooya (you cannot query it dynamically, but you can explain where data is kept):
-- branches (id, company_id, branch_name, branch_code, area, district, status, wallet_balance...)
-- members (id, member_code, full_name, mobile_no, join_date, savings_balance, company_id, group_id, branch_id, status...)
-- groups (id, group_name, branch_id, meeting_day, collection_type...)
-- loans (id, loan_no, customer_id, amount, interest, installment, start_date, status, branch_id, total_repayment...)
-- collections (id, loan_id, amount_paid, payment_date, collected_by, branch_id, status...)
-- expenses (id, branch_id, category, amount, date...)
-- company_capital (id, date, amount, payment_method...)
-- savings_accounts & savings_transactions (for tracking member savings)
-- daily_cash_balances (branch_id, date, opening_balance, closing_balance...)
-- bank_transactions & bank_accounts
-- travel_logs, travel_shifts, attendance, leaves, salaries, users.
+Database Schema Outline:
+- branches (id, company_id, branch_name, branch_code, area, district, status, wallet_balance, etc)
+- members (id, member_code, full_name, mobile_no, join_date, savings_balance, branch_id, status, etc)
+- groups (id, group_name, branch_id, meeting_day, collection_type, etc)
+- loans (id, loan_no, customer_id, amount, interest, installment, start_date, status, branch_id, total_repayment, etc)
+- collections (id, loan_id, amount_paid, payment_date, collected_by, branch_id, status, etc)
+- expenses (id, branch_id, category, amount, date, etc)
+- daily_cash_balances (branch_id, date, opening_balance, total_inflow, total_outflow, closing_balance, etc)
+- users (id, name, phone, role, branch_id, status)
+- salaries (branch_id, user_id, month, year, net_salary, etc)
+- travel_logs, travel_shifts (for tracking employee travel distances)
+- leaves, attendance (for tracking employee attendances)
 
 Act as an intelligent advisor:
 1. Provide deep insights: Don't just repeat numbers. Analyze them.
-2. If asked to track specific detailed information like a particular user's history, inform them politely how they can find it in the dashboard (since you output text based only on summary data above).
-3. If asked about MFI procedures, explain concepts of Joint Liability Groups (JLG), collection schedules, and interest calculations intelligently.
-4. Always strictly format your answers with clean paragraphs, bullet points, and highlight critical numbers in bold.`;
+2. If the user asks a question about data (like "how many members", "who is X", "what is today's collection"), YOU MUST USE THE "query_database_read_only" TOOL to run a SQL SELECT query first to find the answer.
+3. Only SELECT queries are permitted (e.g., SELECT COUNT(*), SELECT SUM(), SELECT * ... LIMIT 10). Always format queries using standard MySQL syntax. When searching names use LIKE '%name%'.
+4. Do NOT say "I cannot query" or "I don't have access" - you DO have access through the tool.
+5. Always strictly format your ultimate answers with clean paragraphs, bullet points, and highlight critical numbers in bold in Bengali.`;
 
-      const response = await ai.models.generateContent({
+      let response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: formattedContents,
         config: {
           systemInstruction: systemInstruction,
           temperature: 0.7,
+          tools: [{
+            functionDeclarations: [
+               {
+                 name: "query_database_read_only",
+                 description: "Executes a SELECT SQL query against the Aljooya MySQL database to retrieve live data. ONLY SELECT queries are permitted. Use this to lookup real-time information.",
+                 parameters: {
+                   type: "OBJECT",
+                   properties: {
+                     query: {
+                       type: "STRING",
+                       description: "The complete MySQL SELECT query to execute. Example: SELECT * FROM members WHERE full_name LIKE '%সাদিয়া%' LIMIT 5"
+                     }
+                   },
+                   required: ["query"]
+                 }
+               }
+            ]
+          }]
         },
       });
+
+      if (response.functionCalls && response.functionCalls.length > 0) {
+        const call = response.functionCalls[0];
+        if (call.name === "query_database_read_only") {
+          const sql = call.args.query as string;
+          console.log("[AI DB QUERY]:", sql);
+          let toolResponseData: any = null;
+          try {
+             if (!sql.trim().toUpperCase().startsWith("SELECT") && !sql.trim().toUpperCase().startsWith("SHOW")) {
+                toolResponseData = { error: "Only SELECT queries are allowed." };
+             } else {
+                const [results]: any = await pool.query(sql);
+                toolResponseData = { data: Array.isArray(results) ? results.slice(0, 30) : results };
+             }
+          } catch(e: any) {
+             toolResponseData = { error: e.message };
+             console.error("[AI DB QUERY ERROR]:", e.message);
+          }
+          
+          formattedContents.push({ role: "model", parts: [{ functionCall: { name: call.name, args: call.args } }] });
+          formattedContents.push({ role: "user", parts: [{ functionResponse: { name: call.name, response: toolResponseData } }] });
+
+          response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: formattedContents,
+            config: {
+              systemInstruction: systemInstruction,
+              temperature: 0.7,
+            },
+          });
+        }
+      }
 
       res.json({
         response: response.text || "আমি দুঃখিত, উত্তর তৈরি করতে পারিনি। অনুগ্রহ করে আবার চেষ্টা করুন।"
       });
     } catch (err: any) {
       console.error("AI Assistant Error:", err);
-      res.status(500).json({ error: "এআই সহকারীর সাথে যোগাযোগ করতে ব্যর্থ হয়েছে: " + err.message });
+      if (err.message && err.message.includes("429")) {
+        res.status(429).json({ error: "বর্তমানে সার্ভারে অনেক চাপ রয়েছে। অনুগ্রহ করে একটু পর আবার চেষ্টা করুন।" });
+      } else if (err.message && err.message.includes("403")) {
+        res.status(403).json({ error: "আপনার API Key তে সমস্যা রয়েছে অথবা লিক হয়ে গেছে। দয়া করে সেটিংস থেকে নতুন API Key দিন।" });
+      } else {
+        res.status(500).json({ error: "এআই সহকারীর সাথে যোগাযোগ করতে সমস্যা হচ্ছে, অনুগ্রহ করে আবার চেষ্টা করুন।" });
+      }
     }
   });
 
