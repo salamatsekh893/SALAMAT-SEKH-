@@ -34,8 +34,7 @@ export default function AIChatBot({ user }: AIChatBotProps) {
   // Initialize with welcome message when opened
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      const isSalamat = user.name.toLowerCase().includes('salamat') || user.role === 'superadmin';
-      const greetingName = isSalamat ? 'ছালামত ভাই' : user.name;
+      const greetingName = user.name;
       
       setMessages([
         {
@@ -45,7 +44,7 @@ export default function AIChatBot({ user }: AIChatBotProps) {
         }
       ]);
     }
-  }, [isOpen, messages.length, user.name, user.role]);
+  }, [isOpen, messages.length, user.name]);
 
   // Auto-scroll to bottom of messages
   useEffect(() => {
@@ -210,7 +209,7 @@ export default function AIChatBot({ user }: AIChatBotProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 50, scale: 0.9 }}
             transition={{ type: "spring", damping: 25, stiffness: 350 }}
-            className="fixed bottom-24 right-6 w-[400px] max-w-[calc(100vw-2rem)] h-[560px] z-50 bg-slate-50 shadow-[0_20px_50px_rgba(15,23,42,0.15)] rounded-2xl border border-slate-200/80 flex flex-col overflow-hidden"
+            className="fixed bottom-24 right-4 sm:right-6 w-[calc(100vw-2rem)] sm:w-[420px] h-[600px] max-h-[calc(100vh-8rem)] z-50 bg-slate-50 shadow-[0_20px_50px_rgba(15,23,42,0.15)] rounded-2xl border border-slate-200/80 flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-800 text-white px-5 py-4 flex items-center justify-between border-b border-indigo-100 shadow-sm">
