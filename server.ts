@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import { Resend } from 'resend';
 import https from "https";
 import http from "http";
+import { GoogleGenAI } from "@google/genai";
 
 dotenv.config({ override: true });
 
@@ -5853,6 +5854,103 @@ async function startServer() {
     } catch (err: any) {
       console.error(err);
       res.status(500).json({ error: 'Failed to reject wallet request' });
+    }
+  });
+
+  // AI Chat Assistant endpoint
+  app.post("/api/ai/chat", verifyToken, async (req: any, res) => {
+    try {
+      const { messages } = req.body;
+      const { role, name } = req.user;
+
+      // Restrict access to Superadmin, branch managers, and managers
+      if (!['superadmin', 'branch_manager', 'am', 'dm', 'manager'].includes(role)) {
+        return res.status(403).json({ error: 'আসসালামু আলাইকুম, এই এআই চ্যাট অ্যাসিস্ট্যান্ট শুধুমাত্র সুপার এডমিন এবং ব্রাঞ্চ ম্যানেজারদের জন্য সংরক্ষিত।' });
+      }
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.json({
+          response: "আসসালামু আলাইকুম! আলজুয়া এমএফআই এআই সহকারী সচল করার জন্য দয়া করে আপনার সেটিংস (Settings > Secrets) থেকে `GEMINI_API_KEY` যোগ করুন।"
+        });
+      }
+
+      // Fetch key metrics to inject into system instructions
+      let statsSummaryStr = "No data available";
+      try {
+        const [[mCount]]: any = await pool.query("SELECT COUNT(*) as total_members, SUM(CASE WHEN status = 'Active' THEN 1 ELSE 0 END) as active_members FROM members");
+        const [[gCount]]: any = await pool.query("SELECT COUNT(*) as total_groups FROM groups");
+        const [[bCount]]: any = await pool.query("SELECT COUNT(*) as total_branches FROM branches");
+        const [[lStats]]: any = await pool.query("SELECT COUNT(*) as total_loans, SUM(amount) as disburse_amt, SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_loans FROM loans");
+        const [[cStats]]: any = await pool.query("SELECT SUM(amount_paid) as total_collected FROM collections");
+        const [[cToday]]: any = await pool.query("SELECT SUM(amount_paid) as today_collected FROM collections WHERE DATE(payment_date) = CURDATE()");
+        const [[eToday]]: any = await pool.query("SELECT SUM(amount) as today_expense FROM expenses WHERE DATE(date) = CURDATE()");
+        const [[pLoans]]: any = await pool.query("SELECT COUNT(*) as pending_loans FROM loans WHERE status = 'pending'");
+        const [branchesList]: any = await pool.query("SELECT branch_name FROM branches LIMIT 10");
+
+        statsSummaryStr = JSON.stringify({
+          total_members: mCount?.total_members || 0,
+          active_members: mCount?.active_members || 0,
+          total_groups: gCount?.total_groups || 0,
+          total_branches: bCount?.total_branches || 0,
+          branches: branchesList.map((b: any) => b.branch_name),
+          total_registered_loans: lStats?.total_loans || 0,
+          total_disbursed_amount: lStats?.disburse_amt || 0,
+          active_loans: lStats?.active_loans || 0,
+          total_collected: cStats?.total_collected || 0,
+          today_collected: cToday?.today_collected || 0,
+          today_expense: eToday?.today_expense || 0,
+          loans_pending_approval: pLoans?.pending_loans || 0,
+          system_current_date: new Date().toLocaleDateString('bn-BD', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+        }, null, 2);
+      } catch (err) {
+        console.warn("Failed to retrieve summary stats for AI context:", err);
+      }
+
+      // Format messages in accordance with @google/genai guidelines
+      const formattedContents = messages && messages.length > 0 ? messages.map((msg: any) => ({
+        role: msg.role === 'assistant' || msg.role === 'model' ? 'model' : 'user',
+        parts: [{ text: msg.text || msg.content }]
+      })) : [{ role: 'user', parts: [{ text: 'আসসালামু আলাইকুম' }] }];
+
+      // Initialize GoogleGenAI lazily with recommended telemetry
+      const ai = new GoogleGenAI({
+        apiKey: apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          }
+        }
+      });
+
+      const systemInstruction = `You are Aljooya MFI AI Assistant (আলজুয়া এমএফআই এআই সহকারী), a highly skilled management assistant custom-built for Aljooya Subidha Services microfinance institution (MFI).
+Your primary users are Salamat Sekh (ছালামত ভাই - Super Admin) and our Branch Managers.
+ALWAYS SPEAK AND WRITE IN POLITE, ENGAGING, AND WARM BENGALI (বাংলা ভাষা).
+Always address Salamat Sekh respectfully as "ছালামত ভাই" (Salamat Bhai) or "স্যার" (Sir) if you are chatting with him (the logged in user is named "${name}").
+Be extremely polite, clear, and professional. Use Bangladesh/West Bengal style microfinance terminology.
+
+You are equipped with real-time operational data from our database to provide accurate assistance:
+${statsSummaryStr}
+
+Use this real-time data to answer operational questions. If requested about total loans, today's collection, branch counts, or member counts, retrieve the numbers from the data above and state them clearly.
+If asked about MFI procedures, explain the concepts of Joint Liability Groups (JLG), collection schedules, interest calculations (flat vs reducing), default rates, and loan approvals within the context of Aljooya Subidha Services.
+Keep your answers beautifully formatted with bullet points for readability.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: formattedContents,
+        config: {
+          systemInstruction: systemInstruction,
+          temperature: 0.7,
+        },
+      });
+
+      res.json({
+        response: response.text || "আমি দুঃখিত, উত্তর তৈরি করতে পারিনি। অনুগ্রহ করে আবার চেষ্টা করুন।"
+      });
+    } catch (err: any) {
+      console.error("AI Assistant Error:", err);
+      res.status(500).json({ error: "এআই সহকারীর সাথে যোগাযোগ করতে ব্যর্থ হয়েছে: " + err.message });
     }
   });
 

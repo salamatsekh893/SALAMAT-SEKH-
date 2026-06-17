@@ -10,6 +10,7 @@ import {
   Calculator, PiggyBank, ShoppingCart, FileText, Car
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
+import AIChatBot from './AIChatBot';
 
 interface LayoutProps {
   user: {
@@ -316,6 +317,9 @@ export default function Layout({ user, onLogout }: LayoutProps) {
              </motion.div>
            </AnimatePresence>
         </main>
+
+        {/* Floating AI Chat Assistant only for Super Admin and Managers */}
+        <AIChatBot user={user} />
       </div>
     </div>
   );
