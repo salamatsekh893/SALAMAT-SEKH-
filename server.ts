@@ -5937,7 +5937,7 @@ If asked about MFI procedures, explain the concepts of Joint Liability Groups (J
 Keep your answers beautifully formatted with bullet points for readability.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.5-flash",
         contents: formattedContents,
         config: {
           systemInstruction: systemInstruction,
