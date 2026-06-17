@@ -2313,6 +2313,12 @@ async function startServer() {
         [targetBranchId, targetGroupId, memberIds]
       );
 
+      // CRITICAL: Update loans branch_id for shifted members too to ensure data consistency in collections/reports
+      await pool.query(
+        `UPDATE loans SET branch_id = ? WHERE customer_id IN (?)`,
+        [targetBranchId, memberIds]
+      );
+
       res.json({ success: true, message: `${memberIds.length} members shifted to branch ${targetBranchId} and group ${targetGroupId}` });
     } catch (err: any) {
       console.error(err);
@@ -2346,6 +2352,19 @@ async function startServer() {
         `UPDATE members SET branch_id = ? WHERE group_id IN (?)`,
         [targetBranchId, groupIds]
       );
+
+      // CRITICAL: Update loans branch_id for members in those shifted groups too
+      const [membersInGroups]: any = await conn.query(
+        `SELECT id FROM members WHERE group_id IN (?)`,
+        [groupIds]
+      );
+      if (membersInGroups && membersInGroups.length > 0) {
+        const mIds = membersInGroups.map((m: any) => m.id);
+        await conn.query(
+          `UPDATE loans SET branch_id = ? WHERE customer_id IN (?)`,
+          [targetBranchId, mIds]
+        );
+      }
 
       await conn.commit();
       res.json({ success: true, message: `${groupIds.length} groups shifted to branch ${targetBranchId}` });
