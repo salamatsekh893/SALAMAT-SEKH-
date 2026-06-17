@@ -7,7 +7,7 @@ import jwt from "jsonwebtoken";
 import { Resend } from 'resend';
 import https from "https";
 import http from "http";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 dotenv.config({ override: true });
 
@@ -1202,9 +1202,8 @@ async function startServer() {
 
         for (const item of defaultRolePerms) {
           await conn.query(`
-            INSERT INTO role_permissions (role, permissions) 
-            VALUES (?, ?) 
-            ON DUPLICATE KEY UPDATE permissions = VALUES(permissions)
+            INSERT IGNORE INTO role_permissions (role, permissions) 
+            VALUES (?, ?)
           `, [item.role, JSON.stringify(item.permissions)]);
         }
         console.log("Default role permissions seeded successfully");
@@ -5963,10 +5962,10 @@ Act as an intelligent advisor:
                  name: "query_database_read_only",
                  description: "Executes a SELECT SQL query against the Aljooya MySQL database to retrieve live data. ONLY SELECT queries are permitted. Use this to lookup real-time information.",
                  parameters: {
-                   type: "OBJECT",
+                   type: Type.OBJECT,
                    properties: {
                      query: {
-                       type: "STRING",
+                       type: Type.STRING,
                        description: "The complete MySQL SELECT query to execute. Example: SELECT * FROM members WHERE full_name LIKE '%সাদিয়া%' LIMIT 5"
                      }
                    },
