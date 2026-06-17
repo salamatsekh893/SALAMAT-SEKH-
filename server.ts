@@ -6018,6 +6018,8 @@ Act as an intelligent advisor:
         res.status(429).json({ error: "বর্তমানে সার্ভারে অনেক চাপ রয়েছে। অনুগ্রহ করে একটু পর আবার চেষ্টা করুন।" });
       } else if (err.message && err.message.includes("403")) {
         res.status(403).json({ error: "আপনার API Key তে সমস্যা রয়েছে অথবা লিক হয়ে গেছে। দয়া করে সেটিংস থেকে নতুন API Key দিন।" });
+      } else if (err.message && err.message.includes("503")) {
+        res.status(503).json({ error: "সার্ভারে বর্তমানে অনেক বেশি ট্রাফিক রয়েছে। স্পাইকগুলি সাধারণত সাময়িক। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।" });
       } else {
         res.status(500).json({ error: "এআই সহকারীর সাথে যোগাযোগ করতে সমস্যা হচ্ছে, অনুগ্রহ করে আবার চেষ্টা করুন।" });
       }

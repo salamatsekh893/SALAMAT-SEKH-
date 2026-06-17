@@ -91,11 +91,16 @@ export default function AIChatBot({ user }: AIChatBotProps) {
       ]);
     } catch (err: any) {
       console.error("AI chat error:", err);
+      let errorMessage = "⚠️ এআই সার্ভারের সাথে সংযোগ করতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।";
+       if (err.message && err.message !== '') {
+          errorMessage = `⚠️ ${err.message}`;
+       }
+       
       setMessages(prev => [
         ...prev,
         {
           role: 'assistant',
-          text: "⚠️ এআই সার্ভারের সাথে সংযোগ করতে সমস্যা হয়েছে। অনুগ্রহ করে নিশ্চিত করুন যে আপনার সেটিংস প্যানেলে `GEMINI_API_KEY` সঠিকভাবে যুক্ত করা আছে এবং আবার চেষ্টা করুন।",
+          text: errorMessage,
           time: new Date().toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' }),
         }
       ]);
