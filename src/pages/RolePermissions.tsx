@@ -130,9 +130,38 @@ export default function RolePermissions() {
   const currentPermissions = permissionsByRole[selectedRole] || [];
 
   const handleToggle = (permissionId: string) => {
-    const updated = currentPermissions.includes(permissionId)
-      ? currentPermissions.filter(id => id !== permissionId)
-      : [...currentPermissions, permissionId];
+    let updated = [...currentPermissions];
+
+    // Check if it's a parent module
+    const moduleMatch = PERMISSION_MODULES.find(m => m.id === permissionId);
+    
+    if (moduleMatch) {
+      if (updated.includes(permissionId)) {
+        // Unchecking the module: uncheck all its children too
+        const subIds = moduleMatch.sub.map((s: any) => s.id);
+        updated = updated.filter(id => id !== permissionId && !subIds.includes(id));
+      } else {
+        // Checking the module: check all its children automatically
+        updated.push(permissionId);
+        moduleMatch.sub.forEach((s: any) => {
+          if (!updated.includes(s.id)) updated.push(s.id);
+        });
+      }
+    } else {
+      // It's a sub-permission or action
+      const parentModule = PERMISSION_MODULES.find(m => m.sub && m.sub.some((s: any) => s.id === permissionId));
+
+      if (updated.includes(permissionId)) {
+        updated = updated.filter(id => id !== permissionId);
+        // Optional: If unchecking the last child, maybe uncheck the parent? We will leave parent checked here.
+      } else {
+        updated.push(permissionId);
+        // Automatically check the parent module if it's not checked
+        if (parentModule && !updated.includes(parentModule.id)) {
+          updated.push(parentModule.id);
+        }
+      }
+    }
     
     setPermissionsByRole({
       ...permissionsByRole,
