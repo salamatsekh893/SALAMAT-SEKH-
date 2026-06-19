@@ -219,6 +219,7 @@ export default function DayBook() {
     setConfirmSavings(savingsTxns.length === 0);
     setConfirmProducts(sales.length === 0);
     setConfirmCapital(capital.length === 0);
+    setConfirmLoanFees(totalProc + totalInsu === 0);
     setShowCloseModal(true);
   };
 
