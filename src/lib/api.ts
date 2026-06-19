@@ -80,6 +80,12 @@ export const fetchWithAuth = async (endpoint: string, options: RequestInit = {})
     }
     const text = await response.text();
     console.warn(`[API WARNING] Expected JSON from ${fullUrl} but got ${contentType}. Full HTML might be returned.`);
+    
+    // Check if it's returning the React app's index.html fallback (typical on shared hosting when node server crashes or route is missing)
+    if (response.ok && text.includes('<html') && text.includes('<body')) {
+       throw new Error(`সার্ভার থেকে সঠিক ডাটা পাওয়া যায়নি (200 OK with HTML)। এটি সাধারণত হয় যদি আপনার হোস্ট সার্ভার (Node.js) বন্ধ থাকে বা রুটটি কনফিগার করা না থাকে। দয়া করে সার্ভার রিস্টার্ট করুন।`);
+    }
+
     throw new Error(`Invalid response format from server (${contentType}). Expected JSON.`);
   }
 
