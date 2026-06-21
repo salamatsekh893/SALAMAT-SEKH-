@@ -5860,11 +5860,22 @@ async function startServer() {
   app.post("/api/ai/chat", verifyToken, async (req: any, res) => {
     try {
       const { messages } = req.body;
-      const { role, name } = req.user;
+      const { role } = req.user;
+      const userId = req.user.userId;
 
       // Restrict access to Superadmin, branch managers, and managers
       if (!['superadmin', 'branch_manager', 'am', 'dm', 'manager'].includes(role)) {
         return res.status(403).json({ error: 'আসসালামু আলাইকুম, এই এআই চ্যাট অ্যাসিস্ট্যান্ট শুধুমাত্র সুপার এডমিন এবং ব্রাঞ্চ ম্যানেজারদের জন্য সংরক্ষিত।' });
+      }
+
+      let userName = "ব্যবহারকারী";
+      try {
+        const [uRows]: any = await pool.query("SELECT name FROM users WHERE id = ? LIMIT 1", [userId]);
+        if (uRows.length > 0) {
+          userName = uRows[0].name;
+        }
+      } catch (err) {
+        console.warn("Failed to fetch user name for assistant:", err);
       }
 
       const apiKey = process.env.GEMINI_API_KEY;
@@ -5885,14 +5896,14 @@ async function startServer() {
         const [[cToday]]: any = await pool.query("SELECT SUM(amount_paid) as today_collected FROM collections WHERE DATE(payment_date) = CURDATE()");
         const [[eToday]]: any = await pool.query("SELECT SUM(amount) as today_expense FROM expenses WHERE DATE(date) = CURDATE()");
         const [[pLoans]]: any = await pool.query("SELECT COUNT(*) as pending_loans FROM loans WHERE status = 'pending'");
-        const [branchesList]: any = await pool.query("SELECT branch_name FROM branches LIMIT 10");
+        const [branchesList]: any = await pool.query("SELECT id, branch_name, wallet_balance FROM branches");
 
         statsSummaryStr = JSON.stringify({
           total_members: mCount?.total_members || 0,
           active_members: mCount?.active_members || 0,
           total_groups: gCount?.total_groups || 0,
           total_branches: bCount?.total_branches || 0,
-          branches: branchesList.map((b: any) => b.branch_name),
+          branches: branchesList.map((b: any) => ({ id: b.id, name: b.branch_name, wallet: b.wallet_balance })),
           total_registered_loans: lStats?.total_loans || 0,
           total_disbursed_amount: lStats?.disburse_amt || 0,
           active_loans: lStats?.active_loans || 0,
@@ -5922,33 +5933,51 @@ async function startServer() {
         }
       });
 
-      const systemInstruction = `You are Aljooya MFI AI Assistant (আলজুয়া এমএফআই এআই সহকারী), a highly intelligent Data Analyst and Management Assistant custom-built for Aljooya Subidha Services microfinance institution (MFI).
-Your primary users are Super Admins and Branch Managers. The logged in user is named "${name}".
+      const systemInstruction = `You are Aljooya MFI AI Assistant (আলজুয়া এমএফআই এআই সহকারী), an incredibly intelligent and friendly Data Analyst and Management Assistant custom-built for Aljooya Subidha Services microfinance institution (MFI).
+Your primary users are Super Admins and Branch Managers. The currently logged in user is named "${userName}" (ID: ${userId}, role: '${role}').
 ALWAYS SPEAK AND WRITE IN POLITE, ENGAGING, AND WARM BENGALI (বাংলা ভাষা).
-Always address the user respectfully by their name (e.g., "${name} সাহেব", or "ছালামত ভাই / স্যার" if their name is Salamat/ছালামত).
+Always address the user respectfully by their name (e.g., "${userName} সাহেব", or "ছালামত ভাই" if their name contains Salamat/ছালামত).
 Be extremely polite, clear, analytical, and professional. Use Bangladesh/West Bengal style microfinance terminology.
 
-You have access to a tool called "query_database_read_only" that allows you to execute MySQL SELECT queries on the Aljooya database to fetch any required information in real-time. Use it whenever a user asks a specific question about members, collections, loans, expenses, branches, dates, or anything else you don't know naturally.
+Here are the precise guidelines to answer common questions:
+1. কালকে কার কার কালেকশন বা কত মোট ডিমান্ড আছে? (What is tomorrow's collection demand / target?)
+   - To query tomorrow's weekly demand, execute a SQL SELECT query joining loans, members, groups, and branches. Filter active loans of groups whose meeting_day matches tomorrow.
+   - Summarize the total demand amount, count of active accounts/loans, list the customer names, member IDs (member_code), loan numbers, and groups.
 
-Database Schema Outline:
-- branches (id, company_id, branch_name, branch_code, area, district, status, wallet_balance, etc)
-- members (id, member_code, full_name, mobile_no, join_date, savings_balance, branch_id, status, etc)
-- groups (id, group_name, branch_id, meeting_day, collection_type, etc)
-- loans (id, loan_no, customer_id, amount, interest, installment, start_date, status, branch_id, total_repayment, etc)
-- collections (id, loan_id, amount_paid, payment_date, collected_by, branch_id, status, etc)
-- expenses (id, branch_id, category, amount, date, etc)
-- daily_cash_balances (branch_id, date, opening_balance, total_inflow, total_outflow, closing_balance, etc)
-- users (id, name, phone, role, branch_id, status)
-- salaries (branch_id, user_id, month, year, net_salary, etc)
-- travel_logs, travel_shifts (for tracking employee travel distances)
-- leaves, attendance (for tracking employee attendances)
+2. কালেকশন, কাস্টমার, একাউন্ট বা ব্রাঞ্চ অনুযায়ী মোট হিসাব কত? (Total loan accounts, members, balances, branch details):
+   - To get branch wallets and stats, use 'SELECT id, branch_name, wallet_balance FROM branches'.
+   - Count of active customers: SELECT COUNT(*) FROM members WHERE status = 'Active'
+   - Active loan count & total disbursed: SELECT COUNT(*) as active_loans_count, SUM(amount) as total_amount FROM loans WHERE status = 'active'
+   - Savings balances or other fields.
 
-Act as an intelligent advisor:
-1. Provide deep insights: Don't just repeat numbers. Analyze them.
-2. If the user asks a question about data (like "how many members", "who is X", "what is today's collection"), YOU MUST USE THE "query_database_read_only" TOOL to run a SQL SELECT query first to find the answer.
-3. Only SELECT queries are permitted (e.g., SELECT COUNT(*), SELECT SUM(), SELECT * ... LIMIT 10). Always format queries using standard MySQL syntax. When searching names use LIKE '%name%'.
-4. Do NOT say "I cannot query" or "I don't have access" - you DO have access through the tool.
-5. Always strictly format your ultimate answers with clean paragraphs, bullet points, and highlight critical numbers in bold in Bengali.`;
+3. কার কত ওভারডিউ (বকেয়া/Arrear) আছে? (Who has what overdue / arrear?)
+   - Execute a SQL SELECT query to find expected installment counts versus actual paid collections.
+   - Recommended query to find active overdue status:
+     SELECT l.id as loan_id, l.loan_no, m.member_code, m.full_name as member_name, m.mobile_no, l.installment as emi_amount, l.total_repayment, l.emi_frequency,
+     COALESCE(c_paid.total_paid, 0) as total_paid,
+     COALESCE(l.disbursement_date, l.start_date) as start_date, l.duration_weeks, b.branch_name, g.group_name
+     FROM loans l
+     JOIN members m ON l.customer_id = m.id
+     JOIN branches b ON l.branch_id = b.id
+     LEFT JOIN groups g ON m.group_id = g.id
+     LEFT JOIN (
+       SELECT loan_id, SUM(amount_paid) as total_paid 
+       FROM collections 
+       WHERE status != 'rejected' 
+       GROUP BY loan_id
+     ) c_paid ON l.id = c_paid.loan_id
+     WHERE l.status = 'active'
+   - In your logic or query response, calculate:
+     - Days elapsed since start_date.
+     - For weekly frequency: expected_emis_today = FLOOR(days_elapsed / 7) + 1. If today is a collection day/meeting day, expected_emis_today is today's EMIs. Limit expected_emis_today up to duration_weeks.
+     - expected_amount = expected_emis_today * emi_amount.
+     - overdue_amount = expected_amount - total_paid.
+     - If overdue_amount > 1, list that customer! Detail their Name, Member Code, Loan No, Group Name, Branch, Phone Number, Total Paid, and current Overdue Amount. This makes you extremely professional.
+
+Act as an expert financial analyst. Always strictly format your ultimate answers with beautifully aligned clean paragraphs, tables or bullet points, and highlight critical numbers in bold. Be supportive and professional.
+
+Live Stats Summary of Aljooya MFI today (for reference):
+${statsSummaryStr}`;
 
       let response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
@@ -5977,15 +6006,18 @@ Act as an intelligent advisor:
         },
       });
 
-      if (response.functionCalls && response.functionCalls.length > 0) {
+      let loops = 0;
+      while (response.functionCalls && response.functionCalls.length > 0 && loops < 5) {
+        loops++;
         const call = response.functionCalls[0];
         if (call.name === "query_database_read_only") {
           const sql = call.args.query as string;
           console.log("[AI DB QUERY]:", sql);
           let toolResponseData: any = null;
           try {
-             if (!sql.trim().toUpperCase().startsWith("SELECT") && !sql.trim().toUpperCase().startsWith("SHOW")) {
-                toolResponseData = { error: "Only SELECT queries are allowed." };
+             const cleanSql = sql.trim().toUpperCase();
+             if (!cleanSql.startsWith("SELECT") && !cleanSql.startsWith("SHOW") && !cleanSql.startsWith("DESCRIBE")) {
+                toolResponseData = { error: "Only SELECT, SHOW, and DESCRIBE queries are allowed." };
              } else {
                 const [results]: any = await pool.query(sql);
                 toolResponseData = { data: Array.isArray(results) ? results.slice(0, 30) : results };
@@ -5995,8 +6027,22 @@ Act as an intelligent advisor:
              console.error("[AI DB QUERY ERROR]:", e.message);
           }
           
-          formattedContents.push({ role: "model", parts: [{ functionCall: { name: call.name, args: call.args } }] });
-          formattedContents.push({ role: "user", parts: [{ functionResponse: { name: call.name, response: toolResponseData } }] });
+          const modelContent = response.candidates?.[0]?.content;
+          if (modelContent) {
+            formattedContents.push(modelContent);
+          } else {
+            formattedContents.push({ role: "model", parts: [{ functionCall: { name: call.name, args: call.args } }] });
+          }
+
+          formattedContents.push({
+            role: "user",
+            parts: [{
+              functionResponse: {
+                name: call.name,
+                response: toolResponseData
+              }
+            }]
+          });
 
           response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
@@ -6004,8 +6050,28 @@ Act as an intelligent advisor:
             config: {
               systemInstruction: systemInstruction,
               temperature: 0.7,
+              tools: [{
+                functionDeclarations: [
+                   {
+                     name: "query_database_read_only",
+                     description: "Executes a SELECT, SHOW, or DESCRIBE SQL query against the Aljooya MySQL database to retrieve live data. ONLY SELECT, SHOW, and DESCRIBE queries are permitted.",
+                     parameters: {
+                       type: Type.OBJECT,
+                       properties: {
+                         query: {
+                           type: Type.STRING,
+                           description: "The complete MySQL query to execute. Must be a SELECT, SHOW or DESCRIBE statement."
+                         }
+                       },
+                       required: ["query"]
+                     }
+                   }
+                ]
+              }]
             },
           });
+        } else {
+          break;
         }
       }
 
