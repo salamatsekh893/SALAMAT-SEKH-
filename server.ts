@@ -5505,8 +5505,8 @@ async function startServer() {
   app.post("/api/travel_v2/sessions/start", verifyToken, async (req: any, res) => {
     try {
       const { start_meter, start_meter_image, start_lat, start_lng } = req.body;
-      const [existing]: any = await pool.query('SELECT id FROM travel_sessions_v2 WHERE user_id = ? AND travel_date = CURDATE() AND status != "rejected"', [req.user.userId]);
-      if (existing.length > 0) return res.status(400).json({ error: "Session already exists for today" });
+      const [existing]: any = await pool.query('SELECT id FROM travel_sessions_v2 WHERE user_id = ? AND travel_date = CURDATE() AND status = "draft"', [req.user.userId]);
+      if (existing.length > 0) return res.status(400).json({ error: "An active travel session already exists for today. Please end it first." });
 
       const [result]: any = await pool.query(
         'INSERT INTO travel_sessions_v2 (user_id, branch_id, travel_date, start_meter, start_meter_image, start_lat, start_lng) VALUES (?, ?, CURDATE(), ?, ?, ?, ?)',
