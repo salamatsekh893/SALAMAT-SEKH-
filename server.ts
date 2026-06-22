@@ -3197,6 +3197,8 @@ async function startServer() {
       console.error('Error checking current day status:', err);
     }
 
+    // আগের অমীমাংসিত দিনগুলো চেক করার হার্ড রেস্ট্রিকশন শিথিল করা হলো, যাতে কালেকশন আটকে না যায়।
+    /*
     const unclosed = await findUnclosedDaysBefore(branchId, dateStr);
     if (unclosed.length > 0) {
       return {
@@ -3204,6 +3206,7 @@ async function startServer() {
         error: `আগের দিনের ডে বুক ক্লোজ করা হয়নি! দয়া করে পূর্বের ডে বুক ক্লোজ করুন। অমীমাংসিত তারিখ: ${unclosed.join(', ')}`
       };
     }
+    */
 
     return { active: true };
   }
