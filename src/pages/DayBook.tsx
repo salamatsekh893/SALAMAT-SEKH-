@@ -53,6 +53,39 @@ export default function DayBook() {
     } catch (err) {}
   };
 
+  const isMultiBranchUser = user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'manager';
+
+  const getMinDate = () => {
+    if (!branchId) return undefined;
+    const selectedBranch = branches.find(b => b.id.toString() === branchId);
+    if (!selectedBranch || !selectedBranch.opening_date) return undefined;
+    try {
+      const d = new Date(selectedBranch.opening_date);
+      if (!isNaN(d.getTime())) {
+        return format(d, 'yyyy-MM-dd');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return undefined;
+  };
+
+  useEffect(() => {
+    if (branchId) {
+      const selectedBranch = branches.find(b => b.id.toString() === branchId);
+      if (selectedBranch && selectedBranch.opening_date) {
+        try {
+          const minD = format(new Date(selectedBranch.opening_date), 'yyyy-MM-dd');
+          if (date < minD) {
+            setDate(minD);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+  }, [branchId, branches]);
+
   useEffect(() => {
     loadDayBook();
   }, [date, branchId]);
@@ -68,6 +101,10 @@ export default function DayBook() {
   };
 
   const loadDayBook = async () => {
+    if (isMultiBranchUser && !branchId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const qs = new URLSearchParams({ date, _t: Date.now().toString() });
@@ -444,6 +481,68 @@ export default function DayBook() {
     XLSX.writeFile(wb, `DayBook_${date}.xlsx`);
   };
 
+  const showBranchSelector = isMultiBranchUser && !branchId;
+
+  if (showBranchSelector) {
+    return (
+      <div className="flex-1 flex flex-col h-full bg-[#f8f9fa] min-h-screen animate-fade-in">
+        <div className="bg-white border-b border-slate-200 px-3 sm:px-4 py-2 flex items-center justify-between sticky top-0 z-20 shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className="bg-purple-100 p-1.5 rounded-full">
+              <BookOpen className="w-4 h-4 text-purple-700" />
+            </div>
+            <div>
+              <h1 className="text-base font-black text-slate-800 tracking-tight uppercase text-purple-600">Day Book Pro</h1>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 max-w-lg w-full shadow-lg"
+          >
+            <div className="text-center mb-6">
+              <div className="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Building2 className="w-6 h-6 text-purple-600" />
+              </div>
+              <h2 className="text-xl font-black text-slate-800 tracking-tight">Day Book Branch Access</h2>
+              <p className="text-xs text-slate-500 font-medium mt-1">Please select a specific branch to view and manage its Day Book details.</p>
+            </div>
+
+            <div className="space-y-3">
+              {branches.map(b => (
+                <button
+                  key={b.id}
+                  onClick={() => setBranchId(b.id.toString())}
+                  className="w-full text-left bg-[#f8f9fa] hover:bg-purple-50 border border-slate-200 hover:border-purple-300 rounded-xl p-4 transition-all duration-150 flex items-center justify-between group cursor-pointer shadow-sm"
+                >
+                  <div>
+                    <h4 className="font-extrabold text-sm text-slate-700 group-hover:text-purple-700 uppercase leading-tight">{b.branch_name}</h4>
+                    <span className="text-[10px] font-semibold text-slate-400 group-hover:text-purple-500 mt-1 block tracking-wider uppercase">Code: {b.branch_code}</span>
+                    {b.opening_date && (
+                      <span className="text-[9px] font-medium text-slate-400 block mt-0.5">Opening Date: {format(new Date(b.opening_date), 'dd-MMM-yyyy')}</span>
+                    )}
+                  </div>
+                  <div className="bg-white border border-slate-200 group-hover:border-purple-300 group-hover:bg-purple-100 p-2 rounded-lg transition-colors">
+                    <BookOpen className="w-4 h-4 text-slate-500 group-hover:text-purple-600" />
+                  </div>
+                </button>
+              ))}
+              
+              {branches.length === 0 && (
+                <div className="text-center py-6 text-xs text-slate-400 font-bold uppercase tracking-wider">
+                  No Branches Found
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex flex-col h-full bg-[#f8f9fa] min-h-screen">
       <div className="bg-white border-b border-slate-200 px-3 sm:px-4 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sticky top-0 z-20 shadow-sm">
@@ -485,24 +584,33 @@ export default function DayBook() {
                 <input 
                   type="date" 
                   value={date}
-                  onChange={(e) => setDate(e.target.value)}
+                  min={getMinDate()}
+                  onChange={(e) => {
+                    const selectedDate = e.target.value;
+                    const minD = getMinDate();
+                    if (minD && selectedDate < minD) {
+                      alert(`Date cannot be earlier than the branch's opening date (${minD})`);
+                      return;
+                    }
+                    setDate(selectedDate);
+                  }}
                   className="w-full py-1.5 bg-transparent text-slate-800 font-bold text-xs sm:text-sm focus:outline-none"
                 />
              </div>
              {(user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'manager') && (
-               <div className="flex-1 flex items-center bg-white border border-slate-200 rounded-lg px-2.5 overflow-hidden shadow-sm">
-                  <Building2 className="w-4 h-4 text-blue-500 mr-1.5 flex-shrink-0" />
-                  <select 
-                    value={branchId}
-                    onChange={(e) => setBranchId(e.target.value)}
-                    className="w-full py-1.5 bg-transparent text-slate-800 font-bold text-xs sm:text-sm focus:outline-none appearance-none"
-                  >
-                    <option value="">ALL BRANCHES</option>
-                    {branches.map(b => (
-                      <option key={b.id} value={b.id}>{b.branch_name.toUpperCase()}</option>
-                    ))}
-                  </select>
-               </div>
+                <div className="flex-1 flex items-center bg-white border border-slate-200 rounded-lg px-2.5 overflow-hidden shadow-sm">
+                   <Building2 className="w-4 h-4 text-blue-500 mr-1.5 flex-shrink-0" />
+                   <select 
+                     value={branchId}
+                     onChange={(e) => setBranchId(e.target.value)}
+                     className="w-full py-1.5 bg-transparent text-slate-800 font-bold text-xs sm:text-sm focus:outline-none appearance-none"
+                   >
+                     <option value="">-- SWITCH BRANCH --</option>
+                     {branches.map(b => (
+                       <option key={b.id} value={b.id}>{b.branch_name.toUpperCase()}</option>
+                     ))}
+                   </select>
+                </div>
              )}
           </div>
 
