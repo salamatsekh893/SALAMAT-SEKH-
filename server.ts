@@ -3155,9 +3155,9 @@ async function startServer() {
       WHERE (dcb.status IS NULL OR dcb.status != 'closed')
         AND activities.activity_date IS NOT NULL
         AND activities.activity_date > '2026-05-29'
-        AND activities.activity_date < CURDATE()
+        AND activities.activity_date < ?
       ORDER BY activities.activity_date ASC
-      LIMIT 5
+      LIMIT 15
     `;
     const params = [
       branchId, dateStr,
@@ -3166,7 +3166,8 @@ async function startServer() {
       branchId, dateStr,
       branchId, dateStr,
       branchId, dateStr,
-      branchId
+      branchId,
+      dateStr
     ];
     
     try {
@@ -3183,7 +3184,7 @@ async function startServer() {
     console.log("[AUTO EOD] Starting auto closing of unclosed days before today...");
     try {
       const [branches]: any = await pool.query("SELECT id, branch_name FROM branches");
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
       for (const b of branches) {
         const branchId = b.id;
         const unclosedDays = await findUnclosedDaysBefore(branchId, todayStr);
@@ -3262,6 +3263,7 @@ async function startServer() {
     }
 
     // আগের অমীমাংসিত দিনগুলো চেক করার কঠোর নিয়ম আবার সক্রিয় করা হলো
+    await autoClosePastDays().catch(err => console.error("Error running autoClosePastDays on transaction verification:", err));
     const unclosed = await findUnclosedDaysBefore(branchId, dateStr);
     if (unclosed.length > 0) {
       return {
@@ -4307,7 +4309,10 @@ async function startServer() {
         return res.json({ locked: false });
       }
 
-      const localDate = req.query.local_date as string || new Date().toISOString().split('T')[0];
+      // Automatically trigger autoclose of past days first
+      await autoClosePastDays().catch(err => console.error("Error running autoClosePastDays on lock check:", err));
+
+      const localDate = req.query.local_date as string || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
       const localTime = req.query.local_time as string || "12:00"; 
       
       const unclosed = await findUnclosedDaysBefore(bId, localDate);
