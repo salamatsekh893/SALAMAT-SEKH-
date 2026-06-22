@@ -7,7 +7,8 @@ import { cn } from '../lib/utils';
 import { 
   LayoutDashboard, Wallet, UsersRound, Settings, 
   ShieldCheck, Users, Coins, HandCoins, Banknote, 
-  Calculator, PiggyBank, ShoppingCart, FileText, Car
+  Calculator, PiggyBank, ShoppingCart, FileText, Car,
+  Lock
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import AIChatBot from './AIChatBot';
@@ -224,6 +225,34 @@ export default function Layout({ user, onLogout }: LayoutProps) {
   ];
 
   const [myPermissions, setMyPermissions] = useState<string[] | null>((user as any).permissions || null);
+  const [lockData, setLockData] = useState<{ locked: boolean; reason?: string; unclosed_dates?: string[] } | null>(null);
+
+  const checkLock = () => {
+    if (user?.role === 'superadmin') return; // Skip lock check for superadmin
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const localDate = `${year}-${month}-${day}`;
+    
+    const hours = String(now.getHours()).padStart(2, '0');
+    const mins = String(now.getMinutes()).padStart(2, '0');
+    const localTime = `${hours}:${mins}`;
+
+    fetchWithAuth(`/daybook/lock-check?local_date=${localDate}&local_time=${localTime}`)
+      .then(data => {
+        if (data && typeof data.locked === 'boolean') {
+          setLockData(data);
+        }
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    checkLock();
+    const interval = setInterval(checkLock, 30000); // Check every 30 seconds
+    return () => clearInterval(interval);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (user && user?.role !== 'superadmin') {
@@ -304,18 +333,75 @@ export default function Layout({ user, onLogout }: LayoutProps) {
         </div>
         
         <main className="flex-1 w-full pb-12 text-slate-800 print:p-0 print:m-0 print:block">
-           <AnimatePresence mode="wait">
-             <motion.div
-               key={location.pathname}
-               initial={{ opacity: 0, y: 10 }}
-               animate={{ opacity: 1, y: 0 }}
-               exit={{ opacity: 0, y: -10 }}
-               transition={{ duration: 0.2, ease: "easeOut" }}
-               className="max-w-none w-full px-4 sm:px-6 lg:px-8 print:p-0 print:m-0 print:block"
-             >
-                <Outlet />
-             </motion.div>
-           </AnimatePresence>
+           {lockData?.locked && location.pathname !== '/accounts/daybook' ? (
+             <div className="max-w-xl mx-auto px-4 py-16 text-center select-none">
+               <motion.div
+                 initial={{ scale: 0.9, opacity: 0 }}
+                 animate={{ scale: 1, opacity: 1 }}
+                 transition={{ duration: 0.3, ease: 'easeOut' }}
+                 className="bg-white border border-slate-200 rounded-2xl shadow-xl p-8 flex flex-col items-center"
+               >
+                 <div className="bg-red-50 text-red-600 p-4 rounded-full mb-6 border border-red-100 shadow-inner animate-pulse">
+                   <Lock className="w-12 h-12" />
+                 </div>
+                 
+                 <h2 className="text-2xl font-bold font-sans tracking-tight text-slate-900 mb-3">
+                   BRANCH WORKPLACE LOCKED
+                 </h2>
+                 
+                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 text-left">
+                   <p className="text-sm text-amber-800 font-sans leading-relaxed">
+                     {lockData.reason || "A strict Day Book closure policy is in effect. All financial entries and system features are locked until EOD (End of Day) is submitted."}
+                   </p>
+                 </div>
+
+                 {lockData.unclosed_dates && lockData.unclosed_dates.length > 0 && (
+                   <div className="w-full bg-slate-50 border border-slate-100 rounded-xl p-4 mb-8 text-left">
+                     <span className="text-xs font-mono font-semibold text-slate-400 tracking-wider uppercase block mb-2">
+                       Unresolved Daybook Closures
+                     </span>
+                     <div className="flex flex-col gap-2">
+                       {lockData.unclosed_dates.map((dateStr) => (
+                         <div key={dateStr} className="flex justify-between items-center bg-white border border-slate-1 bg-opacity-70 px-3 py-2 rounded-lg font-mono text-xs text-slate-600">
+                           <span>{dateStr}</span>
+                           <span className="bg-red-100 text-red-700 text-[10px] font-sans font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                             Unclosed
+                           </span>
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+                 )}
+
+                 <p className="text-xs text-slate-400 mb-6 font-sans leading-relaxed">
+                   Once the Day Book EOD is closed and settled with accurate daily transactions, administrative lockouts are immediately lifted, allowing normal activity.
+                 </p>
+
+                 <button
+                   onClick={() => {
+                     window.location.href = '/accounts/daybook';
+                   }}
+                   className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold font-sans py-3 px-6 rounded-xl shadow-md cursor-pointer transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                 >
+                   Go to Day Book and Close EOD
+                   <span className="text-lg">→</span>
+                 </button>
+               </motion.div>
+             </div>
+           ) : (
+             <AnimatePresence mode="wait">
+               <motion.div
+                 key={location.pathname}
+                 initial={{ opacity: 0, y: 10 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 exit={{ opacity: 0, y: -10 }}
+                 transition={{ duration: 0.2, ease: "easeOut" }}
+                 className="max-w-none w-full px-4 sm:px-6 lg:px-8 print:p-0 print:m-0 print:block"
+               >
+                  <Outlet />
+               </motion.div>
+             </AnimatePresence>
+           )}
         </main>
 
         {/* Floating AI Chat Assistant only for Super Admin and Managers */}

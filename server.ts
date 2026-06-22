@@ -3178,6 +3178,70 @@ async function startServer() {
     }
   }
 
+  // Auto closes any unclosed days before today on startup to avoid blocking old, unresolved days
+  async function autoClosePastDays() {
+    console.log("[AUTO EOD] Starting auto closing of unclosed days before today...");
+    try {
+      const [branches]: any = await pool.query("SELECT id, branch_name FROM branches");
+      const todayStr = new Date().toISOString().split('T')[0];
+      for (const b of branches) {
+        const branchId = b.id;
+        const unclosedDays = await findUnclosedDaysBefore(branchId, todayStr);
+        if (unclosedDays.length > 0) {
+          console.log(`[AUTO EOD] Found unclosed days for branch ${b.branch_name}:`, unclosedDays);
+          for (const date of unclosedDays) {
+            // Calculate opening balance
+            const [opResult]: any = await pool.query(
+              `SELECT COALESCE(
+                (SELECT opening_balance FROM daily_cash_balances WHERE branch_id = ? AND DATE(date) = ? AND status = 'closed'),
+                (SELECT closing_balance FROM daily_cash_balances WHERE branch_id = ? AND DATE(date) < ? ORDER BY date DESC LIMIT 1),
+                0
+              ) as opening_balance`,
+              [branchId, date, branchId, date]
+            );
+            const opening_balance = parseFloat(opResult[0]?.opening_balance || 0);
+
+            // Calculate Inflows
+            const [[{ col_amt }]]: any = await pool.query(`SELECT COALESCE(SUM(amount), 0) as col_amt FROM collections WHERE branch_id = ? AND DATE(payment_date) = ? AND status = 'approved'`, [branchId, date]);
+            const [[{ sav_dep }]]: any = await pool.query(`SELECT COALESCE(SUM(st.amount), 0) as sav_dep FROM savings_transactions st JOIN savings_accounts sa ON st.savings_account_id = sa.id JOIN members m ON sa.member_id = m.id WHERE m.branch_id = ? AND DATE(st.date) = ? AND st.type = 'deposit'`, [branchId, date]);
+            const [[{ sale_amt }]]: any = await pool.query(`SELECT COALESCE(SUM(s.total_amount), 0) as sale_amt FROM sales s JOIN members m ON s.member_id = m.id WHERE m.branch_id = ? AND DATE(s.sale_date) = ?`, [branchId, date]);
+            const [[{ bank_with }]]: any = await pool.query(`SELECT COALESCE(SUM(amount), 0) as bank_with FROM bank_transactions WHERE type = 'withdrawal' AND source_type = 'branch' AND source_id = ? AND DATE(date) = ?`, [branchId, date]);
+            
+            const total_inflow = parseFloat(col_amt) + parseFloat(sav_dep) + parseFloat(sale_amt) + parseFloat(bank_with);
+
+            // Calculate Outflows
+            const [[{ disb_amt }]]: any = await pool.query(`SELECT COALESCE(SUM(amount), 0) as disb_amt FROM loans WHERE branch_id = ? AND DATE(COALESCE(disbursement_date, start_date)) = ? AND status IN ('active', 'closed')`, [branchId, date]);
+            const [[{ sal_amt }]]: any = await pool.query(`SELECT COALESCE(SUM(amount), 0) as sal_amt FROM salaries WHERE branch_id = ? AND DATE(payment_date) = ?`, [branchId, date]);
+            const [[{ exp_amt }]]: any = await pool.query(`SELECT COALESCE(SUM(amount), 0) as exp_amt FROM expenses WHERE branch_id = ? AND DATE(date) = ?`, [branchId, date]);
+            const [[{ sav_with }]]: any = await pool.query(`SELECT COALESCE(SUM(st.amount), 0) as sav_with FROM savings_transactions st JOIN savings_accounts sa ON st.savings_account_id = sa.id JOIN members m ON sa.member_id = m.id WHERE m.branch_id = ? AND DATE(st.date) = ? AND st.type = 'withdrawal'`, [branchId, date]);
+            const [[{ bank_dep }]]: any = await pool.query(`SELECT COALESCE(SUM(amount), 0) as bank_dep FROM bank_transactions WHERE type = 'deposit' AND source_type = 'branch' AND source_id = ? AND DATE(date) = ?`, [branchId, date]);
+
+            const total_outflow = parseFloat(disb_amt) + parseFloat(sal_amt) + parseFloat(exp_amt) + parseFloat(sav_with) + parseFloat(bank_dep);
+
+            const closing_balance = opening_balance + total_inflow - total_outflow;
+
+            // Insert or update
+            await pool.query(
+              `INSERT INTO daily_cash_balances (branch_id, date, opening_balance, total_inflow, total_outflow, closing_balance, status)
+               VALUES (?, ?, ?, ?, ?, ?, 'closed')
+               ON DUPLICATE KEY UPDATE 
+               opening_balance = VALUES(opening_balance),
+               total_inflow = VALUES(total_inflow),
+               total_outflow = VALUES(total_outflow),
+               closing_balance = VALUES(closing_balance),
+               status = 'closed'`,
+               [branchId, date, opening_balance, total_inflow, total_outflow, closing_balance]
+            );
+            console.log(`[AUTO EOD] Auto closed back-date ${date} for branch ${b.branch_name}. Closing balance: ${closing_balance}`);
+          }
+        }
+      }
+      console.log("[AUTO EOD] Auto closing of back dates completed.");
+    } catch (err) {
+      console.error("[AUTO EOD] Error in auto EOD:", err);
+    }
+  }
+
   // Helper to verify if we can do entries for a branch on a given date
   async function verifyDayBookActive(branchId: number | null, dateStr: string): Promise<{ active: boolean; error?: string }> {
     if (!branchId) return { active: true };
@@ -3197,8 +3261,7 @@ async function startServer() {
       console.error('Error checking current day status:', err);
     }
 
-    // আগের অমীমাংসিত দিনগুলো চেক করার হার্ড রেস্ট্রিকশন শিথিল করা হলো, যাতে কালেকশন আটকে না যায়।
-    /*
+    // আগের অমীমাংসিত দিনগুলো চেক করার কঠোর নিয়ম আবার সক্রিয় করা হলো
     const unclosed = await findUnclosedDaysBefore(branchId, dateStr);
     if (unclosed.length > 0) {
       return {
@@ -3206,7 +3269,6 @@ async function startServer() {
         error: `আগের দিনের ডে বুক ক্লোজ করা হয়নি! দয়া করে পূর্বের ডে বুক ক্লোজ করুন। অমীমাংসিত তারিখ: ${unclosed.join(', ')}`
       };
     }
-    */
 
     return { active: true };
   }
@@ -4235,6 +4297,55 @@ async function startServer() {
   });
 
   // --- Day Book Route ---
+  app.get("/api/daybook/lock-check", verifyToken, async (req: any, res) => {
+    try {
+      const { role, branchId: userBranchId } = req.user;
+      
+      // If superadmin, there's no branch associated directly, so not locked
+      const bId = userBranchId ? parseInt(userBranchId, 10) : null;
+      if (!bId) {
+        return res.json({ locked: false });
+      }
+
+      const localDate = req.query.local_date as string || new Date().toISOString().split('T')[0];
+      const localTime = req.query.local_time as string || "12:00"; 
+      
+      const unclosed = await findUnclosedDaysBefore(bId, localDate);
+      if (unclosed.length > 0) {
+        return res.json({
+          locked: true,
+          reason: `Previous day book remains unclosed. Please finalize the Day Close EOD!`,
+          unclosed_dates: unclosed
+        });
+      }
+
+      // Check if past 11:59 PM (23:59 or 1439 minutes) on the given localDate
+      const [hours, minutes] = localTime.split(':').map((s) => parseInt(s, 10));
+      const totalMinutes = (hours * 60) + minutes;
+      
+      if (totalMinutes >= 1439) {
+        const [currentStatus]: any = await pool.query(
+          `SELECT status FROM daily_cash_balances WHERE branch_id = ? AND date = ?`,
+          [bId, localDate]
+        );
+        const isClosed = currentStatus && currentStatus.length > 0 && currentStatus[0].status === 'closed';
+        if (!isClosed) {
+          return res.json({
+            locked: true,
+            reason: `Strict EOD Policy Lock: It is past 11:59 PM. The system is locked until you submit the EOD Day Close for today (${localDate}).`,
+            unclosed_dates: [localDate],
+            policy_lock: true
+          });
+        }
+      }
+
+      res.json({ locked: false });
+    } catch (err: any) {
+      console.error("Lock check error:", err);
+      res.status(500).json({ error: "Failed to perform lock check" });
+    }
+  });
+
   app.get("/api/daybook", verifyToken, async (req: any, res) => {
     try {
       const { role, branchId: userBranchId } = req.user;
@@ -6121,6 +6232,8 @@ ${statsSummaryStr}`;
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    // Run the back-date EOD cleanup on startup to ensure a fresh, unblocked state
+    autoClosePastDays().catch(err => console.error("Error running autoClosePastDays on boot:", err));
   });
 }
 
