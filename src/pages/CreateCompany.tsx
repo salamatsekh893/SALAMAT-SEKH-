@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { fetchWithAuth } from '../lib/api';
 import { voiceFeedback } from '../lib/voice';
-import { ArrowLeft, Upload, Building2, Globe, Mail, Phone, MapPin, ShieldCheck, CreditCard, AlertCircle, Save } from 'lucide-react';
+import { ArrowLeft, Upload, Building2, Globe, Mail, Phone, MapPin, ShieldCheck, CreditCard, AlertCircle, Save, Calendar } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export default function CreateCompany() {
@@ -17,6 +17,7 @@ export default function CreateCompany() {
     name: '',
     legal_name: '',
     registration_no: '',
+    registration_date: '',
     address: '',
     contact_no: '',
     email: '',
@@ -35,6 +36,7 @@ export default function CreateCompany() {
               name: companyToEdit.name || '',
               legal_name: companyToEdit.legal_name || '',
               registration_no: companyToEdit.registration_no || '',
+              registration_date: companyToEdit.registration_date ? companyToEdit.registration_date.split('T')[0] : '',
               address: companyToEdit.address || '',
               contact_no: companyToEdit.contact_no || '',
               email: companyToEdit.email || '',
@@ -209,6 +211,18 @@ return (
                         value={formData.registration_no}
                         onChange={e => setFormData({...formData, registration_no: e.target.value})}
                         placeholder="GSTIN or Trade License"
+                      />
+                    </div>
+                  </div>
+                  <div className="group">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Registration Date</label>
+                    <div className="relative">
+                      <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300" />
+                      <input 
+                        type="date"
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-14 pr-5 py-4 text-sm font-bold text-slate-900 focus:ring-4 focus:ring-indigo-100 focus:bg-white focus:border-indigo-600 outline-none transition-all uppercase"
+                        value={formData.registration_date}
+                        onChange={e => setFormData({...formData, registration_date: e.target.value})}
                       />
                     </div>
                   </div>

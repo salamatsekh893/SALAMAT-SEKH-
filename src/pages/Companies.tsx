@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchWithAuth } from '../lib/api';
 import { voiceFeedback } from '../lib/voice';
-import { Trash2, Building, Plus, Globe, Mail, Phone, MapPin, Edit3, Building2, ShieldCheck, CreditCard } from 'lucide-react';
+import { Trash2, Building, Plus, Globe, Mail, Phone, MapPin, Edit3, Building2, ShieldCheck, CreditCard, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Companies() {
@@ -94,6 +94,21 @@ export default function Companies() {
                         <p className="text-sm font-bold text-slate-800">{company.registration_no || 'Not registered'}</p>
                       </div>
                     </div>
+                    {company.registration_date && (
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Registration Date</p>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-slate-300" />
+                          <p className="text-sm font-bold text-slate-800">
+                            {new Date(company.registration_date).toLocaleDateString('en-GB', {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 

@@ -739,6 +739,11 @@ async function startServer() {
         await conn.query("ALTER TABLE companies MODIFY COLUMN logo_url LONGTEXT");
       } catch (e) {}
 
+      // Ensure registration_date is DATE if it doesn't exist
+      try {
+        await conn.query("ALTER TABLE companies ADD COLUMN registration_date DATE NULL");
+      } catch (e) {}
+
       // Ensure photo_url is LONGTEXT for base64 images
       try {
         await conn.query("ALTER TABLE users MODIFY COLUMN photo_url LONGTEXT");
@@ -2196,10 +2201,10 @@ async function startServer() {
       const data = req.body;
       await pool.query(
         `UPDATE companies SET 
-          name=?, legal_name=?, registration_no=?, address=?, contact_no=?, email=?, logo_url=?
+          name=?, legal_name=?, registration_no=?, registration_date=?, address=?, contact_no=?, email=?, logo_url=?
         WHERE id = ?`,
         [
-          data.name, data.legal_name, data.registration_no, data.address, data.contact_no, data.email, data.logo_url,
+          data.name, data.legal_name, data.registration_no, data.registration_date || null, data.address, data.contact_no, data.email, data.logo_url,
           req.params.id
         ]
       );
@@ -3203,7 +3208,7 @@ async function startServer() {
             const opening_balance = parseFloat(opResult[0]?.opening_balance || 0);
 
             // Calculate Inflows
-            const [[{ col_amt }]]: any = await pool.query(`SELECT COALESCE(SUM(amount), 0) as col_amt FROM collections WHERE branch_id = ? AND DATE(payment_date) = ? AND status = 'approved'`, [branchId, date]);
+            const [[{ col_amt }]]: any = await pool.query(`SELECT COALESCE(SUM(amount_paid), 0) as col_amt FROM collections WHERE branch_id = ? AND DATE(payment_date) = ? AND status = 'approved'`, [branchId, date]);
             const [[{ sav_dep }]]: any = await pool.query(`SELECT COALESCE(SUM(st.amount), 0) as sav_dep FROM savings_transactions st JOIN savings_accounts sa ON st.savings_account_id = sa.id JOIN members m ON sa.member_id = m.id WHERE m.branch_id = ? AND DATE(st.date) = ? AND st.type = 'deposit'`, [branchId, date]);
             const [[{ sale_amt }]]: any = await pool.query(`SELECT COALESCE(SUM(s.total_amount), 0) as sale_amt FROM sales s JOIN members m ON s.member_id = m.id WHERE m.branch_id = ? AND DATE(s.sale_date) = ?`, [branchId, date]);
             const [[{ bank_with }]]: any = await pool.query(`SELECT COALESCE(SUM(amount), 0) as bank_with FROM bank_transactions WHERE type = 'withdrawal' AND source_type = 'branch' AND source_id = ? AND DATE(date) = ?`, [branchId, date]);
@@ -3212,7 +3217,7 @@ async function startServer() {
 
             // Calculate Outflows
             const [[{ disb_amt }]]: any = await pool.query(`SELECT COALESCE(SUM(amount), 0) as disb_amt FROM loans WHERE branch_id = ? AND DATE(COALESCE(disbursement_date, start_date)) = ? AND status IN ('active', 'closed')`, [branchId, date]);
-            const [[{ sal_amt }]]: any = await pool.query(`SELECT COALESCE(SUM(amount), 0) as sal_amt FROM salaries WHERE branch_id = ? AND DATE(payment_date) = ?`, [branchId, date]);
+            const [[{ sal_amt }]]: any = await pool.query(`SELECT COALESCE(SUM(net_salary), 0) as sal_amt FROM salaries WHERE branch_id = ? AND DATE(payment_date) = ?`, [branchId, date]);
             const [[{ exp_amt }]]: any = await pool.query(`SELECT COALESCE(SUM(amount), 0) as exp_amt FROM expenses WHERE branch_id = ? AND DATE(date) = ?`, [branchId, date]);
             const [[{ sav_with }]]: any = await pool.query(`SELECT COALESCE(SUM(st.amount), 0) as sav_with FROM savings_transactions st JOIN savings_accounts sa ON st.savings_account_id = sa.id JOIN members m ON sa.member_id = m.id WHERE m.branch_id = ? AND DATE(st.date) = ? AND st.type = 'withdrawal'`, [branchId, date]);
             const [[{ bank_dep }]]: any = await pool.query(`SELECT COALESCE(SUM(amount), 0) as bank_dep FROM bank_transactions WHERE type = 'deposit' AND source_type = 'branch' AND source_id = ? AND DATE(date) = ?`, [branchId, date]);
@@ -4265,9 +4270,9 @@ async function startServer() {
       const data = req.body;
       const [result]: any = await pool.query(
         `INSERT INTO companies (
-          name, legal_name, registration_no, address, contact_no, email, logo_url
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [data.name, data.legal_name, data.registration_no, data.address, data.contact_no, data.email, data.logo_url]
+          name, legal_name, registration_no, registration_date, address, contact_no, email, logo_url
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [data.name, data.legal_name, data.registration_no, data.registration_date || null, data.address, data.contact_no, data.email, data.logo_url]
       );
       res.status(201).json({ id: result.insertId });
     } catch (err) {
