@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { fetchWithAuth } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
 import { format } from 'date-fns';
-import { Check, X, Printer, IndianRupee, Eye, FileText, CreditCard, Calendar } from 'lucide-react';
+import { Check, X, Printer, IndianRupee, Eye, FileText, CreditCard, Calendar, Download, ExternalLink, ZoomIn, ZoomOut, RotateCw, RefreshCw } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { formatAmount } from '../lib/utils';
 import { voiceFeedback } from '../lib/voice';
@@ -20,6 +20,19 @@ export default function LoanApprovals() {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [processingId, setProcessingId] = useState<number | null>(null);
   const [editDateModal, setEditDateModal] = useState<{id: number, start_date: string} | null>(null);
+  const [viewerImage, setViewerImage] = useState<string | null>(null);
+  const [zoomScale, setZoomScale] = useState(1);
+  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
+  const [zoomDragging, setZoomDragging] = useState(false);
+  const [zoomDragStart, setZoomDragStart] = useState({ x: 0, y: 0 });
+  const [rotation, setRotation] = useState(0);
+
+  useEffect(() => {
+    setZoomScale(1);
+    setZoomPosition({ x: 0, y: 0 });
+    setZoomDragging(false);
+    setRotation(0);
+  }, [viewerImage]);
 
   const updateFirstEmiDate = async () => {
     if (!editDateModal) return;
@@ -269,9 +282,17 @@ export default function LoanApprovals() {
                         ].map((doc, idx) => (
                            <div key={idx} className="flex flex-col gap-1.5">
                               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{doc.label}</span>
-                              <div className="w-full aspect-video bg-slate-100 rounded-xl border border-slate-200 overflow-hidden flex items-center justify-center">
+                              <div 
+                                 className={cn("w-full aspect-video bg-slate-100 rounded-xl border border-slate-200 overflow-hidden flex items-center justify-center relative group", doc.img && "cursor-pointer")}
+                                 onClick={() => doc.img && setViewerImage(doc.img)}
+                              >
                                  {doc.img ? (
-                                    <img src={doc.img} alt={doc.label} className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(doc.img, '_blank')} />
+                                    <>
+                                       <img src={doc.img} alt={doc.label} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" referrerPolicy="no-referrer" />
+                                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                          <ExternalLink className="w-6 h-6 text-white" />
+                                       </div>
+                                    </>
                                  ) : (
                                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">No Image</span>
                                  )}
@@ -611,6 +632,126 @@ export default function LoanApprovals() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {viewerImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/95 select-none"
+          >
+            {/* Top Toolbar */}
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 shadow-2xl">
+              <button
+                onClick={() => setZoomScale(prev => Math.min(prev + 0.5, 8))}
+                className="text-white hover:text-sky-400 p-2 transition-colors rounded-xl hover:bg-white/5"
+                title="Zoom In"
+              >
+                <ZoomIn className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setZoomScale(prev => {
+                  const next = prev - 0.5;
+                  if (next <= 1) {
+                    setZoomPosition({ x: 0, y: 0 });
+                    return 1;
+                  }
+                  return next;
+                })}
+                className="text-white hover:text-sky-400 p-2 transition-colors rounded-xl hover:bg-white/5"
+                title="Zoom Out"
+              >
+                <ZoomOut className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setRotation(prev => (prev + 90) % 360)}
+                className="text-white hover:text-sky-400 p-2 transition-colors rounded-xl hover:bg-white/5"
+                title="Rotate Clockwise"
+              >
+                <RotateCw className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => {
+                  setZoomScale(1);
+                  setZoomPosition({ x: 0, y: 0 });
+                  setRotation(0);
+                }}
+                className="text-white hover:text-sky-400 p-2 transition-colors rounded-xl hover:bg-white/5"
+                title="Reset Zoom"
+              >
+                <RefreshCw className="w-5 h-5" />
+              </button>
+              <div className="w-[1px] h-6 bg-white/20 mx-1" />
+              <a
+                href={viewerImage}
+                download="document.jpg"
+                className="text-white hover:text-emerald-400 p-2 transition-colors rounded-xl hover:bg-white/5"
+                title="Download"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Download className="w-5 h-5" />
+              </a>
+              <button
+                onClick={() => setViewerImage(null)}
+                className="text-white hover:text-rose-400 p-2 transition-colors rounded-xl hover:bg-white/5"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Instruction tooltip */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 text-white/50 text-[11px] font-medium bg-black/40 px-4 py-1.5 rounded-full pointer-events-none">
+              Mouse wheel to Zoom • Click and Drag to Pan
+            </div>
+
+            {/* Zoomable Image Container */}
+            <div
+              className="w-full h-full flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing"
+              onMouseDown={(e) => {
+                if (zoomScale <= 1) return;
+                e.preventDefault();
+                setZoomDragging(true);
+                setZoomDragStart({ x: e.clientX - zoomPosition.x, y: e.clientY - zoomPosition.y });
+              }}
+              onMouseMove={(e) => {
+                if (!zoomDragging || zoomScale <= 1) return;
+                e.preventDefault();
+                setZoomPosition({
+                  x: e.clientX - zoomDragStart.x,
+                  y: e.clientY - zoomDragStart.y
+                });
+              }}
+              onMouseUp={() => setZoomDragging(false)}
+              onMouseLeave={() => setZoomDragging(false)}
+              onWheel={(e) => {
+                const zoomFactor = 0.15;
+                let newScale = zoomScale;
+                if (e.deltaY < 0) {
+                  newScale = Math.min(zoomScale + zoomFactor, 8);
+                } else {
+                  newScale = Math.max(zoomScale - zoomFactor, 1);
+                }
+                setZoomScale(newScale);
+                if (newScale === 1) {
+                  setZoomPosition({ x: 0, y: 0 });
+                }
+              }}
+            >
+              <img
+                src={viewerImage}
+                style={{
+                  transform: `translate(${zoomPosition.x}px, ${zoomPosition.y}px) scale(${zoomScale}) rotate(${rotation}deg)`,
+                  transition: zoomDragging ? 'none' : 'transform 0.15s ease-out',
+                }}
+                className="max-w-[90vw] max-h-[85vh] object-contain rounded-xl select-none pointer-events-none"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

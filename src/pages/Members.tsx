@@ -2,7 +2,8 @@ import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { 
   Users, Search, Plus, Trash2, Edit2, 
-  ExternalLink, Loader2, Phone, MapPin, QrCode, X, Filter, Download
+  ExternalLink, Loader2, Phone, MapPin, QrCode, X, Filter, Download,
+  ZoomIn, ZoomOut, RotateCw, RefreshCw
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { fetchWithAuth } from '../lib/api';
@@ -28,6 +29,18 @@ export default function Members() {
   const [memberLoans, setMemberLoans] = useState<any[]>([]);
   const [loadingLoans, setLoadingLoans] = useState(false);
   const [viewerImage, setViewerImage] = useState<string | null>(null);
+  const [zoomScale, setZoomScale] = useState(1);
+  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
+  const [zoomDragging, setZoomDragging] = useState(false);
+  const [zoomDragStart, setZoomDragStart] = useState({ x: 0, y: 0 });
+  const [rotation, setRotation] = useState(0);
+
+  useEffect(() => {
+    setZoomScale(1);
+    setZoomPosition({ x: 0, y: 0 });
+    setZoomDragging(false);
+    setRotation(0);
+  }, [viewerImage]);
 
   useEffect(() => {
     if (selectedMember) {
@@ -578,33 +591,116 @@ export default function Members() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95 select-none"
           >
-            <div className="absolute top-4 right-4 flex items-center gap-4">
+            {/* Top Toolbar */}
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 shadow-2xl">
+              <button
+                onClick={() => setZoomScale(prev => Math.min(prev + 0.5, 8))}
+                className="text-white hover:text-sky-400 p-2 transition-colors rounded-xl hover:bg-white/5"
+                title="Zoom In"
+              >
+                <ZoomIn className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setZoomScale(prev => {
+                  const next = prev - 0.5;
+                  if (next <= 1) {
+                    setZoomPosition({ x: 0, y: 0 });
+                    return 1;
+                  }
+                  return next;
+                })}
+                className="text-white hover:text-sky-400 p-2 transition-colors rounded-xl hover:bg-white/5"
+                title="Zoom Out"
+              >
+                <ZoomOut className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setRotation(prev => (prev + 90) % 360)}
+                className="text-white hover:text-sky-400 p-2 transition-colors rounded-xl hover:bg-white/5"
+                title="Rotate Clockwise"
+              >
+                <RotateCw className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => {
+                  setZoomScale(1);
+                  setZoomPosition({ x: 0, y: 0 });
+                  setRotation(0);
+                }}
+                className="text-white hover:text-sky-400 p-2 transition-colors rounded-xl hover:bg-white/5"
+                title="Reset Zoom"
+              >
+                <RefreshCw className="w-5 h-5" />
+              </button>
+              <div className="w-[1px] h-6 bg-white/20 mx-1" />
               <a
                 href={viewerImage}
                 download="document.jpg"
-                className="text-white hover:text-white/70 p-2 transition-colors bg-black/50 rounded-full"
+                className="text-white hover:text-emerald-400 p-2 transition-colors rounded-xl hover:bg-white/5"
                 title="Download"
                 onClick={(e) => e.stopPropagation()}
               >
-                <Download className="w-8 h-8" />
+                <Download className="w-5 h-5" />
               </a>
-              <button 
+              <button
                 onClick={() => setViewerImage(null)}
-                className="text-white hover:text-white/70 p-2 transition-colors bg-black/50 rounded-full"
+                className="text-white hover:text-rose-400 p-2 transition-colors rounded-xl hover:bg-white/5"
+                title="Close"
               >
-                <X className="w-8 h-8" />
+                <X className="w-5 h-5" />
               </button>
             </div>
-            <motion.img
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              src={viewerImage}
-              className="max-w-full max-h-[90vh] object-contain rounded-xl"
-              referrerPolicy="no-referrer"
-            />
+
+            {/* Instruction tooltip */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 text-white/50 text-[11px] font-medium bg-black/40 px-4 py-1.5 rounded-full pointer-events-none">
+              Mouse wheel to Zoom • Click and Drag to Pan
+            </div>
+
+            {/* Zoomable Image Container */}
+            <div
+              className="w-full h-full flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing"
+              onMouseDown={(e) => {
+                if (zoomScale <= 1) return;
+                e.preventDefault();
+                setZoomDragging(true);
+                setZoomDragStart({ x: e.clientX - zoomPosition.x, y: e.clientY - zoomPosition.y });
+              }}
+              onMouseMove={(e) => {
+                if (!zoomDragging || zoomScale <= 1) return;
+                e.preventDefault();
+                setZoomPosition({
+                  x: e.clientX - zoomDragStart.x,
+                  y: e.clientY - zoomDragStart.y
+                });
+              }}
+              onMouseUp={() => setZoomDragging(false)}
+              onMouseLeave={() => setZoomDragging(false)}
+              onWheel={(e) => {
+                const zoomFactor = 0.15;
+                let newScale = zoomScale;
+                if (e.deltaY < 0) {
+                  newScale = Math.min(zoomScale + zoomFactor, 8);
+                } else {
+                  newScale = Math.max(zoomScale - zoomFactor, 1);
+                }
+                setZoomScale(newScale);
+                if (newScale === 1) {
+                  setZoomPosition({ x: 0, y: 0 });
+                }
+              }}
+            >
+              <img
+                src={viewerImage}
+                style={{
+                  transform: `translate(${zoomPosition.x}px, ${zoomPosition.y}px) scale(${zoomScale}) rotate(${rotation}deg)`,
+                  transition: zoomDragging ? 'none' : 'transform 0.15s ease-out',
+                }}
+                className="max-w-[90vw] max-h-[85vh] object-contain rounded-xl select-none pointer-events-none"
+                referrerPolicy="no-referrer"
+              />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
