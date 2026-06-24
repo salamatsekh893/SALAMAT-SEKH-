@@ -171,63 +171,63 @@ export default function MembarLoanAcount({
         </div>
 
         {/* Loan Master Details Block */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-[4px] bg-amber-500" />
+        <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 shadow-md relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-[5px] bg-gradient-to-r from-indigo-600 via-amber-500 to-emerald-600" />
           
-          <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-1.5 border-b border-slate-100 pb-2.5">
-            <ShieldCheck className="w-4 h-4 text-amber-500" /> লোন অ্যাকাউন্টের বিস্তারিত তথ্য
+          <h3 className="text-sm font-extrabold text-indigo-950 uppercase tracking-wider mb-4 flex items-center gap-1.5 border-b-2 border-slate-100 pb-2.5">
+            <ShieldCheck className="w-5 h-5 text-indigo-600" /> লোন অ্যাকাউন্টের বিস্তারিত তথ্য
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             
             {/* Box 1 */}
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 shadow-inner">
-              <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">কাস্টমার নাম ও আইডি</span>
-              <span className="block text-xs font-black text-slate-800 mt-1">{member.full_name || 'N/A'}</span>
-              <span className="block text-[10px] text-slate-500 font-mono mt-0.5">আইডি: {member.member_code || 'N/A'}</span>
+            <div className="bg-indigo-50/60 border-2 border-indigo-100 rounded-xl p-3.5 shadow-xs">
+              <span className="block text-[9px] font-black text-indigo-950 uppercase tracking-wider">কাস্টমার নাম ও আইডি</span>
+              <span className="block text-sm font-black text-slate-900 mt-1">{member.full_name || 'N/A'}</span>
+              <span className="block text-xs font-extrabold text-indigo-700 font-mono mt-0.5">আইডি: {member.member_code || 'N/A'}</span>
             </div>
 
             {/* Box 2 */}
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 shadow-inner">
-              <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">লোন বিবরণী</span>
+            <div className="bg-slate-50 border-2 border-slate-250 rounded-xl p-3.5 shadow-xs">
+              <span className="block text-[9px] font-black text-slate-500 uppercase tracking-wider">লোন বিবরণী</span>
               <div className="mt-1 space-y-0.5 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">লোন আসল:</span>
-                  <span className="font-bold text-slate-800">₹{formatAmount(selectedLoan.principal)}</span>
+                  <span className="text-slate-600 font-semibold">লোন আসল:</span>
+                  <span className="font-extrabold text-slate-900">₹{formatAmount(selectedLoan.principal)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">মোট সুদ:</span>
-                  <span className="font-bold text-slate-800">₹{formatAmount(selectedLoan.interest)}</span>
+                  <span className="text-slate-600 font-semibold">মোট সুদ:</span>
+                  <span className="font-extrabold text-slate-900">₹{formatAmount(selectedLoan.interest)}</span>
                 </div>
               </div>
             </div>
 
             {/* Box 3 */}
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 shadow-inner">
-              <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">পরিশোধ স্থিতি</span>
+            <div className="bg-emerald-50/60 border-2 border-emerald-100 rounded-xl p-3.5 shadow-xs">
+              <span className="block text-[9px] font-black text-emerald-950 uppercase tracking-wider">পরিশোধ স্থিতি</span>
               <div className="mt-1 space-y-0.5 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">পরিশোধিত:</span>
-                  <span className="font-black text-emerald-600">₹{formatAmount(selectedLoan.paid)}</span>
+                  <span className="text-emerald-800 font-bold">পরিশোধিত:</span>
+                  <span className="font-black text-emerald-700">₹{formatAmount(selectedLoan.paid)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">অবশিষ্ট বকেয়া:</span>
-                  <span className="font-black text-rose-500">₹{formatAmount(outstanding)}</span>
+                  <span className="text-emerald-800 font-bold">অবশিষ্ট বকেয়া:</span>
+                  <span className="font-black text-rose-600">₹{formatAmount(outstanding)}</span>
                 </div>
               </div>
             </div>
 
             {/* Box 4 */}
-            <div className="bg-amber-50/30 border border-amber-500/15 rounded-xl p-3.5">
-              <span className="block text-[8px] font-black text-amber-800/85 uppercase tracking-wider">কিস্তি বিবরণ</span>
+            <div className="bg-amber-50/60 border-2 border-amber-200 rounded-xl p-3.5 shadow-xs">
+              <span className="block text-[9px] font-black text-amber-950 uppercase tracking-wider">কিস্তি বিবরণ</span>
               <div className="mt-1 space-y-0.5 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-amber-800/80">কিস্তির পরিমাণ:</span>
+                  <span className="text-amber-800 font-bold">কিস্তির পরিমাণ:</span>
                   <span className="font-black text-amber-950">₹{formatAmount(selectedLoan.installment)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-amber-800/80">মেয়াদ সপ্তাহ:</span>
-                  <span className="font-bold text-amber-950">{selectedLoan.duration_weeks} সপ্তাহ</span>
+                  <span className="text-amber-800 font-bold">মেয়াদ সপ্তাহ:</span>
+                  <span className="font-black text-amber-950">{selectedLoan.duration_weeks} সপ্তাহ</span>
                 </div>
               </div>
             </div>
@@ -235,14 +235,14 @@ export default function MembarLoanAcount({
           </div>
 
           {/* Progress Bar of repayment */}
-          <div className="mt-4 bg-slate-50/50 border border-slate-150 p-3.5 rounded-xl">
+          <div className="mt-4 bg-indigo-50/30 border-2 border-indigo-100/50 p-3.5 rounded-xl">
             <div className="flex justify-between items-center text-xs mb-1.5">
-              <span className="font-black text-slate-500 uppercase tracking-wider">লোন পরিশোধ অগ্রগতি বার (Repayment Progress)</span>
-              <span className="font-black text-indigo-950 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded text-[10px]">{percentPaid}% পরিশোধিত</span>
+              <span className="font-black text-indigo-950 uppercase tracking-wider">লোন পরিশোধ অগ্রগতি বার (Repayment Progress)</span>
+              <span className="font-black text-white bg-indigo-900 border-2 border-indigo-950 px-2.5 py-0.5 rounded-full text-[10px]">{percentPaid}% পরিশোধিত</span>
             </div>
-            <div className="w-full bg-slate-200 h-3 rounded-full overflow-hidden border border-slate-300 shadow-inner">
+            <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden border-2 border-slate-300 shadow-inner">
               <div 
-                className="bg-gradient-to-r from-amber-500 via-emerald-500 to-teal-500 h-full rounded-full transition-all duration-700" 
+                className="bg-gradient-to-r from-amber-500 via-emerald-500 to-indigo-600 h-full rounded-full transition-all duration-700" 
                 style={{ width: `${percentPaid}%` }}
               />
             </div>
@@ -250,20 +250,20 @@ export default function MembarLoanAcount({
         </div>
 
         {/* EMI Chart / Installment Schedule Table (Line boxes, perfect colors) */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm relative">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+        <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 shadow-md relative">
+          <div className="flex items-center justify-between border-b-2 border-slate-100 pb-3 mb-4">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+              <div className="p-2 bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200">
                 <Calendar className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">কিস্তি শিডিউল চার্ট (EMI Installment Schedule)</h3>
-                <p className="text-[10px] text-slate-400 font-medium">প্রতিটি কিস্তির তারিখ, পরিমাণ ও জমার অবস্থা নিচে দেখুন।</p>
+                <h3 className="text-xs font-black text-indigo-950 uppercase tracking-wider">কিস্তি শিডিউল চার্ট (EMI Installment Schedule)</h3>
+                <p className="text-[10px] text-slate-500 font-bold">প্রতিটি কিস্তির নির্ধারিত তারিখ, পরিশোধিত টাকা ও জমার অবস্থা নিচে দেখুন।</p>
               </div>
             </div>
             
-            <span className="text-[9px] font-black bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full border border-slate-200 font-mono">
-              মোট কিস্তি সংখ্যা: {selectedLoan.duration_weeks}
+            <span className="text-[10px] font-black bg-indigo-50 text-indigo-950 px-3 py-1 rounded-full border-2 border-indigo-200 font-mono shadow-xs">
+              মোট কিস্তি: {selectedLoan.duration_weeks} সপ্তাহ
             </span>
           </div>
 
@@ -275,23 +275,23 @@ export default function MembarLoanAcount({
                 className={cn(
                   "p-4 rounded-2xl border-2 transition-all flex flex-col gap-2 relative overflow-hidden shadow-sm",
                   row.status === 'PAID' 
-                    ? "bg-emerald-50/20 border-emerald-200/80" 
+                    ? "bg-emerald-50/30 border-emerald-300" 
                     : row.status === 'PARTIAL'
-                    ? "bg-amber-50/20 border-amber-200/80"
-                    : "bg-white border-slate-200"
+                    ? "bg-amber-50/30 border-amber-300"
+                    : "bg-white border-slate-300"
                 )}
               >
-                <div className="flex justify-between items-center pb-2 border-b border-dashed border-slate-100">
-                  <span className="text-[10px] bg-slate-100 border border-slate-200 text-slate-600 px-2.5 py-0.5 rounded-lg font-mono font-black">
+                <div className="flex justify-between items-center pb-2 border-b border-dashed border-slate-200">
+                  <span className="text-[10px] bg-slate-100 border-2 border-slate-300 text-slate-700 px-2.5 py-0.5 rounded-lg font-mono font-black">
                     কিস্তি নং: {row.installmentNo}
                   </span>
                   <span className={cn(
-                    "text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border",
+                    "text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md border-2 shadow-xs",
                     row.status === 'PAID' 
-                      ? "bg-emerald-100/60 text-emerald-800 border-emerald-200" 
+                      ? "bg-emerald-600 text-white border-emerald-700" 
                       : row.status === 'PARTIAL'
-                      ? "bg-amber-100/60 text-amber-800 border-amber-200"
-                      : "bg-rose-50 text-rose-600 border-rose-200/50"
+                      ? "bg-amber-500 text-white border-amber-600"
+                      : "bg-rose-600 text-white border-rose-700"
                   )}>
                     {row.status === 'PAID' ? 'PAID (জমা)' : row.status === 'PARTIAL' ? 'PARTIAL' : 'PENDING'}
                   </span>
@@ -299,32 +299,32 @@ export default function MembarLoanAcount({
                 
                 <div className="grid grid-cols-2 gap-3 text-xs pt-1">
                   <div>
-                    <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">নির্ধারিত তারিখ</span>
-                    <span className="font-extrabold text-slate-700 text-[10px]">{row.dueDate}</span>
+                    <span className="block text-[8px] font-black text-slate-500 uppercase tracking-wider">নির্ধারিত তারিখ</span>
+                    <span className="font-extrabold text-slate-800 text-[10px]">{row.dueDate}</span>
                   </div>
                   <div className="text-right">
-                    <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">কিস্তি পরিমাণ</span>
-                    <span className="font-black text-slate-900 font-mono text-[11px]">₹{formatAmount(row.amount)}</span>
+                    <span className="block text-[8px] font-black text-slate-500 uppercase tracking-wider">কিস্তি পরিমাণ</span>
+                    <span className="font-black text-slate-950 font-mono text-[11px]">₹{formatAmount(row.amount)}</span>
                   </div>
                   <div>
-                    <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">পরিশোধিত টাকা</span>
+                    <span className="block text-[8px] font-black text-slate-500 uppercase tracking-wider">পরিশোধিত টাকা</span>
                     <span className={cn(
                       "font-black font-mono text-[11px] block",
-                      row.paidAmount > 0 ? "text-emerald-600" : "text-slate-400"
+                      row.paidAmount > 0 ? "text-emerald-700" : "text-slate-500"
                     )}>
                       ₹{formatAmount(row.paidAmount)}
                     </span>
                     {row.paymentTime && (
-                      <span className="text-[8px] text-slate-400 font-medium block mt-1 leading-tight bg-slate-100 border border-slate-150 px-1 py-0.5 rounded">
+                      <span className="text-[8px] text-slate-600 font-bold block mt-1 leading-tight bg-slate-100 border-2 border-slate-250 px-1.5 py-0.5 rounded">
                         {row.paymentTime}
                       </span>
                     )}
                   </div>
                   <div className="text-right">
-                    <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">ওভার ডিউ</span>
+                    <span className="block text-[8px] font-black text-slate-500 uppercase tracking-wider">ওভার ডিউ</span>
                     <span className={cn(
                       "font-black font-mono text-[11px]",
-                      row.overdue > 0 ? "text-rose-600" : "text-slate-400"
+                      row.overdue > 0 ? "text-rose-600" : "text-slate-500"
                     )}>
                       ₹{formatAmount(row.overdue)}
                     </span>
@@ -335,10 +335,10 @@ export default function MembarLoanAcount({
           </div>
 
           {/* Desktop structured table */}
-          <div className="hidden sm:block overflow-x-auto border border-slate-200 rounded-xl shadow-inner max-h-[450px] overflow-y-auto">
+          <div className="hidden sm:block overflow-x-auto border-2 border-slate-300 rounded-xl shadow-md max-h-[450px] overflow-y-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-indigo-900 text-[10px] font-black text-white uppercase tracking-wider sticky top-0 z-10 border-b border-indigo-950">
+                <tr className="bg-indigo-900 text-[10px] font-black text-white uppercase tracking-wider sticky top-0 z-10 border-b-2 border-indigo-950">
                   <th className="px-4 py-3 text-center border-r border-indigo-800/50 w-16 bg-indigo-900 text-white">কিস্তি নং</th>
                   <th className="px-4 py-3 border-r border-indigo-800/50 bg-indigo-900 text-white">নির্ধারিত তারিখ (Due Date)</th>
                   <th className="px-4 py-3 text-right border-r border-indigo-800/50 bg-indigo-900 text-white">কিস্তি পরিমাণ</th>
@@ -347,55 +347,55 @@ export default function MembarLoanAcount({
                   <th className="px-4 py-3 text-center bg-indigo-900 text-white">জমার অবস্থা (Status)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-150 text-xs text-slate-700 font-medium">
+              <tbody className="divide-y divide-slate-250 text-xs text-slate-700 font-bold">
                 {schedule.map((row) => (
                   <tr 
                     key={row.installmentNo}
                     className={cn(
-                      "hover:bg-slate-50/50 transition-colors",
-                      row.status === 'PAID' ? "bg-emerald-50/5" : "bg-white"
+                      "hover:bg-slate-100 transition-colors",
+                      row.status === 'PAID' ? "bg-emerald-50/10" : "bg-white"
                     )}
                   >
-                    <td className="px-4 py-2.5 text-center font-black text-slate-500 border-r border-slate-150 font-mono bg-slate-50/30">
+                    <td className="px-4 py-3 text-center font-black text-slate-700 border-r border-slate-250 font-mono bg-slate-50">
                       {row.installmentNo}
                     </td>
-                    <td className="px-4 py-2.5 border-r border-slate-150 text-[11px] font-semibold text-slate-500">
+                    <td className="px-4 py-3 border-r border-slate-250 text-[11px] font-extrabold text-slate-800">
                       {row.dueDate}
                     </td>
-                    <td className="px-4 py-2.5 text-right border-r border-slate-150 font-mono text-slate-800">
+                    <td className="px-4 py-3 text-right border-r border-slate-250 font-mono text-slate-900 font-black">
                       ₹{formatAmount(row.amount)}
                     </td>
-                    <td className="px-4 py-2.5 text-right border-r border-slate-150 font-mono">
+                    <td className="px-4 py-3 text-right border-r border-slate-250 font-mono">
                       <div className="flex flex-col items-end">
                         <span className={cn(
-                          "font-bold",
-                          row.paidAmount > 0 ? "text-emerald-600" : "text-slate-400"
+                          "font-black",
+                          row.paidAmount > 0 ? "text-emerald-700 font-black" : "text-slate-400"
                         )}>
                           ₹{formatAmount(row.paidAmount)}
                         </span>
                         {row.paymentTime && (
-                          <span className="text-[9px] text-slate-400 font-medium block mt-0.5 leading-tight bg-slate-50 border border-slate-100 rounded px-1.5 py-0.5 whitespace-nowrap">
+                          <span className="text-[9px] text-slate-700 font-bold block mt-1 leading-tight bg-slate-100 border border-slate-300 rounded px-1.5 py-0.5 whitespace-nowrap shadow-xs">
                             {row.paymentTime}
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 text-right border-r border-slate-150 font-mono">
+                    <td className="px-4 py-3 text-right border-r border-slate-250 font-mono">
                       <span className={cn(
-                        "font-bold",
+                        "font-black",
                         row.overdue > 0 ? "text-rose-600" : "text-slate-400"
                       )}>
                         ₹{formatAmount(row.overdue)}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 text-center">
+                    <td className="px-4 py-3 text-center">
                       <span className={cn(
-                        "text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border",
+                        "text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md border-2 shadow-xs inline-block min-w-[120px] text-center",
                         row.status === 'PAID' 
-                          ? "bg-emerald-100/60 text-emerald-800 border-emerald-200" 
+                          ? "bg-emerald-600 text-white border-emerald-700" 
                           : row.status === 'PARTIAL'
-                          ? "bg-amber-100/60 text-amber-800 border-amber-200"
-                          : "bg-rose-50 text-rose-600 border-rose-200/50"
+                          ? "bg-amber-500 text-white border-amber-600"
+                          : "bg-rose-600 text-white border-rose-700"
                       )}>
                         {row.status === 'PAID' ? 'PAID (জমা)' : row.status === 'PARTIAL' ? 'PARTIAL (আংশিক)' : 'PENDING (বাকি)'}
                       </span>
@@ -408,33 +408,33 @@ export default function MembarLoanAcount({
         </div>
 
         {/* Payment History Inside Detail Page */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
-          <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-1.5 border-b border-slate-100 pb-2.5">
-            <FileText className="w-4 h-4 text-emerald-500" /> এই লোন অ্যাকাউন্টের পেমেন্ট ট্রানজেকশন হিস্ট্রি
+        <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 shadow-md">
+          <h3 className="text-sm font-extrabold text-indigo-950 uppercase tracking-wider mb-3 flex items-center gap-1.5 border-b-2 border-slate-100 pb-2.5">
+            <FileText className="w-5 h-5 text-emerald-600" /> এই লোন অ্যাকাউন্টের পেমেন্ট ট্রানজেকশন হিস্ট্রি
           </h3>
 
           {loanPayments.filter((p: any) => p.loan_no === selectedLoan.loan_no).length > 0 ? (
-            <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-150">
+            <div className="border-2 border-slate-200 rounded-xl overflow-hidden divide-y-2 divide-slate-150">
               {loanPayments.filter((p: any) => p.loan_no === selectedLoan.loan_no).map((p: any, idx: number) => (
-                <div key={p.id} className="p-3 flex items-center justify-between text-xs hover:bg-slate-50/50 transition-colors">
+                <div key={p.id} className="p-3.5 flex items-center justify-between text-xs hover:bg-slate-50 transition-colors">
                   <div className="flex items-center gap-3">
-                    <span className="font-bold text-slate-400 font-mono">#{idx + 1}</span>
+                    <span className="font-black text-indigo-600 font-mono bg-indigo-50 border border-indigo-200 w-6 h-6 rounded-md flex items-center justify-center">#{idx + 1}</span>
                     <div>
-                      <span className="font-bold text-slate-800 block">কালেকশন কিস্তি পেমেন্ট</span>
-                      <span className="text-[10px] text-slate-400 block font-semibold">কালেকশন আইডি: COL-{p.id}</span>
+                      <span className="font-extrabold text-slate-900 block text-xs">কালেকশন কিস্তি পেমেন্ট</span>
+                      <span className="text-[10px] text-slate-500 block font-bold">কালেকশন আইডি: COL-{p.id}</span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="font-black text-emerald-600 bg-emerald-50 border border-emerald-100/50 px-2 py-0.5 rounded-md">
+                    <span className="font-black text-emerald-700 bg-emerald-50 border-2 border-emerald-200 px-2.5 py-1 rounded-lg text-xs shadow-xs">
                       + ₹{formatAmount(p.amount_paid)}
                     </span>
-                    <span className="text-[9px] text-slate-400 block font-bold mt-1">{p.payment_date}</span>
+                    <span className="text-[9px] text-slate-500 block font-extrabold mt-1.5 font-mono">{p.payment_date}</span>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-xs text-slate-400 font-bold py-4 text-center">এখনো কোনো কিস্তি কালেকশন হিস্ট্রি পাওয়া যায়নি।</p>
+            <p className="text-xs text-slate-500 font-extrabold py-4 text-center">এখনো কোনো কিস্তি কালেকশন হিস্ট্রি পাওয়া যায়নি।</p>
           )}
         </div>
       </motion.div>
@@ -444,20 +444,20 @@ export default function MembarLoanAcount({
   return (
     <div className="space-y-4">
       {/* Excel-style table listing all loans (Line box, colors, responsive) */}
-      <div className="bg-white border-2 border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+      <div className="bg-white border-2 border-slate-300 rounded-2xl overflow-hidden shadow-md">
         
         {/* Header bar */}
-        <div className="bg-slate-50/80 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-amber-500/10 text-amber-600 rounded-lg">
-              <HandCoins className="w-4 h-4" />
+        <div className="bg-indigo-950 px-4 py-4 border-b-2 border-indigo-900 flex items-center justify-between text-white">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-amber-500 text-slate-950 rounded-xl border border-amber-600 shadow-sm animate-pulse">
+              <HandCoins className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">আমার সক্রিয় লোন হিসাব তালিকা</h3>
-              <p className="text-[9px] text-slate-400 font-bold mt-0.5">সবগুলো লোন অ্যাকাউন্ট ও বকেয়া কিস্তির হিসাব এক নজরে দেখুন</p>
+              <h3 className="text-sm font-black uppercase tracking-wider text-white">আমার সক্রিয় লোন হিসাব তালিকা</h3>
+              <p className="text-[10px] text-indigo-200 font-bold mt-0.5">সবগুলো লোন অ্যাকাউন্ট ও বকেয়া কিস্তির হিসাব এক নজরে দেখুন</p>
             </div>
           </div>
-          <span className="text-[9px] font-black bg-white border border-slate-200 text-indigo-700 px-2.5 py-1 rounded-full font-mono">
+          <span className="text-[10px] font-black bg-amber-500 border-2 border-amber-600 text-slate-950 px-3 py-1 rounded-full font-mono shadow-md">
             মোট অ্যাকাউন্ট: {activeLoans.length} টি
           </span>
         </div>
@@ -465,24 +465,24 @@ export default function MembarLoanAcount({
         {activeLoans.length > 0 ? (
           <div>
             {/* Mobile Card List (Visible on mobile only) */}
-            <div className="block sm:hidden divide-y divide-slate-150">
+            <div className="block sm:hidden divide-y-2 divide-slate-150">
               {activeLoans.map((loan, index) => {
                 const outstanding = Math.max(0, loan.total_repayment - loan.paid);
                 return (
-                  <div key={loan.id} className="p-4 space-y-3 hover:bg-slate-50/50 transition-colors">
+                  <div key={loan.id} className="p-4 space-y-3 hover:bg-slate-50 transition-colors">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[10px] font-black text-indigo-700 font-mono">
+                        <span className="w-7 h-7 rounded-lg bg-indigo-100 border-2 border-indigo-300 flex items-center justify-center text-[11px] font-black text-indigo-900 font-mono">
                           {index + 1}
                         </span>
-                        <span className="text-xs font-mono text-indigo-700 font-bold bg-indigo-50/50 border border-indigo-100 px-2 py-0.5 rounded-md">
+                        <span className="text-xs font-mono text-indigo-900 font-black bg-indigo-50 border-2 border-indigo-200 px-2.5 py-0.5 rounded-md">
                           {loan.loan_no}
                         </span>
                       </div>
                       
                       <button
                         onClick={() => setSelectedLoan(loan)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black text-indigo-600 hover:text-white bg-indigo-50 hover:bg-indigo-600 transition-all rounded-md border border-indigo-200 cursor-pointer shadow-xs active:scale-95"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-black text-white bg-indigo-600 hover:bg-indigo-700 transition-all rounded-lg border-2 border-indigo-700 cursor-pointer shadow-sm active:scale-95"
                       >
                         <Eye className="w-3.5 h-3.5" /> দেখুন (View)
                       </button>
@@ -490,21 +490,21 @@ export default function MembarLoanAcount({
 
                     <div className="grid grid-cols-2 gap-3.5 text-xs">
                       <div>
-                        <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">কাস্টমার নাম ও আইডি</span>
-                        <span className="font-extrabold text-slate-800 block leading-tight">{member.full_name || 'N/A'}</span>
-                        <span className="block text-[9px] text-slate-400 font-mono mt-0.5">{member.member_code || 'N/A'}</span>
+                        <span className="block text-[8px] font-black text-slate-500 uppercase tracking-wider">কাস্টমার নাম ও আইডি</span>
+                        <span className="font-extrabold text-slate-900 block leading-tight">{member.full_name || 'N/A'}</span>
+                        <span className="block text-[9px] text-slate-600 font-mono mt-0.5">{member.member_code || 'N/A'}</span>
                       </div>
                       <div>
-                        <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider text-right">বকেয়া (O/S)</span>
+                        <span className="block text-[8px] font-black text-slate-500 uppercase tracking-wider text-right">বকেয়া (O/S)</span>
                         <span className="block font-black text-rose-600 text-right font-mono text-sm">₹{formatAmount(outstanding)}</span>
                       </div>
                       <div>
-                        <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">মোট কিস্তি (EMI)</span>
-                        <span className="font-black text-slate-800 font-mono">₹{formatAmount(loan.installment)}</span>
+                        <span className="block text-[8px] font-black text-slate-500 uppercase tracking-wider">মোট কিস্তি (EMI)</span>
+                        <span className="font-black text-slate-900 font-mono">₹{formatAmount(loan.installment)}</span>
                       </div>
                       <div>
-                        <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider text-right">লোন আসল টাকা</span>
-                        <span className="block font-extrabold text-slate-700 text-right font-mono">₹{formatAmount(loan.principal)}</span>
+                        <span className="block text-[8px] font-black text-slate-500 uppercase tracking-wider text-right">লোন আসল টাকা</span>
+                        <span className="block font-black text-slate-800 text-right font-mono">₹{formatAmount(loan.principal)}</span>
                       </div>
                     </div>
                   </div>
@@ -516,7 +516,7 @@ export default function MembarLoanAcount({
             <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-indigo-900 text-[10px] font-black text-white uppercase tracking-wider border-b border-indigo-950">
+                  <tr className="bg-indigo-900 text-[10px] font-black text-white uppercase tracking-wider border-b-2 border-indigo-950">
                     <th className="px-4 py-3 text-center border-r border-indigo-850/50 w-12 bg-indigo-900 text-white">ক্র. নং</th>
                     <th className="px-4 py-3 border-r border-indigo-850/50 bg-indigo-900 text-white">কাস্টমার নাম</th>
                     <th className="px-4 py-3 border-r border-indigo-850/50 bg-indigo-900 text-white">কাস্টমার আইডি</th>
@@ -527,36 +527,36 @@ export default function MembarLoanAcount({
                     <th className="px-4 py-3 text-center bg-indigo-900 text-white">অ্যাকশন</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 text-xs text-slate-700 font-medium">
+                <tbody className="divide-y divide-slate-250 text-xs text-slate-800 font-extrabold">
                   {activeLoans.map((loan, index) => {
                     const outstanding = Math.max(0, loan.total_repayment - loan.paid);
                     return (
-                      <tr key={loan.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-4 py-3 text-center font-black text-slate-500 border-r border-slate-200 font-mono bg-slate-50/30">
+                      <tr key={loan.id} className="hover:bg-slate-100 transition-colors">
+                        <td className="px-4 py-3.5 text-center font-black text-slate-700 border-r border-slate-250 font-mono bg-slate-50">
                           {index + 1}
                         </td>
-                        <td className="px-4 py-3 border-r border-slate-200 font-bold text-slate-900">
+                        <td className="px-4 py-3.5 border-r border-slate-250 font-black text-slate-900">
                           {member.full_name || 'N/A'}
                         </td>
-                        <td className="px-4 py-3 border-r border-slate-200 font-mono text-slate-600">
+                        <td className="px-4 py-3.5 border-r border-slate-250 font-mono text-slate-700">
                           {member.member_code || 'N/A'}
                         </td>
-                        <td className="px-4 py-3 border-r border-slate-200 font-mono text-indigo-700 font-bold">
+                        <td className="px-4 py-3.5 border-r border-slate-250 font-mono text-indigo-900 font-black bg-indigo-50/20">
                           {loan.loan_no}
                         </td>
-                        <td className="px-4 py-3 text-right border-r border-slate-200 font-mono text-slate-800 font-semibold">
+                        <td className="px-4 py-3.5 text-right border-r border-slate-250 font-mono text-slate-900 font-black">
                           ₹{formatAmount(loan.installment)}
                         </td>
-                        <td className="px-4 py-3 text-right border-r border-slate-200 font-mono text-slate-800">
+                        <td className="px-4 py-3.5 text-right border-r border-slate-250 font-mono text-slate-800">
                           ₹{formatAmount(loan.principal)}
                         </td>
-                        <td className="px-4 py-3 text-right border-r border-slate-200 font-mono text-rose-600 font-bold">
+                        <td className="px-4 py-3.5 text-right border-r border-slate-250 font-mono text-rose-600 font-black">
                           ₹{formatAmount(outstanding)}
                         </td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="px-4 py-3.5 text-center bg-slate-50/10">
                           <button
-                            onClick={() => setSelectedLoan(loan)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-black text-indigo-600 hover:text-white bg-indigo-50 hover:bg-indigo-600 transition-all rounded-md border border-indigo-200 hover:border-indigo-600 cursor-pointer shadow-xs"
+                             onClick={() => setSelectedLoan(loan)}
+                             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black text-white bg-indigo-600 hover:bg-indigo-700 transition-all rounded-lg border-2 border-indigo-700 cursor-pointer shadow-sm active:scale-95"
                           >
                             <Eye className="w-3.5 h-3.5" /> দেখুন (View)
                           </button>
@@ -569,8 +569,8 @@ export default function MembarLoanAcount({
             </div>
           </div>
         ) : (
-          <div className="py-12 text-center text-slate-400 font-bold text-xs bg-white">
-            <HandCoins className="w-12 h-12 text-slate-300 mx-auto mb-2" />
+          <div className="py-12 text-center text-slate-500 font-black text-xs bg-white">
+            <HandCoins className="w-12 h-12 text-slate-400 mx-auto mb-2" />
             আপনার কোনো সক্রিয় লোন অ্যাকাউন্ট পাওয়া যায়নি।
           </div>
         )}
