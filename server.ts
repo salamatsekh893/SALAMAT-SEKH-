@@ -2127,7 +2127,7 @@ async function startServer() {
 
         // Fetch recent loan collection payments
         const [loanPayments]: any = await pool.query(
-          `SELECT c.id, c.amount_paid, c.payment_date, c.status, l.loan_no, l.amount
+          `SELECT c.id, c.amount_paid, c.payment_date, c.created_at, c.status, l.loan_no, l.amount
            FROM collections c
            JOIN loans l ON c.loan_id = l.id
            WHERE l.customer_id = ?
@@ -2194,6 +2194,7 @@ async function startServer() {
             id: p.id,
             amount_paid: Number(p.amount_paid) || 0,
             payment_date: p.payment_date ? new Date(p.payment_date).toLocaleDateString('en-IN') : 'N/A',
+            created_at: p.created_at || null,
             status: p.status,
             loan_no: p.loan_no,
             loan_amount: Number(p.amount) || 0

@@ -31,7 +31,6 @@ export default function MembarLoanAcount({
     const schedule = [];
     const installmentAmt = Number(loan.installment) || 0;
     const duration = Number(loan.duration_weeks) || 0;
-    const totalRepay = Number(loan.total_repayment) || 0;
     
     // Parse starting date or use current as fallback
     let currentDueDate = new Date();
@@ -54,28 +53,75 @@ export default function MembarLoanAcount({
     const startDate = new Date(currentDueDate);
     startDate.setDate(startDate.getDate() - (duration * 7));
 
-    let accumulatedPaid = Number(loan.paid) || 0;
+    // Get all approved collections for this specific loan, sorted chronologically (oldest first)
+    const collectionsForLoan = loanPayments
+      .filter((p: any) => p.loan_no === loan.loan_no && p.status === 'approved')
+      .sort((a: any, b: any) => {
+        const timeA = a.created_at ? new Date(a.created_at).getTime() : new Date(a.payment_date).getTime();
+        const timeB = b.created_at ? new Date(b.created_at).getTime() : new Date(b.payment_date).getTime();
+        return timeA - timeB;
+      });
+
+    // We will distribute the payment records across the installments
+    const remainingCollections = collectionsForLoan.map(c => ({
+      ...c,
+      remaining: Number(c.amount_paid) || 0
+    }));
 
     for (let w = 1; w <= duration; w++) {
       const emiDueDate = new Date(startDate);
       emiDueDate.setDate(startDate.getDate() + (w * 7));
 
-      // Calculate how much was paid for this specific weekly EMI
       let paidForThisWeek = 0;
-      let status: 'PAID' | 'PARTIAL' | 'PENDING' = 'PENDING';
+      let lastPaymentTime: string | null = null;
 
-      if (accumulatedPaid >= installmentAmt) {
-        paidForThisWeek = installmentAmt;
-        accumulatedPaid -= installmentAmt;
+      let needed = installmentAmt;
+      while (needed > 0 && remainingCollections.length > 0) {
+        const currentColl = remainingCollections[0];
+        if (currentColl.remaining <= 0) {
+          remainingCollections.shift();
+          continue;
+        }
+
+        const toTake = Math.min(needed, currentColl.remaining);
+        paidForThisWeek += toTake;
+        currentColl.remaining -= toTake;
+        needed -= toTake;
+
+        // Use precise timestamp if available
+        if (currentColl.created_at) {
+          const dateObj = new Date(currentColl.created_at);
+          lastPaymentTime = dateObj.toLocaleString('bn-BD', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          });
+        } else if (currentColl.payment_date) {
+          lastPaymentTime = currentColl.payment_date;
+        }
+
+        if (currentColl.remaining <= 0) {
+          remainingCollections.shift();
+        }
+      }
+
+      let status: 'PAID' | 'PARTIAL' | 'PENDING' = 'PENDING';
+      if (paidForThisWeek >= installmentAmt) {
         status = 'PAID';
-      } else if (accumulatedPaid > 0) {
-        paidForThisWeek = accumulatedPaid;
-        accumulatedPaid = 0;
+      } else if (paidForThisWeek > 0) {
         status = 'PARTIAL';
       } else {
-        paidForThisWeek = 0;
         status = 'PENDING';
       }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const isPastDue = emiDueDate < today;
+      // Overdue is only if due date has passed and they haven't paid or paid partially
+      const overdueAmount = isPastDue ? Math.max(0, installmentAmt - paidForThisWeek) : 0;
 
       schedule.push({
         installmentNo: w,
@@ -83,6 +129,8 @@ export default function MembarLoanAcount({
         amount: installmentAmt,
         paidAmount: paidForThisWeek,
         status: status,
+        overdue: overdueAmount,
+        paymentTime: lastPaymentTime
       });
     }
 
@@ -259,19 +307,24 @@ export default function MembarLoanAcount({
                   <div>
                     <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">পরিশোধিত টাকা</span>
                     <span className={cn(
-                      "font-black font-mono text-[11px]",
+                      "font-black font-mono text-[11px] block",
                       row.paidAmount > 0 ? "text-emerald-600" : "text-slate-400"
                     )}>
                       ₹{formatAmount(row.paidAmount)}
                     </span>
+                    {row.paymentTime && (
+                      <span className="text-[8px] text-slate-400 font-medium block mt-1 leading-tight bg-slate-100 border border-slate-150 px-1 py-0.5 rounded">
+                        {row.paymentTime}
+                      </span>
+                    )}
                   </div>
                   <div className="text-right">
                     <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">ওভার ডিউ</span>
                     <span className={cn(
                       "font-black font-mono text-[11px]",
-                      (row.amount - row.paidAmount) > 0 ? "text-rose-600" : "text-slate-400"
+                      row.overdue > 0 ? "text-rose-600" : "text-slate-400"
                     )}>
-                      ₹{formatAmount(row.amount - row.paidAmount)}
+                      ₹{formatAmount(row.overdue)}
                     </span>
                   </div>
                 </div>
@@ -287,7 +340,7 @@ export default function MembarLoanAcount({
                   <th className="px-4 py-3 text-center border-r border-indigo-800/50 w-16 bg-indigo-900 text-white">কিস্তি নং</th>
                   <th className="px-4 py-3 border-r border-indigo-800/50 bg-indigo-900 text-white">নির্ধারিত তারিখ (Due Date)</th>
                   <th className="px-4 py-3 text-right border-r border-indigo-800/50 bg-indigo-900 text-white">কিস্তি পরিমাণ</th>
-                  <th className="px-4 py-3 text-right border-r border-indigo-800/50 bg-indigo-900 text-white">পরিশোধিত টাকা</th>
+                  <th className="px-4 py-3 text-right border-r border-indigo-800/50 bg-indigo-900 text-white">পরিশোধিত টাকা ও তারিখ</th>
                   <th className="px-4 py-3 text-right border-r border-indigo-800/50 bg-indigo-900 text-white">ওভার ডিউ (Overdue)</th>
                   <th className="px-4 py-3 text-center bg-indigo-900 text-white">জমার অবস্থা (Status)</th>
                 </tr>
@@ -311,19 +364,26 @@ export default function MembarLoanAcount({
                       ₹{formatAmount(row.amount)}
                     </td>
                     <td className="px-4 py-2.5 text-right border-r border-slate-150 font-mono">
-                      <span className={cn(
-                        "font-bold",
-                        row.paidAmount > 0 ? "text-emerald-600" : "text-slate-400"
-                      )}>
-                        ₹{formatAmount(row.paidAmount)}
-                      </span>
+                      <div className="flex flex-col items-end">
+                        <span className={cn(
+                          "font-bold",
+                          row.paidAmount > 0 ? "text-emerald-600" : "text-slate-400"
+                        )}>
+                          ₹{formatAmount(row.paidAmount)}
+                        </span>
+                        {row.paymentTime && (
+                          <span className="text-[9px] text-slate-400 font-medium block mt-0.5 leading-tight bg-slate-50 border border-slate-100 rounded px-1.5 py-0.5 whitespace-nowrap">
+                            {row.paymentTime}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-2.5 text-right border-r border-slate-150 font-mono">
                       <span className={cn(
                         "font-bold",
-                        (row.amount - row.paidAmount) > 0 ? "text-rose-600" : "text-slate-400"
+                        row.overdue > 0 ? "text-rose-600" : "text-slate-400"
                       )}>
-                        ₹{formatAmount(row.amount - row.paidAmount)}
+                        ₹{formatAmount(row.overdue)}
                       </span>
                     </td>
                     <td className="px-4 py-2.5 text-center">
