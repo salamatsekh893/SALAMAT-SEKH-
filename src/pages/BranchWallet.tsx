@@ -30,6 +30,7 @@ export default function BranchWallet() {
   const [requestAmount, setRequestAmount] = useState('');
   const [requestRemarks, setRequestRemarks] = useState('');
   const [selectedBranchId, setSelectedBranchId] = useState('');
+  const [requestType, setRequestType] = useState<'refill_request' | 'return_transfer'>('refill_request');
   const [submittingRequest, setSubmittingRequest] = useState(false);
 
   // Action/Modal states
@@ -95,18 +96,28 @@ export default function BranchWallet() {
       return;
     }
 
+    if (!isSuperAdmin && requestType === 'return_transfer') {
+      const currentBal = parseFloat(myBranchBalance?.wallet_balance || 0);
+      if (parseFloat(requestAmount) > currentBal) {
+        toast.error(`Insufficient balance: You only have ₹${currentBal.toLocaleString('en-IN')} in your wallet.`);
+        return;
+      }
+    }
+
     try {
       setSubmittingRequest(true);
+      const reqType = isSuperAdmin ? 'refill_request' : requestType;
       await fetchWithAuth('/branch-wallet/requests', {
         method: 'POST',
         body: JSON.stringify({
           branch_id: isSuperAdmin ? parseInt(selectedBranchId, 10) : undefined,
           amount: parseFloat(requestAmount),
-          remarks: requestRemarks
+          remarks: requestRemarks,
+          request_type: reqType
         })
       });
 
-      toast.success('Funds request submitted successfully');
+      toast.success(reqType === 'return_transfer' ? 'Surplus funds return transfer initiated!' : 'Funds request submitted successfully');
       voiceFeedback.success();
       setRequestAmount('');
       setRequestRemarks('');
@@ -356,11 +367,45 @@ export default function BranchWallet() {
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
                   <Send className="w-4 h-4 text-indigo-600" />
                   <h3 className="text-sm font-black text-slate-950 uppercase tracking-wider">
-                    {isSuperAdmin ? 'Direct Balance Dispatch' : 'Request Wallet Refill'}
+                    {isSuperAdmin 
+                      ? 'Direct Balance Dispatch' 
+                      : requestType === 'return_transfer' 
+                        ? 'Return Surplus Wallet Balance' 
+                        : 'Request Wallet Refill'}
                   </h3>
                 </div>
 
                 <form onSubmit={handleCreateRequest} className="space-y-4">
+                  {!isSuperAdmin && (
+                    <div className="space-y-1 bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-center mb-1.5">লেনদেন ধরণ (Transaction Type)</label>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setRequestType('refill_request')}
+                          className={`flex-1 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all border ${
+                            requestType === 'refill_request'
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm font-black'
+                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          Request Refill 📥
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRequestType('return_transfer')}
+                          className={`flex-1 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all border ${
+                            requestType === 'return_transfer'
+                              ? 'bg-purple-600 text-white border-purple-600 shadow-sm font-black'
+                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          Return Fund 📤
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {isSuperAdmin && branches.length > 0 && (
                     <div className="space-y-1">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Recipient Branch</label>
@@ -377,14 +422,21 @@ export default function BranchWallet() {
                   )}
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Request Amount</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block flex justify-between">
+                      <span>{requestType === 'return_transfer' && !isSuperAdmin ? 'Return Amount' : 'Request Amount'}</span>
+                      {requestType === 'return_transfer' && !isSuperAdmin && (
+                        <span className="text-purple-600 font-extrabold normal-case">
+                          Max: ₹{formatAmount(myBranchBalance?.wallet_balance || 0)}
+                        </span>
+                      )}
+                    </label>
                     <div className="relative">
                       <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-black text-slate-400 text-sm">₹</span>
                       <input
                         type="number"
                         value={requestAmount}
                         onChange={(e) => setRequestAmount(e.target.value)}
-                        placeholder="Enter amount in INR"
+                        placeholder={requestType === 'return_transfer' && !isSuperAdmin ? `Max ₹${formatAmount(myBranchBalance?.wallet_balance || 0)}` : "Enter amount in INR"}
                         className="w-full bg-slate-50 border border-slate-200 pl-8 pr-3 py-3 rounded-2xl text-sm font-bold text-slate-950 focus:border-indigo-500 focus:bg-white outline-none transition-all shadow-sm"
                         required
                       />
@@ -396,7 +448,9 @@ export default function BranchWallet() {
                     <textarea
                       value={requestRemarks}
                       onChange={(e) => setRequestRemarks(e.target.value)}
-                      placeholder="Specify reason (e.g., daily loan disbursement, emergency expense, etc.)"
+                      placeholder={requestType === 'return_transfer' && !isSuperAdmin 
+                        ? "Specify why you are returning this leftover money (e.g., leftover from weekly collections, unused loan cash)" 
+                        : "Specify reason (e.g., daily loan disbursement, emergency expense, etc.)"}
                       rows={3}
                       className="w-full bg-slate-50 border border-slate-200 p-3 rounded-2xl text-xs font-bold text-slate-950 focus:border-indigo-500 focus:bg-white outline-none transition-all shadow-sm resize-none"
                     />
@@ -405,14 +459,22 @@ export default function BranchWallet() {
                   <button
                     type="submit"
                     disabled={submittingRequest}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
+                    className={`w-full text-white py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 ${
+                      requestType === 'return_transfer' && !isSuperAdmin 
+                        ? 'bg-purple-600 hover:bg-purple-700' 
+                        : 'bg-indigo-600 hover:bg-indigo-700'
+                    }`}
                   >
                     {submittingRequest ? (
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : (
                       <>
                         <Send className="w-3.5 h-3.5" /> 
-                        {isSuperAdmin ? 'Dispatch Refill Fund' : 'Submit Fund Request'}
+                        {isSuperAdmin 
+                          ? 'Dispatch Refill Fund' 
+                          : requestType === 'return_transfer' 
+                            ? 'Submit Surplus Return 📤' 
+                            : 'Submit Fund Request 📥'}
                       </>
                     )}
                   </button>
@@ -463,12 +525,27 @@ export default function BranchWallet() {
                       <tbody className="divide-y divide-slate-100 bg-white">
                         {pendingRequests.map((req) => (
                           <tr key={req.id} className="hover:bg-slate-50/50 transition-colors text-slate-900 text-xs font-bold">
-                            <td className="py-3 pr-2 space-y-0.5">
+                            <td className="py-3 pr-2 space-y-1">
                               <span className="font-extrabold text-slate-900 block leading-tight">{req.branch_name}</span>
-                              <div className="flex items-center gap-1.5 text-[9px] text-slate-500 mt-0.5">
+                              <div className="flex flex-wrap items-center gap-1.5 text-[9px] text-slate-500">
                                 <span className="font-black uppercase tracking-wider text-indigo-600">{req.branch_code}</span>
                                 <span>•</span>
                                 <span>{req.request_date ? format(new Date(req.request_date), 'dd MMM yyyy') : '-'}</span>
+                                {req.creator_name && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="text-slate-600 font-extrabold">By: {req.creator_name}</span>
+                                  </>
+                                )}
+                              </div>
+                              <div className="mt-1">
+                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${
+                                  req.request_type === 'return_transfer' 
+                                    ? 'bg-purple-50 text-purple-700 border-purple-200' 
+                                    : 'bg-indigo-50 text-indigo-700 border-indigo-150'
+                                }`}>
+                                  {req.request_type === 'return_transfer' ? 'RETURN 📤' : 'REFILL 📥'}
+                                </span>
                               </div>
                             </td>
                             <td className="py-3 font-black text-sm text-slate-950">
@@ -666,11 +743,25 @@ export default function BranchWallet() {
                         </td>
 
                         {/* Branch */}
-                        <td className="py-3.5 px-4 font-black">
-                          <span className="block leading-none text-slate-900">{req.branch_name}</span>
-                          <span className="text-[9px] font-black bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded uppercase mt-1 inline-block">
-                            {req.branch_code}
-                          </span>
+                        <td className="py-3.5 px-4 space-y-1">
+                          <span className="block font-black text-slate-900 leading-none">{req.branch_name}</span>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-[9px] font-black bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded uppercase mt-0.5 inline-block">
+                              {req.branch_code}
+                            </span>
+                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider mt-0.5 inline-block border ${
+                              req.request_type === 'return_transfer' 
+                                ? 'bg-purple-50 text-purple-700 border-purple-200' 
+                                : 'bg-indigo-50 text-indigo-700 border-indigo-150'
+                            }`}>
+                              {req.request_type === 'return_transfer' ? 'RETURN 📤' : 'REFILL 📥'}
+                            </span>
+                          </div>
+                          {req.creator_name && (
+                            <span className="block text-[10px] text-slate-500 font-bold mt-1">
+                              By: {req.creator_name}
+                            </span>
+                          )}
                         </td>
 
                         {/* Amount */}
@@ -701,7 +792,7 @@ export default function BranchWallet() {
                               </span>
                               {req.ho_bank_name && (
                                 <span className="block text-slate-500 font-extrabold mt-0.5">
-                                  HO Bank Out: <span className="text-slate-700">{req.ho_bank_name}</span>
+                                  {req.request_type === 'return_transfer' ? 'HO Bank In' : 'HO Bank Out'}: <span className="text-slate-700">{req.ho_bank_name}</span>
                                 </span>
                               )}
                               {req.admin_remarks && (
@@ -726,7 +817,9 @@ export default function BranchWallet() {
                           )}
 
                           {req.status === 'pending' && (
-                            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest italic block">Awaiting HO Approval</span>
+                            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest italic block">
+                              {req.request_type === 'return_transfer' ? 'Awaiting HO Receipt Approval' : 'Awaiting HO Refill Approval'}
+                            </span>
                           )}
                         </td>
 
