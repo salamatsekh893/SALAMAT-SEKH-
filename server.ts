@@ -3326,11 +3326,8 @@ async function startServer() {
         prevClosing = closing_balance;
       }
 
-      // Update the branch wallet_balance with the latest closing balance
-      await conn.query("UPDATE branches SET wallet_balance = ? WHERE id = ?", [prevClosing, branchId]);
-
       await conn.commit();
-      console.log(`[RECALC] Propagated DayBook for Branch ID ${branchId} from ${startDateStr}. New wallet balance: ${prevClosing}`);
+      console.log(`[RECALC] Propagated DayBook for Branch ID ${branchId} from ${startDateStr}.`);
     } catch (err) {
       await conn.rollback();
       console.error(`[RECALC_ERR] Failed to propagate DayBook:`, err);
@@ -3463,15 +3460,6 @@ async function startServer() {
          const checkStatus = await verifyDayBookActive(collRows[0].branch_id, collRows[0].payment_date);
          if (!checkStatus.active) {
             return res.status(400).json({ error: checkStatus.error });
-         }
-
-         // Deduct from wallet if status was approved
-         if (collRows[0].status === 'approved') {
-           const branchId = collRows[0].branch_id;
-           const amountPaid = parseFloat(collRows[0].amount_paid || 0);
-           if (branchId && amountPaid > 0) {
-             await pool.query('UPDATE branches SET wallet_balance = GREATEST(0, wallet_balance - ?) WHERE id = ?', [amountPaid, branchId]);
-           }
          }
       }
 
@@ -4025,11 +4013,6 @@ async function startServer() {
       );
       
       if (status === 'approved') {
-        // If transitioning from non-approved to approved, add to branch wallet balance
-        if (oldStatus !== 'approved' && branchId && amountPaid > 0) {
-          await pool.query('UPDATE branches SET wallet_balance = wallet_balance + ? WHERE id = ?', [amountPaid, branchId]);
-        }
-
         // Option 1: It's an explicit pre-close
         if (colRows[0].is_pre_close) {
           await pool.query('UPDATE loans SET status = ? WHERE id = ?', ['closed', loanId]);
@@ -4038,11 +4021,6 @@ async function startServer() {
           await autoCloseFullyPaidLoans();
         }
       } else if (status === 'rejected') {
-        // If transitioning from approved to rejected, deduct from branch wallet balance
-        if (oldStatus === 'approved' && branchId && amountPaid > 0) {
-          await pool.query('UPDATE branches SET wallet_balance = GREATEST(0, wallet_balance - ?) WHERE id = ?', [amountPaid, branchId]);
-        }
-
         // If a collection is rejected, check if we need to reopen the loan
         const [loanRows]: any = await pool.query('SELECT total_repayment, status FROM loans WHERE id = ?', [loanId]);
         if (loanRows.length > 0 && loanRows[0].status === 'closed') {
@@ -4899,7 +4877,6 @@ async function startServer() {
 
       // If bank payment, verify balance first
       const isBankType = data.payment_method === 'bank' && data.bank_id;
-      const isCashBranchType = data.payment_method === 'cash' && data.branch_id;
 
       if (isBankType) {
         const [bankCheck]: any = await conn.query(
@@ -4913,20 +4890,6 @@ async function startServer() {
         if (parseFloat(bankCheck[0].current_balance) < parseFloat(data.amount)) {
           await conn.rollback();
           return res.status(400).json({ error: `Insufficient bank balance: Current balance is ৳${bankCheck[0].current_balance}` });
-        }
-      } else if (isCashBranchType) {
-        // Cash payment in a specific branch - deduct from branch wallet balance
-        const [branchCheck]: any = await conn.query(
-          'SELECT wallet_balance FROM branches WHERE id = ? FOR UPDATE',
-          [data.branch_id]
-        );
-        if (!branchCheck.length) {
-          await conn.rollback();
-          return res.status(400).json({ error: 'Selected branch was not found' });
-        }
-        if (parseFloat(branchCheck[0].wallet_balance) < parseFloat(data.amount)) {
-          await conn.rollback();
-          return res.status(400).json({ error: `Insufficient branch wallet balance for cash expense: Current balance is ৳${parseFloat(branchCheck[0].wallet_balance).toLocaleString('en-IN')}` });
         }
       }
 
@@ -4951,12 +4914,6 @@ async function startServer() {
           `INSERT INTO bank_transactions (bank_id, date, type, source_type, source_id, amount, purpose) 
            VALUES (?, ?, 'withdrawal', 'other', ?, ?, ?)`,
           [data.bank_id, txDate, insertedExpenseId, data.amount, txnPurpose]
-        );
-      } else if (isCashBranchType) {
-        // Deduct from branch wallet
-        await conn.query(
-          `UPDATE branches SET wallet_balance = wallet_balance - ? WHERE id = ?`,
-          [data.amount, data.branch_id]
         );
       }
 

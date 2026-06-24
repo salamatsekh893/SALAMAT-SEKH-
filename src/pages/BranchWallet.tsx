@@ -264,8 +264,8 @@ export default function BranchWallet() {
           </div>
           <p className="text-xs sm:text-sm font-bold text-slate-500 mt-2">
             {isSuperAdmin 
-              ? 'Branch Cash Balance & Offline Fund Approval System (India Portal)' 
-              : 'Branch Cash Balance Management and Head Office Fund Request Portal (India Portal)'}
+              ? 'Branch Wallet Balance & Offline Fund Approval System (India Portal)' 
+              : 'Branch Wallet Balance Management and Head Office Fund Request Portal (India Portal)'}
           </p>
         </div>
 
@@ -318,7 +318,7 @@ export default function BranchWallet() {
                   </div>
                   <div className="relative z-10 space-y-4">
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-indigo-200">Current Branch Balance (Cash In Hand)</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-indigo-200">Current Branch Wallet Balance</span>
                       <h2 className="text-3xl font-black mt-1 text-emerald-400">₹{formatAmount(myBranchBalance.wallet_balance || 0)}</h2>
                     </div>
                     <div className="pt-3 border-t border-white/10 flex justify-between text-[11px] font-extrabold text-indigo-200">
@@ -331,7 +331,7 @@ export default function BranchWallet() {
                 <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                   <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
                     <Landmark className="w-5 h-5 text-indigo-600" />
-                    <h3 className="text-sm font-black text-slate-950 uppercase tracking-wider">Branch Cash Balances</h3>
+                    <h3 className="text-sm font-black text-slate-950 uppercase tracking-wider">Branch Wallet Balances</h3>
                   </div>
                   <div className="space-y-2.5 max-h-[280px] overflow-y-auto pr-1">
                     {balances.map((b) => (
