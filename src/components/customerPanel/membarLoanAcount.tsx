@@ -52,9 +52,8 @@ export default function MembarLoanAcount({
       }
     }
 
-    // Go backwards to simulate start date of the weeks
+    // Use first EMI date directly as the start date
     const startDate = new Date(currentDueDate);
-    startDate.setDate(startDate.getDate() - (duration * 7));
 
     // Get all approved collections for this specific loan, sorted chronologically (oldest first)
     const collectionsForLoan = loanPayments
@@ -73,7 +72,7 @@ export default function MembarLoanAcount({
 
     for (let w = 1; w <= duration; w++) {
       const emiDueDate = new Date(startDate);
-      emiDueDate.setDate(startDate.getDate() + (w * 7));
+      emiDueDate.setDate(startDate.getDate() + ((w - 1) * 7));
 
       let paidForThisWeek = 0;
       let lastPaymentTime: string | null = null;
