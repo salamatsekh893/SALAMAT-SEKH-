@@ -33,8 +33,8 @@ export default function Login({ onLogin }: { onLogin: (user: any, token: string)
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          phone: String(phone), 
-          password: String(password)
+          phone: String(phone).trim(), 
+          password: String(password).trim()
         })
       });
       let data = {} as any;

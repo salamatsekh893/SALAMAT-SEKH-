@@ -1412,10 +1412,13 @@ async function startServer() {
         return res.status(400).json({ error: 'Phone and password are required' });
       }
 
+      const trimmedPhone = String(phone).trim();
+      const trimmedPassword = String(password).trim();
+
       // Check database
       let rows: any = [];
       try {
-        const result = await pool.query('SELECT * FROM users WHERE phone = ? OR email = ? LIMIT 1', [phone, phone]);
+        const result = await pool.query('SELECT * FROM users WHERE phone = ? OR email = ? LIMIT 1', [trimmedPhone, trimmedPhone]);
         rows = result[0];
       } catch (dbErr: any) {
         console.error("Login DB Query Error:", dbErr);
@@ -1425,7 +1428,7 @@ async function startServer() {
       let user: any = null;
       if (rows.length > 0) {
         user = rows[0];
-        if (user.password !== password) {
+        if (user.password !== trimmedPassword) {
           return res.status(401).json({ error: 'Invalid password' });
         }
       } else {
@@ -2071,36 +2074,104 @@ async function startServer() {
         const member = memberRows[0];
         const memberId = member.id;
 
+        // Fetch all loans with total repaid
         const [loans]: any = await pool.query(
-          `SELECT l.id, l.loan_no, l.amount, l.interest, l.total_repayment, l.status, l.start_date,
+          `SELECT l.id, l.loan_no, l.amount, l.interest, l.total_repayment, l.status, l.start_date, l.installment, l.duration_weeks,
                   COALESCE((SELECT SUM(amount_paid) FROM collections WHERE loan_id = l.id AND status != 'rejected'), 0) as paid
            FROM loans l
            WHERE l.customer_id = ?`,
           [memberId]
         );
 
-        const [savings]: any = await pool.query(
-          'SELECT account_no, balance FROM savings_accounts WHERE member_id = ? LIMIT 1',
+        // Fetch all savings & RD accounts
+        const [savingsAccounts]: any = await pool.query(
+          'SELECT * FROM savings_accounts WHERE member_id = ? ORDER BY account_type ASC, created_at DESC',
+          [memberId]
+        );
+
+        // Fetch recent savings transactions
+        const [savingsTxns]: any = await pool.query(
+          `SELECT st.id, st.date, st.type, st.amount, st.remarks, sa.account_no, sa.account_type
+           FROM savings_transactions st
+           JOIN savings_accounts sa ON st.savings_account_id = sa.id
+           WHERE sa.member_id = ?
+           ORDER BY st.date DESC, st.id DESC
+           LIMIT 10`,
+          [memberId]
+        );
+
+        // Fetch recent loan collection payments
+        const [loanPayments]: any = await pool.query(
+          `SELECT c.id, c.amount_paid, c.payment_date, c.status, l.loan_no, l.amount
+           FROM collections c
+           JOIN loans l ON c.loan_id = l.id
+           WHERE l.customer_id = ?
+           ORDER BY c.payment_date DESC, c.id DESC
+           LIMIT 10`,
           [memberId]
         );
 
         return res.json({
           isCustomer: true,
+          member: {
+            id: member.id,
+            member_code: member.member_code,
+            full_name: member.full_name,
+            guardian_name: member.guardian_name,
+            guardian_type: member.guardian_type,
+            mobile_no: member.mobile_no,
+            aadhar_no: member.aadhar_no,
+            voter_id: member.voter_id,
+            village: member.village,
+            post_office: member.post_office,
+            police_station: member.police_station,
+            district: member.district,
+            state: member.state,
+            pin_code: member.pin_code,
+            savings_balance: Number(member.savings_balance) || 0
+          },
           loans: loans.map((l: any) => ({
-            id: l.loan_no || `LN-${l.id}`,
+            id: l.id,
+            loan_no: l.loan_no || `LN-${l.id}`,
             principal: Number(l.amount) || 0,
             interest: Number(l.interest) || 0,
+            total_repayment: Number(l.total_repayment) || 0,
+            installment: Number(l.installment) || 0,
+            duration_weeks: Number(l.duration_weeks) || 0,
             paid: Number(l.paid) || 0,
             nextDue: l.start_date ? new Date(l.start_date).toLocaleDateString('en-IN') : 'N/A',
             status: l.status
           })),
-          savings: savings && savings.length > 0 ? {
-            balance: Number(savings[0].balance) || 0,
-            accNo: savings[0].account_no
-          } : {
-            balance: Number(member.savings_balance) || 0,
-            accNo: 'N/A'
-          }
+          savingsAccounts: savingsAccounts.map((sa: any) => ({
+            id: sa.id,
+            account_no: sa.account_no,
+            account_type: sa.account_type,
+            balance: Number(sa.balance) || 0,
+            status: sa.status,
+            interest_rate: Number(sa.interest_rate) || 0,
+            deposit_frequency: sa.deposit_frequency,
+            monthly_deposit: Number(sa.monthly_deposit) || 0,
+            duration_months: sa.duration_months,
+            maturity_amount: Number(sa.maturity_amount) || 0,
+            maturity_date: sa.maturity_date ? new Date(sa.maturity_date).toLocaleDateString('en-IN') : null
+          })),
+          savingsTransactions: savingsTxns.map((t: any) => ({
+            id: t.id,
+            date: t.date ? new Date(t.date).toLocaleDateString('en-IN') : 'N/A',
+            type: t.type,
+            amount: Number(t.amount) || 0,
+            remarks: t.remarks,
+            account_no: t.account_no,
+            account_type: t.account_type
+          })),
+          loanPayments: loanPayments.map((p: any) => ({
+            id: p.id,
+            amount_paid: Number(p.amount_paid) || 0,
+            payment_date: p.payment_date ? new Date(p.payment_date).toLocaleDateString('en-IN') : 'N/A',
+            status: p.status,
+            loan_no: p.loan_no,
+            loan_amount: Number(p.amount) || 0
+          }))
         });
       }
 

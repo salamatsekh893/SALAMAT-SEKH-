@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { fetchWithAuth } from '../lib/api';
 import Sidebar from './Sidebar';
+import CustomerPanelSidebar from './customerPanel/customerpanelSidebar';
 import Header from './Header';
 import SuperAdminHeader from './superadminPanel/superAdminHeader';
 import BranchHeader from './branchPanel/branchHeader';
@@ -330,13 +331,22 @@ export default function Layout({ user, onLogout }: LayoutProps) {
   return (
     <div className="min-h-screen bg-slate-50 flex print:bg-white print:min-h-0 print:block">
       <div className="print:hidden">
-        <Sidebar 
-          user={user} 
-          isOpen={sidebarOpen} 
-          setIsOpen={setSidebarOpen} 
-          onLogout={onLogout} 
-          navigation={filteredNav} 
-        />
+        {user?.role === 'customer' ? (
+          <CustomerPanelSidebar
+            user={user}
+            isOpen={sidebarOpen}
+            setIsOpen={setSidebarOpen}
+            onLogout={onLogout}
+          />
+        ) : (
+          <Sidebar 
+            user={user} 
+            isOpen={sidebarOpen} 
+            setIsOpen={setSidebarOpen} 
+            onLogout={onLogout} 
+            navigation={filteredNav} 
+          />
+        )}
       </div>
 
       <div className="flex-1 flex flex-col min-w-0 print:block">
