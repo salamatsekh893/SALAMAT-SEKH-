@@ -250,19 +250,28 @@ export default function MembarLoanAcount({
                 <div className="grid grid-cols-2 gap-3 text-xs pt-1">
                   <div>
                     <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">নির্ধারিত তারিখ</span>
-                    <span className="font-extrabold text-slate-700">{row.dueDate}</span>
+                    <span className="font-extrabold text-slate-700 text-[10px]">{row.dueDate}</span>
                   </div>
                   <div className="text-right">
                     <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">কিস্তি পরিমাণ</span>
-                    <span className="font-black text-slate-900 font-mono">₹{formatAmount(row.amount)}</span>
+                    <span className="font-black text-slate-900 font-mono text-[11px]">₹{formatAmount(row.amount)}</span>
                   </div>
                   <div>
                     <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">পরিশোধিত টাকা</span>
                     <span className={cn(
-                      "font-black font-mono",
+                      "font-black font-mono text-[11px]",
                       row.paidAmount > 0 ? "text-emerald-600" : "text-slate-400"
                     )}>
                       ₹{formatAmount(row.paidAmount)}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">ওভার ডিউ</span>
+                    <span className={cn(
+                      "font-black font-mono text-[11px]",
+                      (row.amount - row.paidAmount) > 0 ? "text-rose-600" : "text-slate-400"
+                    )}>
+                      ₹{formatAmount(row.amount - row.paidAmount)}
                     </span>
                   </div>
                 </div>
@@ -274,12 +283,13 @@ export default function MembarLoanAcount({
           <div className="hidden sm:block overflow-x-auto border border-slate-200 rounded-xl shadow-inner max-h-[450px] overflow-y-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-200 text-[10px] font-black text-slate-500 uppercase tracking-wider sticky top-0 bg-white z-10">
-                  <th className="px-4 py-3 text-center border-r border-slate-200 w-16">কিস্তি নং</th>
-                  <th className="px-4 py-3 border-r border-slate-200">নির্ধারিত তারিখ (Due Date)</th>
-                  <th className="px-4 py-3 text-right border-r border-slate-200">কিস্তি পরিমাণ</th>
-                  <th className="px-4 py-3 text-right border-r border-slate-200">পরিশোধিত টাকা</th>
-                  <th className="px-4 py-3 text-center">জমার অবস্থা (Status)</th>
+                <tr className="bg-indigo-900 text-[10px] font-black text-white uppercase tracking-wider sticky top-0 z-10 border-b border-indigo-950">
+                  <th className="px-4 py-3 text-center border-r border-indigo-800/50 w-16 bg-indigo-900 text-white">কিস্তি নং</th>
+                  <th className="px-4 py-3 border-r border-indigo-800/50 bg-indigo-900 text-white">নির্ধারিত তারিখ (Due Date)</th>
+                  <th className="px-4 py-3 text-right border-r border-indigo-800/50 bg-indigo-900 text-white">কিস্তি পরিমাণ</th>
+                  <th className="px-4 py-3 text-right border-r border-indigo-800/50 bg-indigo-900 text-white">পরিশোধিত টাকা</th>
+                  <th className="px-4 py-3 text-right border-r border-indigo-800/50 bg-indigo-900 text-white">ওভার ডিউ (Overdue)</th>
+                  <th className="px-4 py-3 text-center bg-indigo-900 text-white">জমার অবস্থা (Status)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-150 text-xs text-slate-700 font-medium">
@@ -294,7 +304,7 @@ export default function MembarLoanAcount({
                     <td className="px-4 py-2.5 text-center font-black text-slate-500 border-r border-slate-150 font-mono bg-slate-50/30">
                       {row.installmentNo}
                     </td>
-                    <td className="px-4 py-2.5 border-r border-slate-150">
+                    <td className="px-4 py-2.5 border-r border-slate-150 text-[11px] font-semibold text-slate-500">
                       {row.dueDate}
                     </td>
                     <td className="px-4 py-2.5 text-right border-r border-slate-150 font-mono text-slate-800">
@@ -306,6 +316,14 @@ export default function MembarLoanAcount({
                         row.paidAmount > 0 ? "text-emerald-600" : "text-slate-400"
                       )}>
                         ₹{formatAmount(row.paidAmount)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-right border-r border-slate-150 font-mono">
+                      <span className={cn(
+                        "font-bold",
+                        (row.amount - row.paidAmount) > 0 ? "text-rose-600" : "text-slate-400"
+                      )}>
+                        ₹{formatAmount(row.amount - row.paidAmount)}
                       </span>
                     </td>
                     <td className="px-4 py-2.5 text-center">
@@ -436,15 +454,15 @@ export default function MembarLoanAcount({
             <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-wider border-b border-slate-200">
-                    <th className="px-4 py-3 text-center border-r border-slate-200 w-12">ক্র. নং</th>
-                    <th className="px-4 py-3 border-r border-slate-200">কাস্টমার নাম</th>
-                    <th className="px-4 py-3 border-r border-slate-200">কাস্টমার আইডি</th>
-                    <th className="px-4 py-3 border-r border-slate-200">লোন আইডি</th>
-                    <th className="px-4 py-3 text-right border-r border-slate-200">মোট কিস্তি (EMI)</th>
-                    <th className="px-4 py-3 text-right border-r border-slate-200">লোন আসল টাকা</th>
-                    <th className="px-4 py-3 text-right border-r border-slate-200">বকেয়া (O/S)</th>
-                    <th className="px-4 py-3 text-center">অ্যাকশন</th>
+                  <tr className="bg-indigo-900 text-[10px] font-black text-white uppercase tracking-wider border-b border-indigo-950">
+                    <th className="px-4 py-3 text-center border-r border-indigo-850/50 w-12 bg-indigo-900 text-white">ক্র. নং</th>
+                    <th className="px-4 py-3 border-r border-indigo-850/50 bg-indigo-900 text-white">কাস্টমার নাম</th>
+                    <th className="px-4 py-3 border-r border-indigo-850/50 bg-indigo-900 text-white">কাস্টমার আইডি</th>
+                    <th className="px-4 py-3 border-r border-indigo-850/50 bg-indigo-900 text-white">লোন আইডি</th>
+                    <th className="px-4 py-3 text-right border-r border-indigo-850/50 bg-indigo-900 text-white">মোট কিস্তি (EMI)</th>
+                    <th className="px-4 py-3 text-right border-r border-indigo-850/50 bg-indigo-900 text-white">লোন আসল টাকা</th>
+                    <th className="px-4 py-3 text-right border-r border-indigo-850/50 bg-indigo-900 text-white">বকেয়া (O/S)</th>
+                    <th className="px-4 py-3 text-center bg-indigo-900 text-white">অ্যাকশন</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 text-xs text-slate-700 font-medium">
