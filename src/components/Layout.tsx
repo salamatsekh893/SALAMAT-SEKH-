@@ -3,6 +3,10 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { fetchWithAuth } from '../lib/api';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import SuperAdminHeader from './superadminPanel/superAdminHeader';
+import BranchHeader from './branchPanel/branchHeader';
+import EmployeeHeader from './employeePanel/employeeHeader';
+import CustomerHeader from './customerPanel/customerHeader';
 import { cn } from '../lib/utils';
 import { 
   LayoutDashboard, Wallet, UsersRound, Settings, 
@@ -38,8 +42,20 @@ export default function Layout({ user, onLogout }: LayoutProps) {
   const [reportsOpen, setReportsOpen] = useState(false);
   const [travelOpen, setTravelOpen] = useState(false);
   const [company, setCompany] = useState<any>(null);
-
   const [pendingApprovals, setPendingApprovals] = useState(0);
+  const [branchWalletBalance, setBranchWalletBalance] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (user?.role === 'branch_manager') {
+      fetchWithAuth('/dashboard')
+        .then(data => {
+          if (data && data.branchWalletBalance !== undefined) {
+            setBranchWalletBalance(data.branchWalletBalance);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user]);
 
   useEffect(() => {
     fetchWithAuth('/companies')
@@ -325,11 +341,20 @@ export default function Layout({ user, onLogout }: LayoutProps) {
 
       <div className="flex-1 flex flex-col min-w-0 print:block">
         <div className="print:hidden">
-          <Header 
-            onMenuClick={() => setSidebarOpen(!sidebarOpen)} 
-            user={user}
-            company={company}
-          />
+          {(() => {
+            const onMenuClick = () => setSidebarOpen(!sidebarOpen);
+            if (user?.role === 'superadmin') {
+              return <SuperAdminHeader onMenuClick={onMenuClick} user={user} company={company} />;
+            } else if (user?.role === 'branch_manager') {
+              return <BranchHeader onMenuClick={onMenuClick} user={user} company={company} branchWalletBalance={branchWalletBalance} />;
+            } else if (['fo', 'am', 'dm'].includes(user?.role)) {
+              return <EmployeeHeader onMenuClick={onMenuClick} user={user} company={company} />;
+            } else if (user?.role === 'customer') {
+              return <CustomerHeader onMenuClick={onMenuClick} user={user} company={company} />;
+            } else {
+              return <Header onMenuClick={onMenuClick} user={user} company={company} />;
+            }
+          })()}
         </div>
         
         <main className="flex-1 w-full pb-12 text-slate-800 print:p-0 print:m-0 print:block">

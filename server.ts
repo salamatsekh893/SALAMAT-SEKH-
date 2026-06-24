@@ -2051,6 +2051,59 @@ async function startServer() {
     try {
       await autoCloseFullyPaidLoans();
       const { role, branchId, userId } = req.user;
+
+      if (role === 'customer') {
+        const [userRows]: any = await pool.query('SELECT phone FROM users WHERE id = ?', [userId]);
+        if (!userRows || userRows.length === 0) {
+          return res.status(404).json({ error: 'User not found' });
+        }
+        const phone = userRows[0].phone;
+
+        const [memberRows]: any = await pool.query('SELECT * FROM members WHERE mobile_no = ? LIMIT 1', [phone]);
+        if (!memberRows || memberRows.length === 0) {
+          return res.json({
+            isCustomer: true,
+            loans: [],
+            savings: { balance: 0, accNo: 'N/A' },
+            message: 'No member linked to this phone'
+          });
+        }
+        const member = memberRows[0];
+        const memberId = member.id;
+
+        const [loans]: any = await pool.query(
+          `SELECT l.id, l.loan_no, l.amount, l.interest, l.total_repayment, l.status, l.start_date,
+                  COALESCE((SELECT SUM(amount_paid) FROM collections WHERE loan_id = l.id AND status != 'rejected'), 0) as paid
+           FROM loans l
+           WHERE l.customer_id = ?`,
+          [memberId]
+        );
+
+        const [savings]: any = await pool.query(
+          'SELECT account_no, balance FROM savings_accounts WHERE member_id = ? LIMIT 1',
+          [memberId]
+        );
+
+        return res.json({
+          isCustomer: true,
+          loans: loans.map((l: any) => ({
+            id: l.loan_no || `LN-${l.id}`,
+            principal: Number(l.amount) || 0,
+            interest: Number(l.interest) || 0,
+            paid: Number(l.paid) || 0,
+            nextDue: l.start_date ? new Date(l.start_date).toLocaleDateString('en-IN') : 'N/A',
+            status: l.status
+          })),
+          savings: savings && savings.length > 0 ? {
+            balance: Number(savings[0].balance) || 0,
+            accNo: savings[0].account_no
+          } : {
+            balance: Number(member.savings_balance) || 0,
+            accNo: 'N/A'
+          }
+        });
+      }
+
       let whereClause = "";
       const params: any[] = [];
 
@@ -2552,6 +2605,34 @@ async function startServer() {
               [targetBranchId, loanIds]
             );
           }
+        }
+      }
+
+      if (data.enable_portal_login) {
+        try {
+          const targetGroupId = toInt(cleanData.group_id);
+          let resolvedBranchId = null;
+          if (targetGroupId) {
+            const [gRows]: any = await pool.query("SELECT branch_id FROM groups WHERE id = ?", [targetGroupId]);
+            if (gRows && gRows.length > 0) {
+              resolvedBranchId = gRows[0].branch_id;
+            }
+          }
+
+          const [existing]: any = await pool.query('SELECT id FROM users WHERE phone = ?', [cleanData.mobile_no]);
+          if (existing && existing.length > 0) {
+            await pool.query(
+              'UPDATE users SET name = ?, password = ?, role = "customer", branch_id = ?, status = "active" WHERE id = ?',
+              [cleanData.full_name, '123456', resolvedBranchId, existing[0].id]
+            );
+          } else {
+            await pool.query(
+              'INSERT INTO users (name, phone, password, role, branch_id, status) VALUES (?, ?, ?, ?, ?, ?)',
+              [cleanData.full_name, cleanData.mobile_no, '123456', 'customer', resolvedBranchId, 'active']
+            );
+          }
+        } catch (uErr: any) {
+          console.error("Failed to update/create customer portal user:", uErr);
         }
       }
 
@@ -3675,7 +3756,11 @@ async function startServer() {
             hostname: urlObj.hostname,
             path: urlObj.pathname + (urlObj.search || ''),
             method: 'GET',
-            headers: headers || {}
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Accept': 'application/json',
+              ...(headers || {})
+            }
           };
 
           if (isHttps) {
@@ -4291,7 +4376,12 @@ async function startServer() {
     try {
       const [rows]: any = await pool.query('SELECT * FROM members WHERE id = ?', [req.params.id]);
       if (rows.length === 0) return res.status(404).json({ error: 'Member not found' });
-      res.json(rows[0]);
+      
+      const member = rows[0];
+      const [userRows]: any = await pool.query('SELECT id FROM users WHERE phone = ? AND role = "customer"', [member.mobile_no]);
+      member.enable_portal_login = userRows && userRows.length > 0;
+
+      res.json(member);
     } catch (err) {
       res.status(500).json({ error: 'Database error' });
     }
@@ -4351,6 +4441,26 @@ async function startServer() {
           cleanData.voter_image_front, cleanData.voter_image_back, cleanData.customer_signature, cleanData.status || 'Active'
         ]
       );
+
+      if (data.enable_portal_login) {
+        try {
+          const [existing]: any = await pool.query('SELECT id FROM users WHERE phone = ?', [cleanData.mobile_no]);
+          if (existing && existing.length > 0) {
+            await pool.query(
+              'UPDATE users SET name = ?, password = ?, role = "customer", branch_id = ?, status = "active" WHERE id = ?',
+              [cleanData.full_name, '123456', resolvedBranchId, existing[0].id]
+            );
+          } else {
+            await pool.query(
+              'INSERT INTO users (name, phone, password, role, branch_id, status) VALUES (?, ?, ?, ?, ?, ?)',
+              [cleanData.full_name, cleanData.mobile_no, '123456', 'customer', resolvedBranchId, 'active']
+            );
+          }
+        } catch (uErr: any) {
+          console.error("Failed to create customer portal user:", uErr);
+        }
+      }
+
       res.status(201).json({ id: result.insertId, member_code });
     } catch (err: any) {
       console.error('Create member error:', err.message);

@@ -61,6 +61,7 @@ const memberSchema = z.object({
   nominee_aadhar: z.string().optional().nullable(),
   nominee_dob: z.string().optional().nullable(),
   nominee_age: z.coerce.number().optional().nullable(),
+  enable_portal_login: z.boolean().optional().default(true),
 });
 
 type MemberFormValues = z.infer<typeof memberSchema>;
@@ -104,7 +105,8 @@ export default function CreateMember() {
       marital_status: 'Married',
       gender: 'Female',
       house_type: 'Owned',
-      state: 'West Bengal'
+      state: 'West Bengal',
+      enable_portal_login: true
     }
   });
 
@@ -424,6 +426,25 @@ export default function CreateMember() {
                   <span>{String(errors.mobile_no?.message)}</span>
                 </div>
               )}
+            </div>
+
+            {/* Portal Login Enable */}
+            <div className="col-span-1 bg-amber-500/5 border border-amber-500/15 rounded-2xl p-4 flex flex-col justify-center">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input 
+                  type="checkbox"
+                  {...register('enable_portal_login')}
+                  className="w-4 h-4 text-amber-500 focus:ring-amber-500 border-slate-300 rounded"
+                />
+                <div>
+                  <span className="block text-[11px] font-black text-slate-800 uppercase tracking-wide">
+                    Enable Portal Login / কাস্টমার অ্যাপ লগইন
+                  </span>
+                  <span className="block text-[10px] font-bold text-slate-500 mt-0.5">
+                    ID: <span className="text-indigo-600 font-black">{watch('mobile_no') || 'Mobile Number'}</span> | Pass: <span className="text-emerald-600 font-black">123456</span>
+                  </span>
+                </div>
+              </label>
             </div>
 
             {/* Guardian Type */}
