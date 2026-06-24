@@ -3123,25 +3123,9 @@ async function startServer() {
       res.json(rows);
     } catch (err) {
       console.error("API collections error:", err);
-      // Fallback if joins fail
-      try {
-        let fallbackQuery = 'SELECT * FROM collections';
-        let fallbackParams = [];
-        if (loan_id) {
-          fallbackQuery += ' WHERE loan_id = ?';
-          fallbackParams.push(loan_id);
-        }
-        fallbackQuery += ' ORDER BY created_at DESC';
-        const [rows] = await pool.query(fallbackQuery, fallbackParams);
-        res.json(rows);
-      } catch (fallbackErr) {
-        console.error("API collections fallback error:", fallbackErr);
-        res.status(500).json({ error: 'Database error' });
-      }
+      res.status(500).json({ error: 'Database error' });
     }
   });
-
-  // Helper to find unclosed days before target date
   async function findUnclosedDaysBefore(branchId: number | null, dateStr: string): Promise<string[]> {
     if (!branchId) return [];
     
@@ -3184,6 +3168,177 @@ async function startServer() {
     }
   }
 
+  // Helper function to recalculate and propagate day book cash balances across closed days for a branch
+  async function recalculateAndPropagateDayBook(branchId: number, startDateStr: string) {
+    if (!branchId) return;
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+
+      // Get today's date in 'YYYY-MM-DD'
+      const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+      
+      // Generate dates from startDateStr to todayStr + 1 day to be safe
+      const dates: string[] = [];
+      let curDate = new Date(startDateStr);
+      const endDate = new Date(todayStr);
+      endDate.setDate(endDate.getDate() + 1); // include tomorrow to be safe
+      
+      while (curDate <= endDate) {
+        dates.push(curDate.toISOString().split('T')[0]);
+        curDate.setDate(curDate.getDate() + 1);
+      }
+
+      // Get the opening balance of the start date (which is the closing balance of the day before)
+      const [opResult]: any = await conn.query(
+        `SELECT COALESCE(
+           (SELECT closing_balance FROM daily_cash_balances WHERE branch_id = ? AND DATE(date) < ? ORDER BY date DESC LIMIT 1),
+           0
+         ) as opening_balance`,
+        [branchId, startDateStr]
+      );
+      let prevClosing = parseFloat(opResult[0]?.opening_balance || 0);
+
+      for (const dStr of dates) {
+        const opening_balance = prevClosing;
+
+        // Inflows
+        // 1. Approved Collections
+        const [[{ col_amt }]]: any = await conn.query(
+          "SELECT COALESCE(SUM(amount_paid), 0) as col_amt FROM collections WHERE branch_id = ? AND DATE(payment_date) = ? AND status = 'approved'",
+          [branchId, dStr]
+        );
+
+        // 2. Savings Deposits
+        const [[{ sav_dep }]]: any = await conn.query(
+          `SELECT COALESCE(SUM(st.amount), 0) as sav_dep 
+           FROM savings_transactions st 
+           JOIN savings_accounts sa ON st.savings_account_id = sa.id 
+           JOIN members m ON sa.member_id = m.id 
+           WHERE m.branch_id = ? AND DATE(st.date) = ? AND st.type = 'deposit'`,
+          [branchId, dStr]
+        );
+
+        // 3. Product Sales (Cash)
+        const [[{ sale_amt }]]: any = await conn.query(
+          `SELECT COALESCE(SUM(s.total_amount), 0) as sale_amt 
+           FROM sales s 
+           JOIN members m ON s.member_id = m.id 
+           WHERE m.branch_id = ? AND DATE(s.sale_date) = ? AND LOWER(s.payment_method) = 'cash'`,
+          [branchId, dStr]
+        );
+
+        // 4. Bank Withdrawals (Cash box inflow)
+        const [[{ bank_with }]]: any = await conn.query(
+          `SELECT COALESCE(SUM(amount), 0) as bank_with 
+           FROM bank_transactions 
+           WHERE type = 'withdrawal' AND source_type = 'branch' AND source_id = ? AND DATE(date) = ?`,
+          [branchId, dStr]
+        );
+
+        // 5. Loan Fees (Processing + Insurance)
+        const [[{ loan_fees }]]: any = await conn.query(
+          `SELECT COALESCE(SUM(processing_fee + insurance_fee), 0) as loan_fees 
+           FROM loans 
+           WHERE branch_id = ? AND DATE(COALESCE(disbursement_date, start_date)) = ? AND status IN ('active', 'closed')`,
+           [branchId, dStr]
+        );
+
+        const total_inflow = parseFloat(col_amt || 0) + parseFloat(sav_dep || 0) + parseFloat(sale_amt || 0) + parseFloat(bank_with || 0) + parseFloat(loan_fees || 0);
+
+        // Outflows
+        // 1. Savings Withdrawals
+        const [[{ sav_with }]]: any = await conn.query(
+          `SELECT COALESCE(SUM(st.amount), 0) as sav_with 
+           FROM savings_transactions st 
+           JOIN savings_accounts sa ON st.savings_account_id = sa.id 
+           JOIN members m ON sa.member_id = m.id 
+           WHERE m.branch_id = ? AND DATE(st.date) = ? AND st.type = 'withdrawal'`,
+          [branchId, dStr]
+        );
+
+        // 2. Salaries Paid
+        const [[{ sal_amt }]]: any = await conn.query(
+          "SELECT COALESCE(SUM(net_salary), 0) as sal_amt FROM salaries WHERE branch_id = ? AND DATE(payment_date) = ?",
+          [branchId, dStr]
+        );
+
+        // 3. Expenses (Cash)
+        const [[{ exp_amt }]]: any = await conn.query(
+          "SELECT COALESCE(SUM(amount), 0) as exp_amt FROM expenses WHERE branch_id = ? AND DATE(date) = ? AND payment_method = 'cash'",
+          [branchId, dStr]
+        );
+
+        // 4. Bank Deposits (Cash box outflow)
+        const [[{ bank_dep }]]: any = await conn.query(
+          `SELECT COALESCE(SUM(amount), 0) as bank_dep 
+           FROM bank_transactions 
+           WHERE type = 'deposit' AND source_type = 'branch' AND source_id = ? AND DATE(date) = ?`,
+          [branchId, dStr]
+        );
+
+        // 5. Wallet Disbursements (Loan disbursed via branch wallet)
+        const [[{ wallet_disb }]]: any = await conn.query(
+          `SELECT COALESCE(SUM(amount), 0) as wallet_disb 
+           FROM loans 
+           WHERE branch_id = ? AND DATE(COALESCE(disbursement_date, start_date)) = ? AND status IN ('active', 'closed') AND disbursement_method = 'wallet'`,
+          [branchId, dStr]
+        );
+
+        const total_outflow = parseFloat(sav_with || 0) + parseFloat(sal_amt || 0) + parseFloat(exp_amt || 0) + parseFloat(bank_dep || 0) + parseFloat(wallet_disb || 0);
+
+        const closing_balance = opening_balance + total_inflow - total_outflow;
+
+        // Check if there was any activity or if there is already a record for this day
+        const [[{ activity_count }]]: any = await conn.query(
+          `SELECT (
+             SELECT COUNT(*) FROM collections WHERE branch_id = ? AND DATE(payment_date) = ?
+           ) + (
+             SELECT COUNT(*) FROM savings_transactions st JOIN savings_accounts sa ON st.savings_account_id = sa.id JOIN members m ON sa.member_id = m.id WHERE m.branch_id = ? AND DATE(st.date) = ?
+           ) + (
+             SELECT COUNT(*) FROM expenses WHERE branch_id = ? AND DATE(date) = ?
+           ) + (
+             SELECT COUNT(*) FROM loans WHERE branch_id = ? AND DATE(COALESCE(disbursement_date, start_date)) = ?
+           ) as activity_count`,
+          [branchId, dStr, branchId, dStr, branchId, dStr, branchId, dStr]
+        );
+
+        const [dcbRow]: any = await conn.query(
+          "SELECT id, status FROM daily_cash_balances WHERE branch_id = ? AND date = ?",
+          [branchId, dStr]
+        );
+
+        if (activity_count > 0 || dcbRow.length > 0 || dStr === todayStr) {
+          const status = (dcbRow.length > 0) ? dcbRow[0].status : 'closed';
+          
+          await conn.query(
+            `INSERT INTO daily_cash_balances (branch_id, date, opening_balance, total_inflow, total_outflow, closing_balance, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE 
+             opening_balance = VALUES(opening_balance),
+             total_inflow = VALUES(total_inflow),
+             total_outflow = VALUES(total_outflow),
+             closing_balance = VALUES(closing_balance)`,
+            [branchId, dStr, opening_balance, total_inflow, total_outflow, closing_balance, status]
+          );
+        }
+
+        prevClosing = closing_balance;
+      }
+
+      // Update the branch wallet_balance with the latest closing balance
+      await conn.query("UPDATE branches SET wallet_balance = ? WHERE id = ?", [prevClosing, branchId]);
+
+      await conn.commit();
+      console.log(`[RECALC] Propagated DayBook for Branch ID ${branchId} from ${startDateStr}. New wallet balance: ${prevClosing}`);
+    } catch (err) {
+      await conn.rollback();
+      console.error(`[RECALC_ERR] Failed to propagate DayBook:`, err);
+    } finally {
+      conn.release();
+    }
+  }
+
   // Auto closes any unclosed days before today on startup to avoid blocking old, unresolved days
   async function autoClosePastDays() {
     console.log("[AUTO EOD] Starting auto closing of unclosed days before today...");
@@ -3195,51 +3350,8 @@ async function startServer() {
         const unclosedDays = await findUnclosedDaysBefore(branchId, todayStr);
         if (unclosedDays.length > 0) {
           console.log(`[AUTO EOD] Found unclosed days for branch ${b.branch_name}:`, unclosedDays);
-          for (const date of unclosedDays) {
-            // Calculate opening balance
-            const [opResult]: any = await pool.query(
-              `SELECT COALESCE(
-                (SELECT opening_balance FROM daily_cash_balances WHERE branch_id = ? AND DATE(date) = ? AND status = 'closed'),
-                (SELECT closing_balance FROM daily_cash_balances WHERE branch_id = ? AND DATE(date) < ? ORDER BY date DESC LIMIT 1),
-                0
-              ) as opening_balance`,
-              [branchId, date, branchId, date]
-            );
-            const opening_balance = parseFloat(opResult[0]?.opening_balance || 0);
-
-            // Calculate Inflows
-            const [[{ col_amt }]]: any = await pool.query(`SELECT COALESCE(SUM(amount_paid), 0) as col_amt FROM collections WHERE branch_id = ? AND DATE(payment_date) = ? AND status = 'approved'`, [branchId, date]);
-            const [[{ sav_dep }]]: any = await pool.query(`SELECT COALESCE(SUM(st.amount), 0) as sav_dep FROM savings_transactions st JOIN savings_accounts sa ON st.savings_account_id = sa.id JOIN members m ON sa.member_id = m.id WHERE m.branch_id = ? AND DATE(st.date) = ? AND st.type = 'deposit'`, [branchId, date]);
-            const [[{ sale_amt }]]: any = await pool.query(`SELECT COALESCE(SUM(s.total_amount), 0) as sale_amt FROM sales s JOIN members m ON s.member_id = m.id WHERE m.branch_id = ? AND DATE(s.sale_date) = ?`, [branchId, date]);
-            const [[{ bank_with }]]: any = await pool.query(`SELECT COALESCE(SUM(amount), 0) as bank_with FROM bank_transactions WHERE type = 'withdrawal' AND source_type = 'branch' AND source_id = ? AND DATE(date) = ?`, [branchId, date]);
-            
-            const total_inflow = parseFloat(col_amt) + parseFloat(sav_dep) + parseFloat(sale_amt) + parseFloat(bank_with);
-
-            // Calculate Outflows
-            const [[{ disb_amt }]]: any = await pool.query(`SELECT COALESCE(SUM(amount), 0) as disb_amt FROM loans WHERE branch_id = ? AND DATE(COALESCE(disbursement_date, start_date)) = ? AND status IN ('active', 'closed')`, [branchId, date]);
-            const [[{ sal_amt }]]: any = await pool.query(`SELECT COALESCE(SUM(net_salary), 0) as sal_amt FROM salaries WHERE branch_id = ? AND DATE(payment_date) = ?`, [branchId, date]);
-            const [[{ exp_amt }]]: any = await pool.query(`SELECT COALESCE(SUM(amount), 0) as exp_amt FROM expenses WHERE branch_id = ? AND DATE(date) = ?`, [branchId, date]);
-            const [[{ sav_with }]]: any = await pool.query(`SELECT COALESCE(SUM(st.amount), 0) as sav_with FROM savings_transactions st JOIN savings_accounts sa ON st.savings_account_id = sa.id JOIN members m ON sa.member_id = m.id WHERE m.branch_id = ? AND DATE(st.date) = ? AND st.type = 'withdrawal'`, [branchId, date]);
-            const [[{ bank_dep }]]: any = await pool.query(`SELECT COALESCE(SUM(amount), 0) as bank_dep FROM bank_transactions WHERE type = 'deposit' AND source_type = 'branch' AND source_id = ? AND DATE(date) = ?`, [branchId, date]);
-
-            const total_outflow = parseFloat(disb_amt) + parseFloat(sal_amt) + parseFloat(exp_amt) + parseFloat(sav_with) + parseFloat(bank_dep);
-
-            const closing_balance = opening_balance + total_inflow - total_outflow;
-
-            // Insert or update
-            await pool.query(
-              `INSERT INTO daily_cash_balances (branch_id, date, opening_balance, total_inflow, total_outflow, closing_balance, status)
-               VALUES (?, ?, ?, ?, ?, ?, 'closed')
-               ON DUPLICATE KEY UPDATE 
-               opening_balance = VALUES(opening_balance),
-               total_inflow = VALUES(total_inflow),
-               total_outflow = VALUES(total_outflow),
-               closing_balance = VALUES(closing_balance),
-               status = 'closed'`,
-               [branchId, date, opening_balance, total_inflow, total_outflow, closing_balance]
-            );
-            console.log(`[AUTO EOD] Auto closed back-date ${date} for branch ${b.branch_name}. Closing balance: ${closing_balance}`);
-          }
+          const earliestDate = unclosedDays[0];
+          await recalculateAndPropagateDayBook(branchId, earliestDate);
         }
       }
       console.log("[AUTO EOD] Auto closing of back dates completed.");
@@ -3896,7 +4008,7 @@ async function startServer() {
         return res.status(400).json({ error: 'Invalid status' });
       }
 
-      const [colRows]: any = await pool.query('SELECT loan_id, is_pre_close, amount_paid, branch_id, status as old_status FROM collections WHERE id = ?', [req.params.id]);
+      const [colRows]: any = await pool.query('SELECT loan_id, is_pre_close, amount_paid, branch_id, status as old_status, payment_date FROM collections WHERE id = ?', [req.params.id]);
       if (!colRows || colRows.length === 0) {
         return res.status(404).json({ error: 'Collection not found' });
       }
@@ -3905,6 +4017,7 @@ async function startServer() {
       const branchId = colRows[0].branch_id;
       const amountPaid = parseFloat(colRows[0].amount_paid || 0);
       const oldStatus = colRows[0].old_status;
+      const paymentDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(colRows[0].payment_date));
 
       await pool.query(
         'UPDATE collections SET status = ?, approved_by = ?, approved_at = NOW() WHERE id = ?',
@@ -3944,6 +4057,11 @@ async function startServer() {
             await pool.query('UPDATE loans SET status = ? WHERE id = ?', ['active', loanId]);
           }
         }
+      }
+      
+      // Automatically recalculate and propagate Day Book and wallet balance for this branch
+      if (branchId) {
+        await recalculateAndPropagateDayBook(branchId, paymentDate);
       }
       
       res.json({ success: true, status });
@@ -4550,6 +4668,12 @@ async function startServer() {
          [bId, date, opening_balance, final_inflow, final_outflow, final_closing]
       );
       await conn.commit();
+      
+      if (bId) {
+        // Run the background propagation/recalculation to update all subsequent days and branch wallet balance
+        recalculateAndPropagateDayBook(bId, date).catch(err => console.error("[BG_RECALC_ERR] Day close propagation failed:", err));
+      }
+      
       res.json({ success: true });
     } catch (err: any) {
       await conn.rollback();

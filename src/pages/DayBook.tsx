@@ -60,9 +60,9 @@ export default function DayBook() {
     const selectedBranch = branches.find(b => b.id.toString() === branchId);
     if (!selectedBranch || !selectedBranch.opening_date) return undefined;
     try {
-      const d = new Date(selectedBranch.opening_date);
-      if (!isNaN(d.getTime())) {
-        return format(d, 'yyyy-MM-dd');
+      const dStr = selectedBranch.opening_date.toString().split(/[T ]/)[0];
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dStr)) {
+        return dStr;
       }
     } catch (e) {
       console.error(e);
@@ -75,9 +75,11 @@ export default function DayBook() {
       const selectedBranch = branches.find(b => b.id.toString() === branchId);
       if (selectedBranch && selectedBranch.opening_date) {
         try {
-          const minD = format(new Date(selectedBranch.opening_date), 'yyyy-MM-dd');
-          if (date < minD) {
-            setDate(minD);
+          const minD = selectedBranch.opening_date.toString().split(/[T ]/)[0];
+          if (/^\d{4}-\d{2}-\d{2}$/.test(minD)) {
+            if (date < minD) {
+              setDate(minD);
+            }
           }
         } catch (e) {
           console.error(e);
