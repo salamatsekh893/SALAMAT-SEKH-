@@ -26,6 +26,9 @@ export default function MembarLoanAcount({
   const selectedLoan = propsSelectedLoan !== undefined ? propsSelectedLoan : localSelectedLoan;
   const setSelectedLoan = propsSetSelectedLoan !== undefined ? propsSetSelectedLoan : setLocalSelectedLoan;
 
+  // Filter only active loans (disbursed and active)
+  const activeLoans = (loans || []).filter((loan: any) => loan.status === 'active');
+
   // Function to dynamically generate EMI schedule based on loan attributes
   const generateEMISchedule = (loan: any) => {
     const schedule = [];
@@ -456,15 +459,15 @@ export default function MembarLoanAcount({
             </div>
           </div>
           <span className="text-[9px] font-black bg-white border border-slate-200 text-indigo-700 px-2.5 py-1 rounded-full font-mono">
-            মোট অ্যাকাউন্ট: {loans.length} টি
+            মোট অ্যাকাউন্ট: {activeLoans.length} টি
           </span>
         </div>
 
-        {loans.length > 0 ? (
+        {activeLoans.length > 0 ? (
           <div>
             {/* Mobile Card List (Visible on mobile only) */}
             <div className="block sm:hidden divide-y divide-slate-150">
-              {loans.map((loan, index) => {
+              {activeLoans.map((loan, index) => {
                 const outstanding = Math.max(0, loan.total_repayment - loan.paid);
                 return (
                   <div key={loan.id} className="p-4 space-y-3 hover:bg-slate-50/50 transition-colors">
@@ -526,7 +529,7 @@ export default function MembarLoanAcount({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 text-xs text-slate-700 font-medium">
-                  {loans.map((loan, index) => {
+                  {activeLoans.map((loan, index) => {
                     const outstanding = Math.max(0, loan.total_repayment - loan.paid);
                     return (
                       <tr key={loan.id} className="hover:bg-slate-50/50 transition-colors">
