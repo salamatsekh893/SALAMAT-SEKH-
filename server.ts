@@ -557,6 +557,12 @@ async function startServer() {
         )
       `);
       console.log("members table ensured");
+      try {
+        await conn.query(`ALTER TABLE members ADD COLUMN nominee_aadhar_front LONGTEXT`);
+      } catch (e) {}
+      try {
+        await conn.query(`ALTER TABLE members ADD COLUMN nominee_aadhar_back LONGTEXT`);
+      } catch (e) {}
     } catch (e: any) { console.error("members table creation failed:", e); }
 
     try {
@@ -2664,7 +2670,7 @@ async function startServer() {
           post_office=?, police_station=?, village=?, voter_id=?, pan_no=?, group_id=?,
           mem_bank_ifsc=?, mem_bank_name=?, mem_bank_ac=?, nominee_name=?, nominee_relation=?, nominee_aadhar=?,
           nominee_dob=?, nominee_age=?, profile_image=?, house_image=?, aadhar_image_front=?, aadhar_image_back=?,
-          voter_image_front=?, voter_image_back=?, customer_signature=?, status=?
+          voter_image_front=?, voter_image_back=?, customer_signature=?, nominee_aadhar_front=?, nominee_aadhar_back=?, status=?
         WHERE id = ?`,
         [
           cleanData.full_name, cleanData.aadhar_no, cleanData.guardian_name, cleanData.guardian_type, cleanData.marital_status, cleanData.gender, cleanData.dob, toInt(cleanData.age),
@@ -2673,7 +2679,7 @@ async function startServer() {
           cleanData.post_office, cleanData.police_station, cleanData.village, cleanData.voter_id, cleanData.pan_no, toInt(cleanData.group_id),
           cleanData.mem_bank_ifsc, cleanData.mem_bank_name, cleanData.mem_bank_ac, cleanData.nominee_name, cleanData.nominee_relation, cleanData.nominee_aadhar,
           cleanData.nominee_dob, toInt(cleanData.nominee_age), cleanData.profile_image, cleanData.house_image, cleanData.aadhar_image_front, cleanData.aadhar_image_back,
-          cleanData.voter_image_front, cleanData.voter_image_back, cleanData.customer_signature, cleanData.status || 'Active',
+          cleanData.voter_image_front, cleanData.voter_image_back, cleanData.customer_signature, cleanData.nominee_aadhar_front, cleanData.nominee_aadhar_back, cleanData.status || 'Active',
           id
         ]
       );
@@ -2939,7 +2945,7 @@ async function startServer() {
       const [rows]: any = await pool.query(`
         SELECT l.*, 
                m.full_name as member_name, m.member_code, m.mobile_no, m.profile_image, 
-               m.house_image, m.aadhar_image_front, m.aadhar_image_back, m.voter_image_front, m.voter_image_back, m.customer_signature,
+               m.house_image, m.aadhar_image_front, m.aadhar_image_back, m.voter_image_front, m.voter_image_back, m.customer_signature, m.nominee_aadhar_front, m.nominee_aadhar_back,
                m.village, m.post_office, m.police_station, m.district, m.state, m.pin_code,
                m.guardian_name, m.guardian_type, m.dob, m.occupation, m.aadhar_no, m.voter_id,
                m.nominee_name, m.nominee_relation,
@@ -4527,8 +4533,8 @@ async function startServer() {
           post_office, police_station, village, voter_id, pan_no, group_id, branch_id,
           mem_bank_ifsc, mem_bank_name, mem_bank_ac, nominee_name, nominee_relation, nominee_aadhar,
           nominee_dob, nominee_age, profile_image, house_image, aadhar_image_front, aadhar_image_back,
-          voter_image_front, voter_image_back, customer_signature, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          voter_image_front, voter_image_back, customer_signature, nominee_aadhar_front, nominee_aadhar_back, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           member_code, cleanData.full_name, cleanData.aadhar_no, cleanData.guardian_name, cleanData.guardian_type, cleanData.marital_status, cleanData.gender, cleanData.dob, toInt(cleanData.age),
           cleanData.religion, cleanData.category, cleanData.education, cleanData.occupation, toFloat(cleanData.monthly_income), toInt(cleanData.family_members), toInt(cleanData.earning_members),
@@ -4536,7 +4542,7 @@ async function startServer() {
           cleanData.post_office, cleanData.police_station, cleanData.village, cleanData.voter_id, cleanData.pan_no, targetGroupId, resolvedBranchId,
           cleanData.mem_bank_ifsc, cleanData.mem_bank_name, cleanData.mem_bank_ac, cleanData.nominee_name, cleanData.nominee_relation, cleanData.nominee_aadhar,
           cleanData.nominee_dob, toInt(cleanData.nominee_age), cleanData.profile_image, cleanData.house_image, cleanData.aadhar_image_front, cleanData.aadhar_image_back,
-          cleanData.voter_image_front, cleanData.voter_image_back, cleanData.customer_signature, cleanData.status || 'Active'
+          cleanData.voter_image_front, cleanData.voter_image_back, cleanData.customer_signature, cleanData.nominee_aadhar_front, cleanData.nominee_aadhar_back, cleanData.status || 'Active'
         ]
       );
 

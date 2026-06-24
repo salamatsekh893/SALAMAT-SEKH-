@@ -84,7 +84,9 @@ export default function CreateMember() {
     aadhar_back: null,
     voter_front: null,
     voter_back: null,
-    signature: null
+    signature: null,
+    nominee_aadhar_front: null,
+    nominee_aadhar_back: null
   });
 
   const {
@@ -215,7 +217,9 @@ export default function CreateMember() {
               aadhar_back: data.aadhar_image_back || null,
               voter_front: data.voter_image_front || null,
               voter_back: data.voter_image_back || null,
-              signature: data.customer_signature || null
+              signature: data.customer_signature || null,
+              nominee_aadhar_front: data.nominee_aadhar_front || null,
+              nominee_aadhar_back: data.nominee_aadhar_back || null
             });
           }
         } catch (err: any) {
@@ -253,6 +257,8 @@ export default function CreateMember() {
         voter_image_front: images.voter_front,
         voter_image_back: images.voter_back,
         customer_signature: images.signature,
+        nominee_aadhar_front: images.nominee_aadhar_front,
+        nominee_aadhar_back: images.nominee_aadhar_back,
         status: 'Active'
       };
 
@@ -383,6 +389,21 @@ export default function CreateMember() {
                   <span>{String(errors.aadhar_no?.message)}</span>
                 </div>
               )}
+            </div>
+
+            {/* Voter Card Number */}
+            <div className="col-span-1">
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Voter Card No (ভোটার কার্ড নম্বর)
+              </label>
+              <input 
+                {...register('voter_id')}
+                className={cn(
+                  "w-full bg-slate-50 focus:bg-white border text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all placeholder:text-slate-300 shadow-inner uppercase",
+                  errors.voter_id ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200 focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500"
+                )}
+                placeholder="VOTER CARD NUMBER"
+              />
             </div>
 
             {/* Candidate Full Name */}
@@ -1003,6 +1024,22 @@ export default function CreateMember() {
               />
             </div>
 
+            {/* Nominee Aadhar Number */}
+            <div className="col-span-1 lg:col-span-2">
+              <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
+                Nominee Aadhar (নমিনির আধার নম্বর)
+              </label>
+              <input 
+                {...register('nominee_aadhar')}
+                maxLength={12}
+                className={cn(
+                  "w-full bg-slate-50 focus:bg-white border text-xs sm:text-[13px] font-bold text-slate-800 outline-none rounded-2xl px-4 py-3.5 transition-all placeholder:text-slate-300 shadow-inner",
+                  errors.nominee_aadhar ? "border-rose-500 ring-2 ring-rose-500/10" : "border-slate-200 focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500"
+                )}
+                placeholder="12 digit aadhar number"
+              />
+            </div>
+
             {/* Inheritance Relation */}
             <div className="col-span-1">
               <label className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 ml-1">
@@ -1053,7 +1090,7 @@ export default function CreateMember() {
             </div>
           </div>
 
-          <div className="p-4 sm:p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
+          <div className="p-4 sm:p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4 sm:gap-6">
             <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col items-center">
               <ImageUpload 
                 label="Profile" 
@@ -1106,6 +1143,24 @@ export default function CreateMember() {
                 color="text-amber-600" 
                 preview={images.voter_back}
                 onImageCaptured={(url) => setImages(prev => ({ ...prev, voter_back: url }))} 
+              />
+            </div>
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col items-center">
+              <ImageUpload 
+                label="Nominee Aadhar F" 
+                icon={QrCode} 
+                color="text-teal-600" 
+                preview={images.nominee_aadhar_front}
+                onImageCaptured={(url) => setImages(prev => ({ ...prev, nominee_aadhar_front: url }))} 
+              />
+            </div>
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col items-center">
+              <ImageUpload 
+                label="Nominee Aadhar B" 
+                icon={QrCode} 
+                color="text-teal-600" 
+                preview={images.nominee_aadhar_back}
+                onImageCaptured={(url) => setImages(prev => ({ ...prev, nominee_aadhar_back: url }))} 
               />
             </div>
           </div>

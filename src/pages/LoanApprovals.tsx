@@ -263,6 +263,8 @@ export default function LoanApprovals() {
                            { label: 'Aadhar Back', img: selectedLoan.aadhar_image_back },
                            { label: 'Voter Front', img: selectedLoan.voter_image_front },
                            { label: 'Voter Back', img: selectedLoan.voter_image_back },
+                           { label: 'Nominee Aadhar Front', img: selectedLoan.nominee_aadhar_front },
+                           { label: 'Nominee Aadhar Back', img: selectedLoan.nominee_aadhar_back },
                            { label: 'Signature', img: selectedLoan.customer_signature }
                         ].map((doc, idx) => (
                            <div key={idx} className="flex flex-col gap-1.5">

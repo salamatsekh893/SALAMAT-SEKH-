@@ -541,6 +541,8 @@ export default function Members() {
                         { label: 'Aadhar Back', img: selectedMember.aadhar_image_back },
                         { label: 'Voter Front', img: selectedMember.voter_image_front },
                         { label: 'Voter Back', img: selectedMember.voter_image_back },
+                        { label: 'Nominee Aadhar Front', img: selectedMember.nominee_aadhar_front },
+                        { label: 'Nominee Aadhar Back', img: selectedMember.nominee_aadhar_back },
                       ].map((doc, idx) => (
                         <div key={idx} className="bg-white rounded-3xl p-3 shadow-sm border border-slate-200 flex flex-col">
                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block text-center">{doc.label}</span>
