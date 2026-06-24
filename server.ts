@@ -1439,8 +1439,17 @@ async function startServer() {
       const payload = { userId: user.id, role: user.role || 'employee', branchId: user.branch_id };
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
 
+      let photoUrl = user.photo_url || null;
+      if (user.role === 'customer') {
+        const [memberRows]: any = await pool.query('SELECT profile_image FROM members WHERE mobile_no = ? LIMIT 1', [user.phone]);
+        if (memberRows.length > 0 && memberRows[0].profile_image) {
+          photoUrl = memberRows[0].profile_image;
+        }
+      }
+
       const responseUser = {
         ...user,
+        photo_url: photoUrl,
         branchId: user.branch_id,
         branch_id: user.branch_id
       };
@@ -1540,13 +1549,21 @@ async function startServer() {
       // Clean up used OTP
       await pool.query('DELETE FROM otps WHERE identifier = ?', [identifier]);
 
+      let photoUrl = user.photo_url || null;
+      if (user.role === 'customer') {
+        const [memberRows]: any = await pool.query('SELECT profile_image FROM members WHERE mobile_no = ? LIMIT 1', [user.phone]);
+        if (memberRows.length > 0 && memberRows[0].profile_image) {
+          photoUrl = memberRows[0].profile_image;
+        }
+      }
+
       res.json({
         user: { 
           id: user.id,
           name: user.name, 
           role: user.role, 
           branchId: user.branch_id,
-          photo_url: user.photo_url || null,
+          photo_url: photoUrl,
           phone: user.phone,
           email: user.email,
           join_date: user.join_date,
@@ -1636,6 +1653,14 @@ async function startServer() {
              permissions = JSON.parse(permRows[0].permissions);
            }
         }
+        let photoUrl = user.photo_url || null;
+        if (user.role === 'customer') {
+          const [memberRows]: any = await pool.query('SELECT profile_image FROM members WHERE mobile_no = ? LIMIT 1', [user.phone]);
+          if (memberRows.length > 0 && memberRows[0].profile_image) {
+            photoUrl = memberRows[0].profile_image;
+          }
+        }
+
         res.json({
           id: user.id,
           name: user.name,
@@ -1643,7 +1668,7 @@ async function startServer() {
           branchId: user.branch_id,
           branch_id: user.branch_id,
           permissions: permissions,
-          photo_url: user.photo_url || null,
+          photo_url: photoUrl,
           phone: user.phone,
           email: user.email,
           join_date: user.join_date,
@@ -2128,6 +2153,7 @@ async function startServer() {
             district: member.district,
             state: member.state,
             pin_code: member.pin_code,
+            profile_image: member.profile_image || null,
             savings_balance: Number(member.savings_balance) || 0
           },
           loans: loans.map((l: any) => ({
