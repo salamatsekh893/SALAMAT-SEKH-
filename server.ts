@@ -3257,7 +3257,8 @@ async function startServer() {
         const [[{ bank_with }]]: any = await conn.query(
           `SELECT COALESCE(SUM(amount), 0) as bank_with 
            FROM bank_transactions 
-           WHERE type = 'withdrawal' AND source_type = 'branch' AND source_id = ? AND DATE(date) = ?`,
+           WHERE type = 'withdrawal' AND source_type = 'branch' AND source_id = ? AND DATE(date) = ?
+             AND purpose NOT LIKE 'Wallet Refill%' AND purpose NOT LIKE 'Wallet Return%'`,
           [branchId, dStr]
         );
 
@@ -3298,7 +3299,8 @@ async function startServer() {
         const [[{ bank_dep }]]: any = await conn.query(
           `SELECT COALESCE(SUM(amount), 0) as bank_dep 
            FROM bank_transactions 
-           WHERE type = 'deposit' AND source_type = 'branch' AND source_id = ? AND DATE(date) = ?`,
+           WHERE type = 'deposit' AND source_type = 'branch' AND source_id = ? AND DATE(date) = ?
+             AND purpose NOT LIKE 'Wallet Refill%' AND purpose NOT LIKE 'Wallet Return%'`,
           [branchId, dStr]
         );
 
@@ -4529,7 +4531,9 @@ async function startServer() {
         `SELECT t.*, b.bank_name, b.account_number 
          FROM bank_transactions t
          LEFT JOIN bank_accounts b ON t.bank_id = b.id
-         WHERE DATE(t.date) = ? ${branch_id ? "AND t.source_type = 'branch' AND t.source_id = ?" : ''}`,
+         WHERE DATE(t.date) = ? 
+           AND t.purpose NOT LIKE 'Wallet Refill%' AND t.purpose NOT LIKE 'Wallet Return%'
+           ${branch_id ? "AND t.source_type = 'branch' AND t.source_id = ?" : ''}`,
          params
       );
 
