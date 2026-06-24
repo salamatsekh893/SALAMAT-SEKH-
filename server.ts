@@ -2886,6 +2886,16 @@ async function startServer() {
            VALUES (?, ?, 'deposit', 'other', NULL, ?, ?)`,
           [bankId, refundDate, refundAmount, purpose]
         );
+      } else if (loan.disbursement_method === 'wallet' && loan.status === 'active') {
+        // Refund the loan amount back to the branch wallet balance
+        const refundAmount = parseFloat(loan.amount || 0);
+        const branchId = loan.branch_id;
+        if (branchId && refundAmount > 0) {
+          await conn.query(
+            'UPDATE branches SET wallet_balance = wallet_balance + ? WHERE id = ?',
+            [refundAmount, branchId]
+          );
+        }
       }
 
       // 3. Delete the loan (foreign key constraint ON DELETE CASCADE will discard related collections)
@@ -3277,15 +3287,7 @@ async function startServer() {
           [branchId, dStr]
         );
 
-        // 5. Wallet Disbursements (Loan disbursed via branch wallet)
-        const [[{ wallet_disb }]]: any = await conn.query(
-          `SELECT COALESCE(SUM(amount), 0) as wallet_disb 
-           FROM loans 
-           WHERE branch_id = ? AND DATE(COALESCE(disbursement_date, start_date)) = ? AND status IN ('active', 'closed') AND disbursement_method = 'wallet'`,
-          [branchId, dStr]
-        );
-
-        const total_outflow = parseFloat(sav_with || 0) + parseFloat(sal_amt || 0) + parseFloat(exp_amt || 0) + parseFloat(bank_dep || 0) + parseFloat(wallet_disb || 0);
+        const total_outflow = parseFloat(sav_with || 0) + parseFloat(bank_dep || 0);
 
         const closing_balance = opening_balance + total_inflow - total_outflow;
 
@@ -4891,6 +4893,19 @@ async function startServer() {
           await conn.rollback();
           return res.status(400).json({ error: `Insufficient bank balance: Current balance is ৳${bankCheck[0].current_balance}` });
         }
+      } else if (data.branch_id && data.payment_method !== 'bank') {
+        const [branchCheck]: any = await conn.query('SELECT wallet_balance FROM branches WHERE id = ? FOR UPDATE', [data.branch_id]);
+        if (branchCheck.length > 0) {
+          const walletBal = parseFloat(branchCheck[0].wallet_balance || 0);
+          if (walletBal < parseFloat(data.amount)) {
+            await conn.rollback();
+            return res.status(400).json({ error: `Insufficient branch wallet balance: Current balance is ৳${walletBal.toLocaleString('en-IN')}` });
+          }
+          await conn.query(
+            'UPDATE branches SET wallet_balance = wallet_balance - ? WHERE id = ?',
+            [data.amount, data.branch_id]
+          );
+        }
       }
 
       const [result]: any = await conn.query(
@@ -4982,6 +4997,12 @@ async function startServer() {
           "DELETE FROM bank_transactions WHERE type = 'withdrawal' AND source_type = 'other' AND source_id = ?",
           [expenseId]
         );
+      } else if (oldExpense.branch_id && oldExpense.payment_method !== 'bank') {
+        // Refund old amount to old branch wallet
+        await conn.query(
+          "UPDATE branches SET wallet_balance = wallet_balance + ? WHERE id = ?",
+          [oldExpense.amount, oldExpense.branch_id]
+        );
       }
 
       // Step 2: Apply the NEW bank impact if there is any
@@ -5013,6 +5034,19 @@ async function startServer() {
            VALUES (?, ?, 'withdrawal', 'other', ?, ?, ?)`,
           [data.bank_id, txDate, expenseId, data.amount, txnPurpose]
         );
+      } else if (data.branch_id && data.payment_method !== 'bank') {
+        const [branchCheck]: any = await conn.query('SELECT wallet_balance FROM branches WHERE id = ? FOR UPDATE', [data.branch_id]);
+        if (branchCheck.length > 0) {
+          const walletBal = parseFloat(branchCheck[0].wallet_balance || 0);
+          if (walletBal < parseFloat(data.amount)) {
+            await conn.rollback();
+            return res.status(400).json({ error: `Insufficient branch wallet balance: Current balance is ৳${walletBal.toLocaleString('en-IN')}` });
+          }
+          await conn.query(
+            'UPDATE branches SET wallet_balance = wallet_balance - ? WHERE id = ?',
+            [data.amount, data.branch_id]
+          );
+        }
       }
 
       // Step 3: Update expense record
@@ -5071,6 +5105,12 @@ async function startServer() {
         await conn.query(
           "DELETE FROM bank_transactions WHERE type = 'withdrawal' AND source_type = 'other' AND source_id = ?",
           [expenseId]
+        );
+      } else if (oldExpense.branch_id && oldExpense.payment_method !== 'bank') {
+        // Refund to branch wallet
+        await conn.query(
+          "UPDATE branches SET wallet_balance = wallet_balance + ? WHERE id = ?",
+          [oldExpense.amount, oldExpense.branch_id]
         );
       }
 
