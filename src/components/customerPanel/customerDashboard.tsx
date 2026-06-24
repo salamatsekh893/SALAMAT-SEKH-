@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { formatAmount } from '../../lib/utils';
 import { cn } from '../../lib/utils';
+import MembarLoanAcount from './membarLoanAcount';
 
 interface CustomerDashboardProps {
   user: any;
@@ -15,6 +16,7 @@ interface CustomerDashboardProps {
 
 export default function CustomerDashboard({ user, stats }: CustomerDashboardProps) {
   const [activeTab, setActiveTab] = useState<'savings' | 'loans'>('savings');
+  const [selectedLoan, setSelectedLoan] = useState<any | null>(null);
 
   // Parse enhanced stats
   const member = stats?.member || {
@@ -48,6 +50,20 @@ export default function CustomerDashboard({ user, stats }: CustomerDashboardProp
 
   const nextDueDate = activeLoans.length > 0 ? activeLoans[0].nextDue : 'N/A';
   const nextDueAmount = activeLoans.length > 0 ? activeLoans[0].installment : 0;
+
+  if (selectedLoan) {
+    return (
+      <div className="py-2">
+        <MembarLoanAcount 
+          loans={loans} 
+          loanPayments={loanPayments} 
+          member={member} 
+          selectedLoan={selectedLoan}
+          setSelectedLoan={setSelectedLoan}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4 pb-12">
@@ -358,129 +374,8 @@ export default function CustomerDashboard({ user, stats }: CustomerDashboardProp
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
                 id="loans-section"
-                className="space-y-4"
               >
-                {loans.length > 0 ? (
-                  loans.map((loan: any) => {
-                    const percentPaid = loan.total_repayment > 0 ? Math.min(100, Math.round((loan.paid / loan.total_repayment) * 100)) : 0;
-                    return (
-                      <div 
-                        key={loan.id}
-                        className="bg-white border border-slate-200/60 shadow-xs hover:shadow-md transition-all rounded-2xl p-4"
-                      >
-                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-100 pb-3 mb-3">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-black text-slate-850 uppercase tracking-wide">সক্রিয় লোন নম্বর</span>
-                              <span className={cn(
-                                "text-[9px] font-black uppercase px-1.5 py-0.5 rounded",
-                                loan.status === 'active' ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
-                              )}>
-                                {loan.status}
-                              </span>
-                            </div>
-                            <span className="text-xs text-indigo-600 font-black font-mono mt-0.5 block">{loan.loan_no}</span>
-                          </div>
-
-                          <div className="text-left sm:text-right">
-                            <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">অবशिष्ट পরিশোধযোগ্য</span>
-                            <span className="block text-lg font-black text-rose-500">
-                              ₹{formatAmount(Math.max(0, loan.total_repayment - loan.paid))}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Progress Bar of loan payment */}
-                        <div className="mb-3">
-                          <div className="flex justify-between text-[11px] text-slate-500 mb-1">
-                            <span className="font-medium">ঋণ পরিশোধ অগ্রগতি</span>
-                            <span className="font-bold text-slate-800">{percentPaid}% সম্পন্ন</span>
-                          </div>
-                          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200 shadow-inner">
-                            <div 
-                              className="bg-emerald-500 h-full rounded-full transition-all duration-550" 
-                              style={{ width: `${percentPaid}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Loan details row */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-[11px] mb-3">
-                          <div>
-                            <span className="block text-[8px] font-black text-slate-400 uppercase">লোন আসল টাকা</span>
-                            <span className="font-bold text-slate-850">₹{formatAmount(loan.principal)}</span>
-                          </div>
-                          <div>
-                            <span className="block text-[8px] font-black text-slate-400 uppercase">মোট সুদ</span>
-                            <span className="font-bold text-slate-850">₹{formatAmount(loan.interest)}</span>
-                          </div>
-                          <div>
-                            <span className="block text-[8px] font-black text-slate-400 uppercase font-bold">ইতিমধ্যে পরিশোধিত</span>
-                            <span className="font-black text-emerald-600">₹{formatAmount(loan.paid)}</span>
-                          </div>
-                          <div>
-                            <span className="block text-[8px] font-black text-slate-400 uppercase">লোন মেয়াদ</span>
-                            <span className="font-bold text-slate-850">{loan.duration_weeks} সপ্তাহ</span>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-[11px] text-slate-500 font-medium">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5 text-indigo-500" /> পরবর্তী কিস্তির তারিখ: <span className="font-bold text-rose-500">{loan.nextDue}</span>
-                          </span>
-                          <span className="bg-amber-50 text-amber-800 px-2 py-0.5 rounded border border-amber-100/60 font-black text-[10px]">
-                            কিস্তির পরিমান: ₹{formatAmount(loan.installment)}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="bg-white border border-slate-200/60 rounded-2xl p-6 text-center">
-                    <HandCoins className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                    <h3 className="text-xs font-black text-slate-700 uppercase">কোনো সক্রিয় লোন পাওয়া যায়নি</h3>
-                    <p className="text-xs text-slate-500 font-medium mt-1">আপনার নামে কোনো একটিভ লোন বা ঋণ নেই।</p>
-                  </div>
-                )}
-
-                {/* Loan Installment Payments Approved Receipts */}
-                <div className="bg-white border border-slate-200/60 shadow-xs rounded-2xl p-4">
-                  <h3 className="text-xs font-black text-slate-500 mb-3 tracking-widest uppercase flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-amber-500" /> কিস্তির রশিদ তালিকা (Receipt History)
-                  </h3>
-                  
-                  {loanPayments.length > 0 ? (
-                    <div className="divide-y divide-slate-100 overflow-hidden">
-                      {loanPayments.map((p: any) => (
-                        <div key={p.id} className="py-2.5 flex items-center justify-between gap-4 text-xs">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs shrink-0">
-                              ₹
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-bold text-slate-850 text-xs">কিস্তি পেমেন্ট রিসিভ</span>
-                                <span className="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-mono">
-                                  {p.loan_no}
-                                </span>
-                              </div>
-                              <span className="text-[10px] text-slate-400 block mt-0.5">রশিদ আইডি: Col-{p.id}</span>
-                            </div>
-                          </div>
-
-                          <div className="text-right">
-                            <span className="font-black text-xs text-emerald-600">+ ₹{formatAmount(p.amount_paid)}</span>
-                            <span className="text-[9px] text-slate-400 font-bold block mt-0.5">{p.payment_date}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-4 text-slate-400 font-bold text-xs">
-                      লোন কিস্তি পরিশোধের কোনো ইতিহাস নেই।
-                    </div>
-                  )}
-                </div>
+                <MembarLoanAcount loans={loans} loanPayments={loanPayments} member={member} selectedLoan={selectedLoan} setSelectedLoan={setSelectedLoan} />
               </motion.div>
             )}
           </AnimatePresence>
