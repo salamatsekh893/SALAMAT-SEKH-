@@ -6661,23 +6661,68 @@ ${statsSummaryStr}`;
     }
   });
 
+  app.get("/api/force-db-update", async (req, res) => {
+    try {
+      await pool.query("ALTER TABLE collections ADD COLUMN remarks TEXT NULL");
+      res.json({ message: "Column added successfully" });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message, code: e.code });
+    }
+  });
+
   app.get("/api/fix-penalties-temp", async (req, res) => {
     try {
-      const [rows]: any = await pool.query(`
+      // First try to add the column if it doesn't exist
+      try {
+        await pool.query("ALTER TABLE collections ADD COLUMN remarks TEXT NULL");
+      } catch (e: any) {
+        // Ignore, already exists or permission denied
+      }
+
+      // If remarks still doesn't exist, we will use a fallback query
+      let query = `
         SELECT c.id, c.amount_paid, l.installment
         FROM collections c
         JOIN loans l ON c.loan_id = l.id
         WHERE c.remarks IS NULL AND c.amount_paid < (l.installment * 0.5)
-      `);
+      `;
+      
+      try {
+         // test if remarks exists
+         await pool.query("SELECT remarks FROM collections LIMIT 1");
+      } catch (e) {
+         query = `
+          SELECT c.id, c.amount_paid, l.installment
+          FROM collections c
+          JOIN loans l ON c.loan_id = l.id
+          WHERE c.amount_paid < (l.installment * 0.5)
+        `;
+      }
+
+      const [rows]: any = await pool.query(query);
       
       let updatedCount = 0;
       for (const row of rows) {
          if ([50, 100, 150, 200, 250, 300, 350, 400, 450, 500].includes(Number(row.amount_paid))) {
-            await pool.query('UPDATE collections SET remarks = "Late Payment Penalty/Fine" WHERE id = ?', [row.id]);
-            updatedCount++;
+            try {
+               await pool.query('UPDATE collections SET remarks = "Late Payment Penalty/Fine" WHERE id = ?', [row.id]);
+               updatedCount++;
+            } catch (e) {
+               // if remarks doesn't exist, this will fail
+            }
          }
       }
       res.json({ message: "Fixed old penalties", updatedCount, totalFound: rows.length });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/db-debug-cols", async (req, res) => {
+    try {
+      const [cols]: any = await pool.query("DESCRIBE collections");
+      const [rows]: any = await pool.query("SELECT * FROM collections LIMIT 5");
+      res.json({ cols, rows });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
