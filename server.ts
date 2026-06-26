@@ -64,7 +64,8 @@ async function startServer() {
     queueLimit: 0,
     enableKeepAlive: true,
     keepAliveInitialDelay: 10000,
-    connectTimeout: 30000
+    connectTimeout: 30000,
+    dateStrings: true
   });
 
   // Resilient pool.query interception to handle ECONNRESET, PROTOCOL_CONNECTION_LOST, and ETIMEDOUT globally
@@ -2924,7 +2925,7 @@ async function startServer() {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           data.customer_id, data.scheme_id, data.loan_amount, data.no_of_emis,
-          data.interest_amount, data.emi_amount, startDate, data.status, data.branch_id,
+          data.interest_amount, data.emi_amount, finalDateStr, data.status, data.branch_id,
           data.total_repayment, data.processing_fee, data.insurance_fee, data.emi_frequency
         ]
       );
