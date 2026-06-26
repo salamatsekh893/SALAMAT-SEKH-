@@ -2100,7 +2100,8 @@ async function startServer() {
 
   app.get("/api/dashboard", verifyToken, async (req: any, res) => {
     try {
-      await autoCloseFullyPaidLoans();
+      autoCloseFullyPaidLoans(); // non-blocking
+
       const { role, branchId, userId } = req.user;
 
       if (role === 'customer') {
@@ -2787,7 +2788,7 @@ async function startServer() {
   app.get("/api/loans", verifyToken, async (req: any, res) => {
     try {
       // Auto-close loans that are fully paid
-      await autoCloseFullyPaidLoans();
+      autoCloseFullyPaidLoans(); // non-blocking
 
       const { role, branchId, userId } = req.user;
       
@@ -4245,7 +4246,7 @@ async function startServer() {
           await pool.query('UPDATE loans SET status = ? WHERE id = ?', ['closed', loanId]);
         } else {
           // Option 2: Regular collection. Running general auto-close helper
-          await autoCloseFullyPaidLoans();
+          autoCloseFullyPaidLoans(); // non-blocking
         }
       } else if (status === 'rejected') {
         // If a collection is rejected, check if we need to reopen the loan
@@ -6107,27 +6108,6 @@ async function startServer() {
       }
       res.json(sessions);
     } catch (err: any) { res.status(500).json({ error: err.message }); }
-  });
-
-  app.get("/api/test-db", async (req, res) => {
-    try {
-      const [rows]: any = await pool.query(`
-        SELECT l.*, m.full_name as member_name, m.member_code as member_code, m.profile_image, m.mobile_no as member_mobile, m.group_id, g.group_name, g.meeting_day, s.scheme_name, s.interest_rate, b.branch_name, u.name as staff_name,
-        (SELECT COALESCE(SUM(amount_paid), 0) FROM collections WHERE loan_id = l.id AND status != 'rejected') as total_paid,
-        (SELECT COUNT(id) FROM collections WHERE loan_id = l.id AND status != 'rejected' AND amount_paid > 0) as paid_emi_count,
-        (SELECT u2.name FROM collections c JOIN users u2 ON c.collected_by = u2.id WHERE c.loan_id = l.id AND c.is_pre_close = 1 LIMIT 1) as closed_by_name
-        FROM loans l
-        LEFT JOIN members m ON l.customer_id = m.id
-        LEFT JOIN groups g ON m.group_id = g.id
-        LEFT JOIN users u ON g.collector_id = u.id
-        LEFT JOIN schemes s ON l.scheme_id = s.id
-        LEFT JOIN branches b ON l.branch_id = b.id
-        ORDER BY l.created_at DESC
-      `);
-      res.json({ success: true, count: rows.length });
-    } catch (e: any) {
-      res.status(500).json({ error: e.message, stack: e.stack });
-    }
   });
 
   app.delete("/api/members/:id", verifyToken, async (req: any, res) => {

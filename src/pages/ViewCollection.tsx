@@ -98,9 +98,11 @@ export default function ViewCollection() {
   };
 
   const filteredCollections = collections.filter(col => {
-    const searchMatches = col.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      col.loan_id?.toString().includes(searchTerm) ||
-      col.collected_by_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const search = searchTerm.toLowerCase();
+    const searchMatches = !search || 
+      (col.customer_name || '').toLowerCase().includes(search) ||
+      (col.loan_id?.toString() || '').includes(search) ||
+      (col.collected_by_name || '').toLowerCase().includes(search);
 
     let dateMatches = true;
     if (col.payment_date) {
