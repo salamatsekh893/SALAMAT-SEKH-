@@ -636,6 +636,8 @@ async function startServer() {
           branch_id INT,
           is_pre_close BOOLEAN DEFAULT FALSE,
           status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+          payment_method VARCHAR(50) DEFAULT 'cash',
+          remarks TEXT,
           approved_by INT,
           approved_at TIMESTAMP NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -720,6 +722,14 @@ async function startServer() {
       await conn.query("ALTER TABLE collections ADD COLUMN approved_by INT NULL");
       await conn.query("ALTER TABLE collections ADD COLUMN approved_at TIMESTAMP NULL");
       console.log("Added approved_by and approved_at columns to collections");
+    } catch (e: any) {
+      // Ignored
+    }
+
+    try {
+      await conn.query("ALTER TABLE collections ADD COLUMN payment_method VARCHAR(50) DEFAULT 'cash'");
+      await conn.query("ALTER TABLE collections ADD COLUMN remarks TEXT NULL");
+      console.log("Added payment_method and remarks columns to collections");
     } catch (e: any) {
       // Ignored
     }
