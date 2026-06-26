@@ -728,8 +728,14 @@ async function startServer() {
 
     try {
       await conn.query("ALTER TABLE collections ADD COLUMN payment_method VARCHAR(50) DEFAULT 'cash'");
+      console.log("Added payment_method column to collections");
+    } catch (e: any) {
+      // Ignored
+    }
+
+    try {
       await conn.query("ALTER TABLE collections ADD COLUMN remarks TEXT NULL");
-      console.log("Added payment_method and remarks columns to collections");
+      console.log("Added remarks column to collections");
     } catch (e: any) {
       // Ignored
     }
