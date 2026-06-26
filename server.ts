@@ -6662,12 +6662,22 @@ ${statsSummaryStr}`;
   });
 
   app.get("/api/force-db-update", async (req, res) => {
+    let results = [];
+    try {
+      await pool.query("ALTER TABLE collections ADD COLUMN payment_method VARCHAR(50) DEFAULT 'cash'");
+      results.push("Added payment_method");
+    } catch (e: any) {
+      results.push("payment_method already exists or error: " + e.message);
+    }
+    
     try {
       await pool.query("ALTER TABLE collections ADD COLUMN remarks TEXT NULL");
-      res.json({ message: "Column added successfully" });
+      results.push("Added remarks");
     } catch (e: any) {
-      res.status(500).json({ error: e.message, code: e.code });
+      results.push("remarks already exists or error: " + e.message);
     }
+    
+    res.json({ message: "Database update completed", details: results });
   });
 
   app.get("/api/fix-penalties-temp", async (req, res) => {
@@ -6703,13 +6713,11 @@ ${statsSummaryStr}`;
       
       let updatedCount = 0;
       for (const row of rows) {
-         if ([50, 100, 150, 200, 250, 300, 350, 400, 450, 500].includes(Number(row.amount_paid))) {
-            try {
-               await pool.query('UPDATE collections SET remarks = "Late Payment Penalty/Fine" WHERE id = ?', [row.id]);
-               updatedCount++;
-            } catch (e) {
-               // if remarks doesn't exist, this will fail
-            }
+         try {
+            await pool.query('UPDATE collections SET remarks = "Late Payment Penalty/Fine" WHERE id = ?', [row.id]);
+            updatedCount++;
+         } catch (e) {
+            // if remarks doesn't exist, this will fail
          }
       }
       res.json({ message: "Fixed old penalties", updatedCount, totalFound: rows.length });
@@ -6723,6 +6731,15 @@ ${statsSummaryStr}`;
       const [cols]: any = await pool.query("DESCRIBE collections");
       const [rows]: any = await pool.query("SELECT * FROM collections LIMIT 5");
       res.json({ cols, rows });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/db-debug-tables", async (req, res) => {
+    try {
+      const [tables]: any = await pool.query("SHOW TABLES");
+      res.json({ tables });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
