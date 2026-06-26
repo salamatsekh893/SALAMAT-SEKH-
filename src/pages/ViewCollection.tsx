@@ -27,6 +27,9 @@ export default function ViewCollection() {
   const [total, setTotal] = useState(0);
   const [totalCollectedAmount, setTotalCollectedAmount] = useState(0);
 
+  // Selection state for Bulk Deletion
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState<any>({ 
     id: '', loan_id: '', amount_paid: '', payment_date: format(new Date(), 'yyyy-MM-dd')
@@ -57,6 +60,55 @@ export default function ViewCollection() {
         setLoading(false);
         setInitialLoading(false);
       });
+  };
+
+  // Reset selected ids when page or filter updates
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [page, limit, searchTerm, startDate, endDate]);
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const pageIds = collections.map(col => col.id);
+      setSelectedIds(prev => {
+        const newSet = new Set([...prev, ...pageIds]);
+        return Array.from(newSet);
+      });
+    } else {
+      const pageIds = collections.map(col => col.id);
+      setSelectedIds(prev => prev.filter(id => !pageIds.includes(id)));
+    }
+  };
+
+  const handleSelectOne = (id: number, checked: boolean) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(item => item !== id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`আপনি কি নিশ্চিত যে আপনি এই ${selectedIds.length}টি কালেকশন একসাথে ডিলিট করতে চান?`)) return;
+
+    setLoading(true);
+    try {
+      await fetchWithAuth('/collections/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedIds })
+      });
+      toast.success('সিলেক্ট করা কালেকশনগুলো সফলভাবে ডিলিট করা হয়েছে! 🗑️');
+      voiceFeedback.success();
+      setSelectedIds([]);
+      loadData(page, limit);
+    } catch (err: any) {
+      toast.error(err.message || 'কালেকশনগুলো ডিলিট করতে ব্যর্থ হয়েছে।');
+      voiceFeedback.error();
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Trigger load when page or limit changes
@@ -385,7 +437,20 @@ export default function ViewCollection() {
 
           {/* Actions */}
           <div className="flex flex-col gap-3 w-full lg:w-auto">
-            <div className="flex items-center gap-3 w-full lg:justify-end">
+            <div className="flex items-center gap-3 w-full lg:justify-end flex-wrap">
+              {selectedIds.length > 0 && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleBulkDelete}
+                  className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wide shadow-md transition-all cursor-pointer border border-rose-500"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  ডিলিট করুন ({selectedIds.length})
+                </motion.button>
+              )}
               <motion.button 
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -473,6 +538,14 @@ export default function ViewCollection() {
             <table className="w-full">
               <thead>
                 <tr className="bg-gradient-to-r from-indigo-600 to-purple-600">
+                  <th className="p-4 w-[50px] text-center">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                      checked={collections.length > 0 && collections.every(col => selectedIds.includes(col.id))}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                    />
+                  </th>
                   <th className="text-center text-[11px] font-black uppercase tracking-wider p-4 w-[60px] text-white">#</th>
                   <th className="text-left text-[11px] font-black uppercase tracking-wider p-4 w-[130px] text-white">Date & Time</th>
                   <th className="text-left text-[11px] font-black uppercase tracking-wider p-4 text-white">Customer / Loan</th>
@@ -491,6 +564,14 @@ export default function ViewCollection() {
                       key={col.id}
                       className="group hover:bg-indigo-50/30 transition-colors"
                     >
+                      <td className="p-4 text-center">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                          checked={selectedIds.includes(col.id)}
+                          onChange={(e) => handleSelectOne(col.id, e.target.checked)}
+                        />
+                      </td>
                       <td className="p-4 text-center">
                         <span className="text-sm font-bold text-indigo-500">{(page - 1) * limit + idx + 1}</span>
                       </td>
@@ -609,6 +690,12 @@ export default function ViewCollection() {
                 {/* Card Header */}
                 <div className="bg-gradient-to-r from-indigo-500 to-purple-500 px-4 py-3 flex justify-between items-center">
                   <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 rounded border-white/40 text-white focus:ring-indigo-500 cursor-pointer accent-white"
+                      checked={selectedIds.includes(col.id)}
+                      onChange={(e) => handleSelectOne(col.id, e.target.checked)}
+                    />
                     <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
                       <span className="text-white font-black text-sm">#{(page - 1) * limit + idx + 1}</span>
                     </div>

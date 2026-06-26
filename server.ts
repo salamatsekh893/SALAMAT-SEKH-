@@ -3757,6 +3757,37 @@ async function startServer() {
     }
   });
 
+  app.post("/api/collections/bulk-delete", verifyToken, async (req: any, res) => {
+    try {
+      const { ids } = req.body;
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: 'কোন কালেকশন সিলেক্ট করা হয়নি।' });
+      }
+
+      // 1. Fetch details of all items to verify day book status
+      const [collRows]: any = await pool.query(
+        `SELECT id, branch_id, DATE_FORMAT(payment_date, "%Y-%m-%d") as payment_date, amount_paid FROM collections WHERE id IN (?)`,
+        [ids]
+      );
+
+      for (const col of collRows) {
+        const checkStatus = await verifyDayBookActive(col.branch_id, col.payment_date);
+        if (!checkStatus.active) {
+          return res.status(400).json({ 
+            error: `কালেকশন ID #${col.id} (${col.payment_date}) মুছে ফেলা সম্ভব নয় কারণ: ${checkStatus.error}` 
+          });
+        }
+      }
+
+      // 2. Perform delete
+      await pool.query('DELETE FROM collections WHERE id IN (?)', [ids]);
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error('Bulk delete collections error:', err);
+      res.status(500).json({ error: 'কালেকশনগুলো ডিলিট করতে ব্যর্থ হয়েছে।' });
+    }
+  });
+
   // --- Bank Accounts Routes ---
   app.get("/api/banks", verifyToken, async (req, res) => {
     try {
