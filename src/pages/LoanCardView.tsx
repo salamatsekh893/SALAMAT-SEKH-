@@ -115,7 +115,7 @@ export default function LoanCardView() {
 
   // Distribute collections across EMIs
   let collectionPool = collections
-    .filter(c => c.status !== 'rejected')
+    .filter(c => c.status !== 'rejected' && c.remarks !== 'Late Payment Penalty/Fine')
     .map(c => ({
        date: format(new Date(c.payment_date), 'dd-MMM-yy'),
        avail: Number(c.amount_paid)

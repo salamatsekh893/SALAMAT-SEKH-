@@ -2829,7 +2829,7 @@ async function startServer() {
             SUM(amount_paid) as total_paid,
             MAX(payment_date) as last_payment_date
           FROM collections 
-          WHERE status != 'rejected'
+          WHERE status != 'rejected' AND (remarks IS NULL OR remarks != 'Late Payment Penalty/Fine')
           GROUP BY loan_id
         ) c_stats ON l.id = c_stats.loan_id
         LEFT JOIN (
@@ -3615,9 +3615,9 @@ async function startServer() {
       }
 
       const [result]: any = await pool.query(
-        `INSERT INTO collections (loan_id, amount_paid, payment_date, collected_by, branch_id, status)
-         VALUES (?, ?, ?, ?, ?, 'pending')`,
-        [data.loan_id, data.amount_paid, txDate, userId, branch_id]
+        `INSERT INTO collections (loan_id, amount_paid, payment_date, collected_by, branch_id, status, payment_method, remarks, is_pre_close)
+         VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
+        [data.loan_id, data.amount_paid, txDate, userId, branch_id, data.payment_method || null, data.remarks || null, data.is_pre_close ? 1 : 0]
       );
       res.status(201).json({ id: result.insertId });
     } catch (err: any) {
@@ -6642,6 +6642,28 @@ ${statsSummaryStr}`;
       } else {
         res.status(500).json({ error: "এআই সহকারীর সাথে যোগাযোগ করতে সমস্যা হচ্ছে, অনুগ্রহ করে আবার চেষ্টা করুন।" });
       }
+    }
+  });
+
+  app.get("/api/fix-penalties-temp", async (req, res) => {
+    try {
+      const [rows]: any = await pool.query(`
+        SELECT c.id, c.amount_paid, l.installment
+        FROM collections c
+        JOIN loans l ON c.loan_id = l.id
+        WHERE c.remarks IS NULL AND c.amount_paid < (l.installment * 0.5)
+      `);
+      
+      let updatedCount = 0;
+      for (const row of rows) {
+         if ([50, 100, 150, 200, 250, 300, 350, 400, 450, 500].includes(Number(row.amount_paid))) {
+            await pool.query('UPDATE collections SET remarks = "Late Payment Penalty/Fine" WHERE id = ?', [row.id]);
+            updatedCount++;
+         }
+      }
+      res.json({ message: "Fixed old penalties", updatedCount, totalFound: rows.length });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
     }
   });
 

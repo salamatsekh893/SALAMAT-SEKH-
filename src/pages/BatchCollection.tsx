@@ -161,18 +161,7 @@ export default function BatchCollection() {
   const [paymentModes, setPaymentModes] = useState<Record<string, string>>({});
   const [isClosing, setIsClosing] = useState<Record<string, boolean>>({});
   
-  // Optimization: Pre-calculate paid sums to avoid O(N*M) complexity in render
-  const paidSums = React.useMemo(() => {
-    const sums: Record<string, number> = {};
-    collections.forEach(c => {
-      if (c.status === 'rejected') return;
-      const lid = c.loan_id?.toString();
-      if (lid) {
-        sums[lid] = (sums[lid] || 0) + (parseFloat(c.amount_paid) || 0);
-      }
-    });
-    return sums;
-  }, [collections]);
+  // We will directly use loan.total_paid for totalPaidSum
 
   const hadCollectionToday = React.useMemo(() => {
     const hasToday: Record<string, boolean> = {};
@@ -607,7 +596,7 @@ export default function BatchCollection() {
                     {currentGroupLoans.map((loan, idx) => {
                       const isSelected = !!selectedLoans[loan.id];
                       const isPresent = attendance[loan.id] !== false;
-                      const totalPaidSum = paidSums[loan.id.toString()] || 0;
+                      const totalPaidSum = parseFloat(loan.total_paid || 0);
                       const repayable = parseFloat(loan.total_repayment) > 0 
                         ? parseFloat(loan.total_repayment) 
                         : (parseFloat(loan.installment) * (parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 0));
@@ -765,7 +754,7 @@ export default function BatchCollection() {
               <div className="lg:hidden space-y-3 pb-10">
                 {currentGroupLoans.map((loan, idx) => {
                   const isSelected = !!selectedLoans[loan.id];
-                  const totalPaidSum = paidSums[loan.id.toString()] || 0;
+                  const totalPaidSum = parseFloat(loan.total_paid || 0);
                   const repayable = parseFloat(loan.total_repayment) > 0 
                     ? parseFloat(loan.total_repayment) 
                     : (parseFloat(loan.installment) * (parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 0));
