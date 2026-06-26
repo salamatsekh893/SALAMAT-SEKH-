@@ -102,7 +102,7 @@ export default function LoanApprovals() {
   };
 
   const handleStatusChange = (id: number, newStatus: string, defaultDate?: string) => {
-    setConfirmAction({ id, status: newStatus, first_emi_date: defaultDate || format(new Date(), 'yyyy-MM-dd') });
+    setConfirmAction({ id, status: newStatus, first_emi_date: defaultDate ? format(new Date(defaultDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd') });
   };
 
   const handleViewDetails = async (id: number) => {
@@ -318,7 +318,7 @@ export default function LoanApprovals() {
                   <X className="w-4 h-4" /> Reject
                </button>
                <button 
-                  onClick={() => handleStatusChange(selectedLoan.id, 'approved')}
+                  onClick={() => handleStatusChange(selectedLoan.id, 'approved', selectedLoan.start_date)}
                   className="px-6 py-2.5 rounded-xl font-black text-sm text-white bg-emerald-600 hover:bg-emerald-700 transition-colors uppercase tracking-widest flex items-center gap-2 shadow-sm shadow-emerald-600/20"
                >
                   <Check className="w-4 h-4" /> Approve
@@ -450,7 +450,7 @@ export default function LoanApprovals() {
                             <CreditCard className="w-4 h-4" />
                           </Link>
                           <button 
-                            onClick={() => handleStatusChange(loan.id, 'approved')}
+                            onClick={() => handleStatusChange(loan.id, 'approved', loan.start_date)}
                             className="w-10 h-10 flex items-center justify-center bg-white text-emerald-600 hover:text-white hover:bg-emerald-600 border border-emerald-100 rounded-xl transition-all shadow-sm"
                             title="Approve Loan"
                           >
@@ -562,7 +562,7 @@ export default function LoanApprovals() {
                       <CreditCard className="w-4 h-4" />
                     </Link>
                     <button 
-                      onClick={() => handleStatusChange(loan.id, 'approved')}
+                      onClick={() => handleStatusChange(loan.id, 'approved', loan.start_date)}
                       className="flex-1 min-w-[80px] flex items-center justify-center gap-2 bg-white text-emerald-600 hover:text-white hover:bg-emerald-600 border border-emerald-200 rounded-xl py-2 transition-all shadow-sm font-bold text-xs uppercase tracking-widest"
                     >
                       <Check className="w-4 h-4" /> Approve
