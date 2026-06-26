@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Printer, X, Download, BookOpen, ShieldCheck, PhoneCall, Landmark } from 'lucide-react';
 import { fetchWithAuth } from '../lib/api';
 import { formatAmount } from '../lib/utils';
-import { format, addWeeks, addDays, addMonths } from 'date-fns';
+import { format, addWeeks, addDays, addMonths, parseISO } from 'date-fns';
 import { toPng } from 'html-to-image';
 import jsPDF from 'jspdf';
 
@@ -100,9 +100,10 @@ export default function LoanCardView() {
   }
 
   // Generate Installment Rows
-  const numInstallments = loan.duration_weeks || 12;
+  const numInstallments = parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 12;
   const rows = [];
-  let currentDate = loan.start_date ? new Date(loan.start_date) : new Date();
+  const baseDateStr = loan.start_date || loan.disbursement_date;
+  let currentDate = baseDateStr ? parseISO(baseDateStr) : new Date();
 
   const totalPrincipal = Math.round(Number(loan.amount) || 0);
   const totalRepayment = Math.round(Number(loan.total_repayment || (totalPrincipal + Number(loan.interest || 0))));
@@ -116,11 +117,15 @@ export default function LoanCardView() {
   // Distribute collections across EMIs
   let collectionPool = collections
     .filter(c => c.status !== 'rejected' && c.remarks !== 'Late Payment Penalty/Fine')
-    .map(c => ({
-       date: format(new Date(c.payment_date), 'dd-MMM-yy'),
-       avail: Number(c.amount_paid)
-    }))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    .map(c => {
+       const pd = c.payment_date ? parseISO(c.payment_date) : new Date();
+       return {
+         rawDate: pd.getTime(),
+         date: format(pd, 'dd-MMM-yy'),
+         avail: Number(c.amount_paid)
+       };
+    })
+    .sort((a, b) => a.rawDate - b.rawDate);
 
   for (let i = 1; i <= numInstallments; i++) {
     const isLast = i === numInstallments;

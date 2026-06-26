@@ -242,11 +242,32 @@ export default function BatchCollection() {
     setAttendance(initialAttendance);
   };
 
-  const currentGroupLoans = React.useMemo(() => {
-    return selectedGroup
+  const processedGroupLoans = React.useMemo(() => {
+    const currentGroupLoans = selectedGroup
       ? loans.filter((l) => l.group_id?.toString() === selectedGroup)
       : [];
-  }, [selectedGroup, loans]);
+
+    return currentGroupLoans.map((loan) => {
+      const totalPaidSum = parseFloat(loan.total_paid || 0);
+      const repayable = parseFloat(loan.total_repayment) > 0 
+        ? parseFloat(loan.total_repayment) 
+        : (parseFloat(loan.installment) * (parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 0));
+      const balance = Math.max(0, repayable - totalPaidSum);
+      const installmentAmt = parseFloat(loan.installment) || 0;
+      const principalAmt = parseFloat(loan.amount) || 0;
+      const overdueInfo = calculateOverdueInfo(loan, date, totalPaidSum);
+
+      return {
+        ...loan,
+        _totalPaidSum: totalPaidSum,
+        _repayable: repayable,
+        _balance: balance,
+        _installmentAmt: installmentAmt,
+        _principalAmt: principalAmt,
+        _overdueInfo: overdueInfo
+      };
+    });
+  }, [selectedGroup, loans, date]);
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     const checked = e.target.checked;
@@ -254,7 +275,7 @@ export default function BatchCollection() {
     const newAmounts: Record<string, string> = { ...amounts };
     const newModes: Record<string, string> = { ...paymentModes };
 
-    currentGroupLoans.forEach((loan) => {
+    processedGroupLoans.forEach((loan) => {
       newSelected[loan.id] = checked;
       if (checked && !newAmounts[loan.id]) {
         newAmounts[loan.id] = roundVal(loan.installment).toString();
@@ -338,7 +359,7 @@ export default function BatchCollection() {
       const amt = parseFloat(val) || 0;
       const emi = parseFloat(loan.installment);
       
-      if (amt > 0 && amt < emi) {
+      if (amt < emi) {
         let pen = 0;
         const pRate = parseFloat(loan.penalty_rate) || 0;
         if (loan.penalty_type === 'percentage') {
@@ -347,7 +368,15 @@ export default function BatchCollection() {
         } else {
            pen = pRate;
         }
-        setPenalties((prev) => ({ ...prev, [loanId]: pen.toString() }));
+        if (pen > 0) {
+          setPenalties((prev) => ({ ...prev, [loanId]: pen.toString() }));
+        } else {
+          setPenalties((prev) => {
+            const next = { ...prev };
+            delete next[loanId];
+            return next;
+          });
+        }
       } else {
         setPenalties((prev) => {
           const next = { ...prev };
@@ -378,8 +407,8 @@ export default function BatchCollection() {
   }, [selectedLoans, amounts, penalties]);
 
   const expectedTotal = React.useMemo(() => {
-    return currentGroupLoans.reduce((acc, loan) => acc + roundVal(loan.installment), 0);
-  }, [currentGroupLoans]);
+    return processedGroupLoans.reduce((acc, loan) => acc + roundVal(loan.installment), 0);
+  }, [processedGroupLoans]);
 
   const handleSubmit = async () => {
     const selectedIds = Object.keys(selectedLoans).filter(
@@ -561,9 +590,9 @@ export default function BatchCollection() {
                   type="checkbox"
                   className="w-8 h-8 rounded-lg border-2 border-white/30 bg-white/10 text-white focus:ring-offset-0 focus:ring-0 transition-all cursor-pointer appearance-none checked:bg-white checked:border-white"
                   checked={
-                    currentGroupLoans.length > 0 &&
+                    processedGroupLoans.length > 0 &&
                     Object.keys(selectedLoans).filter((k) => selectedLoans[k])
-                      .length === currentGroupLoans.length
+                      .length === processedGroupLoans.length
                   }
                   onChange={handleSelectAll}
                 />
@@ -617,15 +646,10 @@ export default function BatchCollection() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
-                    {currentGroupLoans.map((loan, idx) => {
+                    {processedGroupLoans.map((loan, idx) => {
                       const isSelected = !!selectedLoans[loan.id];
                       const isPresent = attendance[loan.id] !== false;
-                      const totalPaidSum = parseFloat(loan.total_paid || 0);
-                      const repayable = parseFloat(loan.total_repayment) > 0 
-                        ? parseFloat(loan.total_repayment) 
-                        : (parseFloat(loan.installment) * (parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 0));
-                      const balance = Math.max(0, repayable - totalPaidSum);
-                      const installmentAmt = parseFloat(loan.installment) || 0;
+                      const { paidEmisCount, maxEmis, termOver, overdue, advance } = loan._overdueInfo;
                       
                       return (
                         <tr 
@@ -781,15 +805,9 @@ export default function BatchCollection() {
 
               {/* MOBILE VIEW - Card based design - Optimized for Screenshot */}
               <div className="lg:hidden space-y-3 pb-10">
-                {currentGroupLoans.map((loan, idx) => {
+                {processedGroupLoans.map((loan, idx) => {
                   const isSelected = !!selectedLoans[loan.id];
-                  const totalPaidSum = parseFloat(loan.total_paid || 0);
-                  const repayable = parseFloat(loan.total_repayment) > 0 
-                    ? parseFloat(loan.total_repayment) 
-                    : (parseFloat(loan.installment) * (parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 0));
-                  const balance = Math.max(0, repayable - totalPaidSum);
-                  const installmentAmt = parseFloat(loan.installment) || 0;
-                  const principalAmt = parseFloat(loan.amount) || 0;
+                  const { paidEmisCount, maxEmis, termOver, overdue, advance } = loan._overdueInfo;
 
                   return (
                     <div key={loan.id} className={`bg-white p-5 shadow-sm border-y border-slate-200 transition-all ${isSelected ? 'border-pink-400 bg-pink-50/10' : ''}`}>
@@ -802,7 +820,7 @@ export default function BatchCollection() {
                         </div>
                         <div className="text-right">
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-tight leading-none mb-1">Balance</p>
-                          <p className="text-[17px] font-black text-rose-600 leading-none">{formatAmount(balance)}</p>
+                          <p className="text-[17px] font-black text-rose-600 leading-none">{formatAmount(loan._balance)}</p>
                         </div>
                       </div>
 
@@ -935,7 +953,7 @@ export default function BatchCollection() {
 
 
       {/* Fixed bottom Submit Button for Mobile Only - Styled as Screenshot */}
-      {selectedGroup && currentGroupLoans.length > 0 && (
+      {selectedGroup && processedGroupLoans.length > 0 && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-slate-100 z-50">
           <div className="max-w-xl mx-auto">
             <button

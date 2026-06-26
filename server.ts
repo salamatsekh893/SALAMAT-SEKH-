@@ -2968,7 +2968,7 @@ async function startServer() {
                m.village, m.post_office, m.police_station, m.district, m.state, m.pin_code,
                m.guardian_name, m.guardian_type, m.dob, m.occupation, m.aadhar_no, m.voter_id,
                m.nominee_name, m.nominee_relation,
-               s.scheme_name, s.interest_rate, b.branch_name, g.group_name 
+               s.scheme_name, s.interest_rate, s.repayment_frequency as emi_frequency, s.penalty_rate, s.penalty_type, b.branch_name, g.group_name 
         FROM loans l
         LEFT JOIN members m ON l.customer_id = m.id
         LEFT JOIN schemes s ON l.scheme_id = s.id
