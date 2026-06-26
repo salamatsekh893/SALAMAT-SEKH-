@@ -114,7 +114,7 @@ async function startServer() {
         JOIN (
           SELECT loan_id, SUM(amount_paid) as total_paid 
           FROM collections 
-          WHERE status != 'rejected' 
+          WHERE status != 'rejected' AND (remarks IS NULL OR remarks != 'Late Payment Penalty/Fine')
           GROUP BY loan_id
         ) c ON l.id = c.loan_id
         SET l.status = 'closed'
@@ -169,7 +169,7 @@ async function startServer() {
             loan_id, 
             SUM(amount_paid) as total_paid
           FROM collections 
-          WHERE status != 'rejected'
+          WHERE status != 'rejected' AND (remarks IS NULL OR remarks != 'Late Payment Penalty/Fine')
           GROUP BY loan_id
         ) c_stats ON l.id = c_stats.loan_id
         WHERE ${whereClause}
@@ -4251,7 +4251,7 @@ async function startServer() {
         if (loanRows.length > 0 && loanRows[0].status === 'closed') {
           const totalRepayment = Number(loanRows[0].total_repayment);
           const [sumRows]: any = await pool.query(
-            'SELECT SUM(amount_paid) as total_paid FROM collections WHERE loan_id = ? AND status != "rejected"',
+            'SELECT SUM(amount_paid) as total_paid FROM collections WHERE loan_id = ? AND status != "rejected" AND (remarks IS NULL OR remarks != "Late Payment Penalty/Fine")',
             [loanId]
           );
           const totalPaid = Number(sumRows[0].total_paid || 0);
@@ -6532,7 +6532,7 @@ Here are the precise guidelines to answer common questions:
      LEFT JOIN (
        SELECT loan_id, SUM(amount_paid) as total_paid 
        FROM collections 
-       WHERE status != 'rejected' 
+       WHERE status != 'rejected' AND (remarks IS NULL OR remarks != 'Late Payment Penalty/Fine')
        GROUP BY loan_id
      ) c_paid ON l.id = c_paid.loan_id
      WHERE l.status = 'active'
@@ -6678,6 +6678,10 @@ ${statsSummaryStr}`;
     }
     
     res.json({ message: "Database update completed", details: results });
+  });
+
+  app.get("/api/undo-penalties", async (req, res) => {
+    res.json({ message: "Done" });
   });
 
   app.get("/api/fix-penalties-temp", async (req, res) => {

@@ -366,10 +366,15 @@ export default function ViewCollection() {
                         </div>
                        </td>
                       <td className="p-4 text-right">
-                        <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-xl text-base font-black border border-emerald-200">
-                          <DollarSign className="w-3.5 h-3.5" />
-                          ₹{formatAmount(col.amount_paid)}
-                        </span>
+                        <div className="flex flex-col items-end justify-center">
+                           <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-xl text-base font-black border border-emerald-200">
+                             <DollarSign className="w-3.5 h-3.5" />
+                             ₹{formatAmount(col.amount_paid)}
+                           </span>
+                           {col.remarks === 'Late Payment Penalty/Fine' && (
+                              <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 mt-1 rounded-md">Penalty</span>
+                           )}
+                        </div>
                        </td>
                       <td className="p-4">
                         <div className="flex items-center gap-2">

@@ -307,7 +307,7 @@ export default function BatchCollection() {
       const loan = loans.find(l => l.id === loanId);
       if (loan) {
         const loanCollections = collections.filter(
-          (c: any) => c.loan_id?.toString() === loanId.toString(),
+          (c: any) => c.loan_id?.toString() === loanId.toString() && c.status !== 'rejected' && c.remarks !== 'Late Payment Penalty/Fine',
         );
         const totalPaid = loanCollections.reduce(
           (acc: number, c: any) => acc + (parseFloat(c.amount_paid) || 0),
