@@ -24,6 +24,7 @@ export default function SchemeForm() {
     insurance_fee: '',
     insurance_fee_type: 'fixed',
     penalty_rate: '',
+    penalty_type: 'percentage',
     status: 'active'
   });
 
@@ -44,6 +45,7 @@ export default function SchemeForm() {
           insurance_fee: data.insurance_fee || '',
           insurance_fee_type: data.insurance_fee_type || 'fixed',
           penalty_rate: data.penalty_rate || '',
+          penalty_type: data.penalty_type || 'percentage',
           status: data.status
         }))
         .catch(err => console.error(err));
@@ -275,11 +277,25 @@ export default function SchemeForm() {
 
           {/* Penalty Rate */}
           <div className="space-y-3">
-            <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-900 ml-1">Penalty (%)</label>
+            <div className="flex justify-between items-center ml-1">
+              <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-slate-900">Penalty Rate</label>
+              <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
+                <button 
+                  type="button"
+                  onClick={() => setFormData({...formData, penalty_type: 'fixed'})}
+                  className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${formData.penalty_type === 'fixed' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}
+                >FIX</button>
+                <button 
+                  type="button"
+                  onClick={() => setFormData({...formData, penalty_type: 'percentage'})}
+                  className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${formData.penalty_type === 'percentage' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}
+                >%</button>
+              </div>
+            </div>
             <input
               type="number"
               step="0.01"
-              placeholder="Late Charge"
+              placeholder={formData.penalty_type === 'fixed' ? "Amount" : "Percent %"}
               className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-200 focus:bg-white p-5 rounded-2xl text-sm font-black text-slate-900 focus:ring-4 focus:ring-indigo-50 outline-none transition-all shadow-sm"
               value={formData.penalty_rate}
               onChange={(e) => setFormData({ ...formData, penalty_rate: e.target.value })}

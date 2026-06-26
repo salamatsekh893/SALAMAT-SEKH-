@@ -2420,12 +2420,12 @@ async function startServer() {
         `UPDATE schemes SET 
           scheme_name=?, scheme_code=?, interest_rate=?, duration_months=?, description=?, 
           repayment_frequency=?, interest_type=?, processing_fee=?, processing_fee_type=?, 
-          insurance_fee=?, insurance_fee_type=?, penalty_rate=?, status=?
+          insurance_fee=?, insurance_fee_type=?, penalty_rate=?, penalty_type=?, status=?
         WHERE id = ?`,
         [
           data.scheme_name, data.scheme_code, data.interest_rate, data.duration_months, data.description,
           data.repayment_frequency, data.interest_type, data.processing_fee, data.processing_fee_type,
-          data.insurance_fee, data.insurance_fee_type, data.penalty_rate, data.status,
+          data.insurance_fee, data.insurance_fee_type, data.penalty_rate, data.penalty_type, data.status,
           req.params.id
         ]
       );
@@ -2825,6 +2825,8 @@ async function startServer() {
           g.meeting_time,
           s.scheme_name, 
           s.interest_rate, 
+          s.penalty_rate,
+          s.penalty_type,
           b.branch_name, 
           u.name as staff_name,
           COALESCE(c_stats.total_paid, 0) as total_paid,
@@ -4634,12 +4636,12 @@ async function startServer() {
         `INSERT INTO schemes (
           scheme_name, scheme_code, interest_rate, duration_months, description,
           repayment_frequency, interest_type, processing_fee, processing_fee_type,
-          insurance_fee, insurance_fee_type, penalty_rate, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          insurance_fee, insurance_fee_type, penalty_rate, penalty_type, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           data.scheme_name, scheme_code, data.interest_rate, data.duration_months, data.description,
           data.repayment_frequency, data.interest_type, data.processing_fee, data.processing_fee_type,
-          data.insurance_fee, data.insurance_fee_type, data.penalty_rate, data.status || 'active'
+          data.insurance_fee, data.insurance_fee_type, data.penalty_rate, data.penalty_type || 'percentage', data.status || 'active'
         ]
       );
       res.status(201).json({ id: result.insertId });
@@ -6684,8 +6686,23 @@ ${statsSummaryStr}`;
     res.json({ message: "Done" });
   });
 
+  app.get("/api/db-debug-schemes", async (req, res) => {
+    try {
+      const [cols]: any = await pool.query("SHOW COLUMNS FROM schemes");
+      const [rows]: any = await pool.query("SELECT * FROM schemes LIMIT 5");
+      res.json({ cols, rows });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.get("/api/fix-penalties-temp", async (req, res) => {
     try {
+      try {
+        await pool.query("ALTER TABLE schemes ADD COLUMN penalty_type VARCHAR(20) DEFAULT 'percentage'");
+      } catch (e: any) {
+        // Ignore
+      }
       // First try to add the column if it doesn't exist
       try {
         await pool.query("ALTER TABLE collections ADD COLUMN remarks TEXT NULL");

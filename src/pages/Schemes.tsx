@@ -153,7 +153,7 @@ export default function Schemes() {
                         </div>
                         <div className="text-center">
                           <div className="text-[9px] text-slate-400 font-black uppercase tracking-widest leading-none mb-1">LATE</div>
-                          <div className="text-[12px] font-black text-slate-900">{scheme.penalty_rate}%</div>
+                          <div className="text-[12px] font-black text-slate-900">{scheme.penalty_type === 'percentage' ? `${scheme.penalty_rate}%` : `₹${scheme.penalty_rate}`}</div>
                         </div>
                       </div>
                     </td>
@@ -249,8 +249,8 @@ export default function Schemes() {
                              <div className="text-xs font-black text-slate-900">{scheme.insurance_fee_type === 'percentage' ? `${scheme.insurance_fee}%` : `${scheme.insurance_fee}`}</div>
                           </div>
                           <div className="text-center">
-                             <span className="text-[9px] text-slate-400 font-black uppercase">LATE</span>
-                             <div className="text-xs font-black text-slate-900">{scheme.penalty_rate}%</div>
+                            <span className="text-[9px] text-slate-400 font-black uppercase">LATE</span>
+                            <div className="text-xs font-black text-slate-900">{scheme.penalty_type === 'percentage' ? `${scheme.penalty_rate}%` : `₹${scheme.penalty_rate}`}</div>
                           </div>
                        </div>
                     </div>

@@ -332,6 +332,30 @@ export default function BatchCollection() {
 
   const handleAmountChange = (loanId: string, val: string) => {
     setAmounts((prev) => ({ ...prev, [loanId]: val }));
+
+    const loan = loans.find(l => l.id === loanId);
+    if (loan) {
+      const amt = parseFloat(val) || 0;
+      const emi = parseFloat(loan.installment);
+      
+      if (amt > 0 && amt < emi) {
+        let pen = 0;
+        const pRate = parseFloat(loan.penalty_rate) || 0;
+        if (loan.penalty_type === 'percentage') {
+           // Calculate percentage of the unpaid EMI portion
+           pen = Math.round((emi - amt) * (pRate / 100));
+        } else {
+           pen = pRate;
+        }
+        setPenalties((prev) => ({ ...prev, [loanId]: pen.toString() }));
+      } else {
+        setPenalties((prev) => {
+          const next = { ...prev };
+          delete next[loanId];
+          return next;
+        });
+      }
+    }
   };
 
   const handlePenaltyChange = (loanId: string, val: string) => {
@@ -732,7 +756,7 @@ export default function BatchCollection() {
                              </div>
                           </td>
                           <td className="py-2 px-2 align-middle">
-                             <div className="flex justify-center">
+                             <div className="flex flex-col items-center gap-1">
                                 <input 
                                   type="number" 
                                   className={`w-full max-w-[100px] min-w-[70px] bg-white border-2 border-emerald-500 rounded p-2 text-center font-black text-[#16A34A] text-xl focus:border-emerald-600 focus:ring-4 outline-none transition-all shadow-sm h-12 leading-none ${!isSelected ? 'opacity-30' : ''}`}
@@ -740,6 +764,11 @@ export default function BatchCollection() {
                                   placeholder={roundVal(loan.installment).toString()}
                                   onChange={(e) => handleAmountChange(loan.id, e.target.value)}
                                 />
+                                {penalties[loan.id] && parseFloat(penalties[loan.id]) > 0 && (
+                                  <div className="text-[10px] font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded uppercase tracking-wider">
+                                    +₹{penalties[loan.id]} Penalty
+                                  </div>
+                                )}
                              </div>
                           </td>
                         </tr>
@@ -874,6 +903,13 @@ export default function BatchCollection() {
                             placeholder={roundVal(loan.installment).toString()}
                             onChange={(e) => handleAmountChange(loan.id, e.target.value)}
                           />
+                          {penalties[loan.id] && parseFloat(penalties[loan.id]) > 0 && (
+                            <div className="mt-1 text-center">
+                               <span className="text-[11px] font-bold text-rose-500 bg-rose-50 px-2.5 py-1 rounded-md uppercase tracking-wider">
+                                 +₹{penalties[loan.id]} Penalty Applied
+                               </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
