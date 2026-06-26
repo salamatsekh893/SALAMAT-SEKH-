@@ -55,6 +55,17 @@ export default function DayBook() {
 
   const isMultiBranchUser = user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'manager';
 
+  const safeFormatDate = (dateVal: any, fmt: string) => {
+    if (!dateVal) return '';
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return String(dateVal);
+    try {
+      return format(d, fmt);
+    } catch (e) {
+      return String(dateVal);
+    }
+  };
+
   const getMinDate = () => {
     if (!branchId) return undefined;
     const selectedBranch = branches.find(b => b.id.toString() === branchId);
@@ -524,7 +535,7 @@ export default function DayBook() {
                     <h4 className="font-extrabold text-sm text-slate-700 group-hover:text-purple-700 uppercase leading-tight">{b.branch_name}</h4>
                     <span className="text-[10px] font-semibold text-slate-400 group-hover:text-purple-500 mt-1 block tracking-wider uppercase">Code: {b.branch_code}</span>
                     {b.opening_date && (
-                      <span className="text-[9px] font-medium text-slate-400 block mt-0.5">Opening Date: {format(new Date(b.opening_date), 'dd-MMM-yyyy')}</span>
+                      <span className="text-[9px] font-medium text-slate-400 block mt-0.5">Opening Date: {safeFormatDate(b.opening_date, 'dd-MMM-yyyy')}</span>
                     )}
                   </div>
                   <div className="bg-white border border-slate-200 group-hover:border-purple-300 group-hover:bg-purple-100 p-2 rounded-lg transition-colors">
@@ -573,7 +584,7 @@ export default function DayBook() {
             <Lock className="w-6 h-6 text-red-600 flex-shrink-0" />
             <div>
               <h3 className="text-red-700 font-black text-sm">SYSTEM LOCKED!</h3>
-              <p className="text-red-600 text-xs font-medium mt-0.5">Warning: Account for {format(new Date(date), 'dd-MMM-yyyy')} is not closed! System Locked.</p>
+              <p className="text-red-600 text-xs font-medium mt-0.5">Warning: Account for {safeFormatDate(date, 'dd-MMM-yyyy')} is not closed! System Locked.</p>
             </div>
           </motion.div>
         )}
@@ -877,7 +888,7 @@ export default function DayBook() {
               <h2 className="text-xl sm:text-2xl font-black tracking-wider flex items-center gap-3">
                 <Lock className="w-8 h-8" /> SECURE DAY CLOSE
               </h2>
-              <p className="text-rose-100 font-bold mt-1 tracking-wide">Summary for {format(new Date(date), 'dd MMMM yyyy')}</p>
+              <p className="text-rose-100 font-bold mt-1 tracking-wide">Summary for {safeFormatDate(date, 'dd MMMM yyyy')}</p>
             </div>
             <button onClick={() => setShowCloseModal(false)} className="bg-white/20 hover:bg-white/30 p-2 sm:p-3 rounded-full transition-colors">
               <ArrowDownLeft className="w-6 h-6 rotate-45" />
