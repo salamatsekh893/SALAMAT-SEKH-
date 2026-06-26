@@ -13,25 +13,66 @@ export default function ViewCollection() {
   const { user } = useAuth();
   const [collections, setCollections] = useState<any[]>([]);
   const [loans, setLoans] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  
+  // Search & Filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [totalCollectedAmount, setTotalCollectedAmount] = useState(0);
+
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState<any>({ 
     id: '', loan_id: '', amount_paid: '', payment_date: format(new Date(), 'yyyy-MM-dd')
   });
 
-  const loadData = () => {
+  const loadData = (pageNum = page, limitVal = limit, searchVal = searchTerm, start = startDate, end = endDate) => {
     setLoading(true);
-    Promise.all([fetchWithAuth('/collections'), fetchWithAuth('/loans')])
+    let url = `/collections?page=${pageNum}&limit=${limitVal}`;
+    if (searchVal) url += `&search=${encodeURIComponent(searchVal)}`;
+    if (start) url += `&start_date=${start}`;
+    if (end) url += `&end_date=${end}`;
+
+    Promise.all([fetchWithAuth(url), fetchWithAuth('/loans')])
       .then(([colData, loanData]) => {
-        setCollections(colData);
-        setLoans(loanData.filter((l: any) => l.status === 'active'));
-      }).finally(() => setLoading(false));
+        if (Array.isArray(colData)) {
+          setCollections(colData);
+          setTotal(colData.length);
+          setTotalCollectedAmount(colData.reduce((acc: number, c: any) => acc + (parseFloat(c.amount_paid) || 0), 0));
+        } else if (colData && colData.collections) {
+          setCollections(colData.collections || []);
+          setTotal(colData.total || 0);
+          setTotalCollectedAmount(colData.totalAmount || 0);
+        }
+        setLoans((loanData || []).filter((l: any) => l.status === 'active'));
+      })
+      .catch(err => console.error(err))
+      .finally(() => {
+        setLoading(false);
+        setInitialLoading(false);
+      });
   };
 
-  useEffect(() => { loadData(); }, []);
+  // Trigger load when page or limit changes
+  useEffect(() => {
+    loadData(page, limit, searchTerm, startDate, endDate);
+  }, [page, limit]);
+
+  // Reset to page 1 and load with delay when search/dates change (Debounce)
+  useEffect(() => {
+    setPage(1);
+    const delayDebounceFn = setTimeout(() => {
+      loadData(1, limit, searchTerm, startDate, endDate);
+    }, 400);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, startDate, endDate]);
 
   const handleDelete = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this recovery record?')) return;
@@ -39,7 +80,7 @@ export default function ViewCollection() {
       await fetchWithAuth(`/collections/${id}`, { method: 'DELETE' });
       voiceFeedback.success();
       toast.success('Collection deleted successfully');
-      loadData();
+      loadData(page, limit);
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete collection');
       voiceFeedback.error();
@@ -84,7 +125,7 @@ export default function ViewCollection() {
       setFormData({ 
         id: '', loan_id: '', amount_paid: '', payment_date: format(new Date(), 'yyyy-MM-dd')
       });
-      loadData();
+      loadData(page, limit);
     } catch (err: any) {
       toast.error(err.message || 'Error saving collection');
       voiceFeedback.error();
@@ -95,47 +136,60 @@ export default function ViewCollection() {
     setSearchTerm('');
     setStartDate('');
     setEndDate('');
+    setPage(1);
   };
 
-  const filteredCollections = collections.filter(col => {
-    const search = searchTerm.toLowerCase();
-    const searchMatches = !search || 
-      (col.customer_name || '').toLowerCase().includes(search) ||
-      (col.loan_id?.toString() || '').includes(search) ||
-      (col.collected_by_name || '').toLowerCase().includes(search);
-
-    let dateMatches = true;
-    if (col.payment_date) {
-      const payDate = col.payment_date.substring(0, 10);
-      if (startDate) dateMatches = dateMatches && payDate >= startDate;
-      if (endDate) dateMatches = dateMatches && payDate <= endDate;
-    } else {
-      if (startDate || endDate) dateMatches = false;
-    }
-
-    return searchMatches && dateMatches;
-  });
+  // Filter collections directly from the paginated state
+  const filteredCollections = collections;
 
   const exportToExcel = () => {
-    const data = filteredCollections.map((col, idx) => ({
-      'SL': idx + 1,
-      'DATE': col.payment_date ? col.payment_date.substring(0, 10) : '',
-      'TIME': col.created_at ? format(new Date(col.created_at), 'hh:mm a') : '',
-      'LOAN ID': col.loan_id,
-      'MEMBER NAME': col.customer_name,
-      'GROUP': col.group_name || 'Individual',
-      'COLLECTED BY': col.collected_by_name,
-      'AMOUNT': parseFloat(col.amount_paid)
-    }));
+    let url = '/collections';
+    const params = [];
+    if (searchTerm) params.push(`search=${encodeURIComponent(searchTerm)}`);
+    if (startDate) params.push(`start_date=${startDate}`);
+    if (endDate) params.push(`end_date=${endDate}`);
+    if (params.length > 0) {
+      url += '?' + params.join('&');
+    }
 
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Collections");
-    XLSX.writeFile(wb, `Collections_${format(new Date(), 'dd_MM_yyyy')}.xlsx`);
-    toast.success('Exported successfully!');
+    toast.loading('Preparing excel download...');
+    fetchWithAuth(url)
+      .then((colData: any) => {
+        toast.dismiss();
+        const records = Array.isArray(colData) ? colData : (colData?.collections || []);
+        if (records.length === 0) {
+          toast.error('No records to export');
+          return;
+        }
+
+        const data = records.map((col: any, idx: number) => ({
+          'SL': idx + 1,
+          'DATE': col.payment_date ? col.payment_date.substring(0, 10) : '',
+          'TIME': col.created_at ? format(new Date(col.created_at), 'hh:mm a') : '',
+          'LOAN NO': col.loan_no || '',
+          'LOAN ID': col.loan_id,
+          'MEMBER CODE': col.member_code || '',
+          'MEMBER NAME': col.customer_name,
+          'GROUP': col.group_name || 'Individual',
+          'COLLECTED BY': col.collected_by_name,
+          'APPROVED BY': col.approved_by_name || '-',
+          'STATUS': col.status || 'pending',
+          'AMOUNT': parseFloat(col.amount_paid)
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Collections");
+        XLSX.writeFile(wb, `Collections_${format(new Date(), 'dd_MM_yyyy')}.xlsx`);
+        toast.success('Exported successfully! 📥');
+      })
+      .catch(() => {
+        toast.dismiss();
+        toast.error('Failed to export data');
+      });
   };
 
-  const totalCollected = filteredCollections.reduce((acc, col) => acc + (parseFloat(col.amount_paid) || 0), 0);
+  const totalCollected = totalCollectedAmount;
   const hasActiveFilters = searchTerm !== '' || startDate !== '' || endDate !== '';
 
   // Status badge component
@@ -156,7 +210,101 @@ export default function ViewCollection() {
     );
   };
 
-  if (loading) return (
+  const renderPagination = () => {
+    const totalPages = Math.ceil(total / limit) || 1;
+    const limits = [10, 20, 30, 50, 100, 200, 500, 1000];
+    const startIdx = total === 0 ? 0 : (page - 1) * limit + 1;
+    const endIdx = Math.min(total, page * limit);
+
+    return (
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white px-6 py-4 rounded-2xl border border-indigo-100 shadow-lg max-w-[1600px] mx-auto my-6">
+        {/* Info & Limit Selector */}
+        <div className="flex flex-col sm:flex-row items-center gap-4 text-slate-500 text-xs font-bold uppercase tracking-wider w-full md:w-auto text-center sm:text-left justify-center md:justify-start">
+          <div className="flex items-center gap-2 justify-center">
+            <span className="text-slate-400">Records per page:</span>
+            <select
+              value={limit}
+              onChange={(e) => {
+                setLimit(Number(e.target.value));
+                setPage(1);
+              }}
+              className="bg-slate-50 border border-slate-200 text-indigo-600 font-extrabold px-3 py-1.5 rounded-xl outline-none focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer"
+            >
+              {limits.map((l) => (
+                <option key={l} value={l}>
+                  {l} items
+                </option>
+              ))}
+            </select>
+          </div>
+          <span className="hidden sm:inline text-slate-300">|</span>
+          <div className="text-slate-500 font-bold">
+            Showing <span className="text-slate-800 font-black">{startIdx}</span> to{" "}
+            <span className="text-slate-800 font-black">{endIdx}</span> of{" "}
+            <span className="text-indigo-600 font-black">{total}</span> records
+          </div>
+        </div>
+
+        {/* Buttons */}
+        <div className="flex items-center gap-2 w-full md:w-auto justify-center">
+          <motion.button
+            whileHover={page > 1 ? { scale: 1.02 } : {}}
+            whileTap={page > 1 ? { scale: 0.98 } : {}}
+            disabled={page === 1}
+            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+            className={`px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all border ${
+              page === 1
+                ? "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed"
+                : "bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-50 shadow-sm cursor-pointer"
+            }`}
+          >
+            ← Prev
+          </motion.button>
+
+          <div className="flex items-center gap-1">
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum = page;
+              if (page <= 3) pageNum = i + 1;
+              else if (page >= totalPages - 2) pageNum = totalPages - 4 + i;
+              else pageNum = page - 2 + i;
+
+              if (pageNum < 1 || pageNum > totalPages) return null;
+
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => setPage(pageNum)}
+                  className={`w-8 h-8 rounded-xl text-xs font-black transition-all ${
+                    page === pageNum
+                      ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-100"
+                      : "text-slate-600 hover:bg-slate-100 cursor-pointer"
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+          </div>
+
+          <motion.button
+            whileHover={page < totalPages ? { scale: 1.02 } : {}}
+            whileTap={page < totalPages ? { scale: 0.98 } : {}}
+            disabled={page === totalPages}
+            onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+            className={`px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all border ${
+              page === totalPages
+                ? "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed"
+                : "bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-50 shadow-sm cursor-pointer"
+            }`}
+          >
+            Next →
+          </motion.button>
+        </div>
+      </div>
+    );
+  };
+
+  if (initialLoading) return (
     <div className="w-full h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
       <motion.div 
         initial={{ opacity: 0, scale: 0.9 }}
@@ -206,7 +354,7 @@ export default function ViewCollection() {
                     <Users className="w-3 h-3" />
                     Total Records
                   </div>
-                  <div className="text-3xl font-black tracking-tight">{filteredCollections.length}</div>
+                  <div className="text-3xl font-black tracking-tight">{total}</div>
                 </div>
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
                   <CreditCard className="w-6 h-6" />
@@ -261,7 +409,11 @@ export default function ViewCollection() {
             {/* Filters */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
               <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                {loading ? (
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                )}
                 <input 
                   type="text" 
                   placeholder="Search by name, loan ID, agent..."
@@ -334,19 +486,13 @@ export default function ViewCollection() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                <AnimatePresence>
                   {filteredCollections.map((col, idx) => (
-                    <motion.tr 
+                    <tr 
                       key={col.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 10 }}
-                      transition={{ duration: 0.2, delay: idx * 0.02 }}
-                      whileHover={{ backgroundColor: "rgba(99, 102, 241, 0.04)" }}
                       className="group hover:bg-indigo-50/30 transition-colors"
                     >
                       <td className="p-4 text-center">
-                        <span className="text-sm font-bold text-indigo-500">{idx + 1}</span>
+                        <span className="text-sm font-bold text-indigo-500">{(page - 1) * limit + idx + 1}</span>
                       </td>
                       <td className="p-4">
                         <div className="flex flex-col">
@@ -358,10 +504,17 @@ export default function ViewCollection() {
                        </td>
                       <td className="p-4">
                         <div className="flex flex-col">
-                          <span className="text-sm font-black text-slate-800">{col.customer_name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-black text-slate-800">{col.customer_name}</span>
+                            {col.member_code && (
+                              <span className="bg-slate-100 text-slate-600 text-[10px] font-mono px-2 py-0.5 rounded-md font-bold">
+                                {col.member_code}
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-tighter flex items-center gap-1 mt-0.5">
                             <CreditCard className="w-3 h-3" />
-                            Loan #{col.loan_id}
+                            {col.loan_no ? col.loan_no : `Loan #${col.loan_id}`}
                             <span className="text-slate-400 mx-1">•</span>
                             <span className="text-purple-600">{col.group_name || 'Individual'}</span>
                           </span>
@@ -416,9 +569,8 @@ export default function ViewCollection() {
                           </div>
                         </td>
                       )}
-                    </motion.tr>
+                    </tr>
                   ))}
-                </AnimatePresence>
                 {filteredCollections.length === 0 && (
                   <tr>
                     <td colSpan={user?.role === 'superadmin' ? 7 : 6} className="py-20 text-center">
@@ -449,25 +601,20 @@ export default function ViewCollection() {
       {/* Mobile View - Cards */}
       <div className="block md:hidden relative px-4 py-6">
         <div className="space-y-4">
-          <AnimatePresence>
             {filteredCollections.map((col, idx) => (
-              <motion.div
+              <div
                 key={col.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3, delay: idx * 0.05 }}
                 className="bg-white rounded-2xl shadow-lg overflow-hidden border border-indigo-100"
               >
                 {/* Card Header */}
                 <div className="bg-gradient-to-r from-indigo-500 to-purple-500 px-4 py-3 flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
-                      <span className="text-white font-black text-sm">#{idx + 1}</span>
+                      <span className="text-white font-black text-sm">#{(page - 1) * limit + idx + 1}</span>
                     </div>
                     <div>
-                      <p className="text-white text-xs font-bold opacity-90">Collection ID</p>
-                      <p className="text-white text-xs font-mono">{col.loan_id}</p>
+                      <p className="text-white text-xs font-bold opacity-90">Collection / Loan</p>
+                      <p className="text-white text-xs font-mono">{col.loan_no || `LOAN #${col.loan_id}`}</p>
                     </div>
                   </div>
                   <StatusBadge status={col.status || 'pending'} />
@@ -479,7 +626,14 @@ export default function ViewCollection() {
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                     <div>
                       <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Customer Name</p>
-                      <p className="text-base font-black text-slate-800">{col.customer_name}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-base font-black text-slate-800">{col.customer_name}</p>
+                        {col.member_code && (
+                          <span className="bg-slate-100 text-slate-600 text-[9px] font-mono px-1.5 py-0.5 rounded font-black">
+                            {col.member_code}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[10px] font-black text-purple-600 uppercase mt-0.5">{col.group_name || 'Individual'}</p>
                     </div>
                     <div className="text-right">
@@ -507,7 +661,7 @@ export default function ViewCollection() {
                       </p>
                       <p className="text-sm font-bold text-indigo-700">{col.collected_by_name}</p>
                     </div>
-                    <div className="bg-slate-50 rounded-xl p-3 text-center">
+                    <div className="bg-slate-50 rounded-xl p-3 text-center col-span-2">
                       <p className="text-[9px] font-black uppercase text-slate-600 tracking-wider flex items-center justify-center gap-1">
                         <CheckCircle className="w-3 h-3" />
                         Approved By
@@ -540,15 +694,14 @@ export default function ViewCollection() {
                     </motion.button>
                   </div>
                 )}
-              </motion.div>
+              </div>
             ))}
-          </AnimatePresence>
 
           {filteredCollections.length === 0 && (
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="bg-white rounded-2xl p-12 text-center shadow-lg border border-indigo-100"
+              className="bg-white rounded-2xl p-12 text-center shadow-lg border border-indigo-100 w-full"
             >
               <div className="w-20 h-20 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-4">
                 <Search className="w-10 h-10 text-indigo-300" />
@@ -562,6 +715,11 @@ export default function ViewCollection() {
             </motion.div>
           )}
         </div>
+      </div>
+
+      {/* Modern Pagination Controls (Shared for both Desktop and Mobile layout) */}
+      <div className="px-4 sm:px-6">
+        {renderPagination()}
       </div>
 
       {/* Bottom padding */}

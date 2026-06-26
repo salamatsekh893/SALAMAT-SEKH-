@@ -3316,24 +3316,33 @@ async function startServer() {
   });
 
   app.get("/api/collections", verifyToken, async (req: any, res) => {
-    const { loan_id } = req.query;
+    const { loan_id, search, start_date, end_date, page, limit } = req.query;
     try {
       const { role, userId, branchId } = req.user;
-      let query = `
-        SELECT c.*, l.customer_id, m.full_name as customer_name, u.name as collected_by_name, u2.name as approved_by_name, u2.role as approved_by_role, g.group_name
-        FROM collections c
-        LEFT JOIN loans l ON c.loan_id = l.id
-        LEFT JOIN members m ON l.customer_id = m.id
-        LEFT JOIN groups g ON m.group_id = g.id
-        LEFT JOIN users u ON c.collected_by = u.id
-        LEFT JOIN users u2 ON c.approved_by = u2.id
-      `;
+      
       let whereClauses: string[] = [];
       let params: any[] = [];
 
       if (loan_id) {
         whereClauses.push('c.loan_id = ?');
         params.push(loan_id);
+      }
+
+      if (search) {
+        whereClauses.push('(m.full_name LIKE ? OR m.member_code LIKE ? OR l.loan_no LIKE ? OR c.loan_id = ? OR u.name LIKE ? OR g.group_name LIKE ?)');
+        const searchPattern = `%${search}%`;
+        const searchNum = isNaN(Number(search)) ? -1 : Number(search);
+        params.push(searchPattern, searchPattern, searchPattern, searchNum, searchPattern, searchPattern);
+      }
+
+      if (start_date) {
+        whereClauses.push('DATE(c.payment_date) >= ?');
+        params.push(start_date);
+      }
+
+      if (end_date) {
+        whereClauses.push('DATE(c.payment_date) <= ?');
+        params.push(end_date);
       }
 
       if (role === 'branch_manager') {
@@ -3344,6 +3353,59 @@ async function startServer() {
         params.push(userId);
       }
 
+      const whereSql = whereClauses.length > 0 ? ' WHERE ' + whereClauses.join(' AND ') : '';
+
+      // If page is specified, run paginated query
+      if (page) {
+        const pageNum = Math.max(1, parseInt(page as string) || 1);
+        const limitNum = Math.max(1, parseInt(limit as string) || 10);
+        const offset = (pageNum - 1) * limitNum;
+
+        // 1. Get total count and sum of amount_paid under these filters
+        const countQuery = `
+          SELECT COUNT(c.id) as total_count, COALESCE(SUM(c.amount_paid), 0) as total_amount
+          FROM collections c
+          LEFT JOIN loans l ON c.loan_id = l.id
+          LEFT JOIN members m ON l.customer_id = m.id
+          LEFT JOIN groups g ON m.group_id = g.id
+          LEFT JOIN users u ON c.collected_by = u.id
+        ` + whereSql;
+
+        const [countRows]: any = await pool.query(countQuery, params);
+        const totalCount = countRows[0]?.total_count || 0;
+        const totalAmount = countRows[0]?.total_amount || 0;
+
+        // 2. Get paginated results
+        let selectQuery = `
+          SELECT c.*, l.customer_id, l.loan_no, m.full_name as customer_name, m.member_code, u.name as collected_by_name, u2.name as approved_by_name, u2.role as approved_by_role, g.group_name
+          FROM collections c
+          LEFT JOIN loans l ON c.loan_id = l.id
+          LEFT JOIN members m ON l.customer_id = m.id
+          LEFT JOIN groups g ON m.group_id = g.id
+          LEFT JOIN users u ON c.collected_by = u.id
+          LEFT JOIN users u2 ON c.approved_by = u2.id
+        ` + whereSql + ` ORDER BY c.created_at DESC LIMIT ? OFFSET ?`;
+
+        const [rows] = await pool.query(selectQuery, [...params, limitNum, offset]);
+        
+        return res.json({
+          collections: rows,
+          total: totalCount,
+          totalAmount: totalAmount
+        });
+      }
+
+      // Backward compatible fall-back for un-paginated requests
+      let query = `
+        SELECT c.*, l.customer_id, l.loan_no, m.full_name as customer_name, m.member_code, u.name as collected_by_name, u2.name as approved_by_name, u2.role as approved_by_role, g.group_name
+        FROM collections c
+        LEFT JOIN loans l ON c.loan_id = l.id
+        LEFT JOIN members m ON l.customer_id = m.id
+        LEFT JOIN groups g ON m.group_id = g.id
+        LEFT JOIN users u ON c.collected_by = u.id
+        LEFT JOIN users u2 ON c.approved_by = u2.id
+      `;
+      
       if (whereClauses.length > 0) {
         query += ' WHERE ' + whereClauses.join(' AND ');
       }
