@@ -103,10 +103,13 @@ export default function LoanCardView() {
   const numInstallments = parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 12;
   const rows = [];
   const baseDateStr = loan.start_date || loan.disbursement_date;
-  let currentDate = baseDateStr ? parseISO(baseDateStr) : new Date();
+  let currentDate = baseDateStr ? new Date(baseDateStr) : new Date();
 
   const totalPrincipal = Math.round(Number(loan.amount) || 0);
-  const totalRepayment = Math.round(Number(loan.total_repayment || (totalPrincipal + Number(loan.interest || 0))));
+  const totalRepaymentRaw = Number(loan.total_repayment);
+  const totalRepayment = totalRepaymentRaw > 0 
+    ? Math.round(totalRepaymentRaw)
+    : Math.round(Number(loan.installment) * numInstallments) || Math.round(totalPrincipal + Number(loan.interest || 0));
   
   const baseEMI = loan.installment ? Math.round(Number(loan.installment)) : Math.round(totalRepayment / numInstallments);
   const basePrincipal = Math.round(totalPrincipal / numInstallments);
@@ -118,7 +121,7 @@ export default function LoanCardView() {
   let collectionPool = collections
     .filter(c => c.status !== 'rejected' && c.remarks !== 'Late Payment Penalty/Fine')
     .map(c => {
-       const pd = c.payment_date ? parseISO(c.payment_date) : new Date();
+       const pd = c.payment_date ? new Date(c.payment_date) : new Date();
        return {
          rawDate: pd.getTime(),
          date: format(pd, 'dd-MMM-yy'),

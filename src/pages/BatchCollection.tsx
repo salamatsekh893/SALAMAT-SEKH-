@@ -32,7 +32,7 @@ const getOrdinal = (n: number) => {
 
 const getScheduleBadge = (loan: any, selectedDate: string) => {
   if (!selectedDate) return "REGULAR";
-  const dateObj = parseISO(selectedDate);
+  const dateObj = new Date(selectedDate);
   const dayOfMonth = dateObj.getDate();
   const weekOfMonth = Math.ceil(dayOfMonth / 7);
   const termType = (loan.emi_frequency || loan.term_type || "").toLowerCase();
@@ -44,8 +44,8 @@ const getScheduleBadge = (loan: any, selectedDate: string) => {
     // If it's the monthly anniversary of the first installment
     const firstDateStr = loan.disbursement_date || loan.start_date;
     if (firstDateStr) {
-        const firstDate = parseISO(firstDateStr);
-        if (firstDate.getDate() === dayOfMonth) return "MONTHLY";
+        const firstDate = new Date(firstDateStr);
+        if (!isNaN(firstDate.getTime()) && firstDate.getDate() === dayOfMonth) return "MONTHLY";
     }
     return `${weekOfMonth}${getOrdinal(weekOfMonth)} WEEK`;
   }
@@ -69,8 +69,12 @@ const calculateOverdueInfo = (loan: any, selectedDate: string, totalPaid: number
     return { overdue: 0, expected: 0, emisDue: 0, overdueEmisDue: 0, advance: 0, maxEmis, paidEmisCount, termOver: false };
   }
   
-  const start = parseISO(baseDateStr);
-  const current = parseISO(selectedDate);
+  const start = new Date(baseDateStr);
+  const current = new Date(selectedDate);
+  
+  if (isNaN(start.getTime()) || isNaN(current.getTime())) {
+    return { overdue: 0, expected: 0, emisDue: 0, overdueEmisDue: 0, advance: 0, maxEmis, paidEmisCount, termOver: false };
+  }
   
   if (current < start) {
     return { overdue: 0, expected: 0, emisDue: 0, overdueEmisDue: 0, advance: 0, maxEmis, paidEmisCount, termOver: false };
@@ -184,6 +188,20 @@ export default function BatchCollection() {
 
   // Track modal state
   const [trackingLoanId, setTrackingLoanId] = useState<string | null>(null);
+  const [trackingCollections, setTrackingCollections] = useState<any[]>([]);
+  const [loadingTrack, setLoadingTrack] = useState(false);
+
+  useEffect(() => {
+    if (trackingLoanId) {
+      setLoadingTrack(true);
+      fetchWithAuth(`/collections?loan_id=${trackingLoanId}`)
+        .then(data => setTrackingCollections(data || []))
+        .catch(err => console.error(err))
+        .finally(() => setLoadingTrack(false));
+    } else {
+      setTrackingCollections([]);
+    }
+  }, [trackingLoanId]);
 
   useEffect(() => {
     Promise.all([
@@ -217,7 +235,7 @@ export default function BatchCollection() {
         }
       })
       .finally(() => setLoading(false));
-  }, [location]);
+  }, []);
 
   const handleGroupSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const groupId = e.target.value;
@@ -490,7 +508,9 @@ export default function BatchCollection() {
 
   const getDayName = (dateStr: string) => {
     if (!dateStr) return "";
-    return format(parseISO(dateStr), "EEEE");
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "";
+    return format(d, "EEEE");
   };
 
   const scheduledGroups = groups.filter(g => 
@@ -650,6 +670,10 @@ export default function BatchCollection() {
                       const isSelected = !!selectedLoans[loan.id];
                       const isPresent = attendance[loan.id] !== false;
                       const { paidEmisCount, maxEmis, termOver, overdue, advance } = loan._overdueInfo;
+                      const totalPaidSum = loan._totalPaidSum;
+                      const balance = loan._balance;
+                      const installmentAmt = loan._installmentAmt;
+                      const principalAmt = loan._principalAmt;
                       
                       return (
                         <tr 
@@ -716,7 +740,6 @@ export default function BatchCollection() {
                           </td>
                           <td className="py-2 px-2 text-center">
                              {(() => {
-                               const { overdue, termOver } = calculateOverdueInfo(loan, date, totalPaidSum);
                                if (termOver) {
                                   return (
                                     <div className="flex flex-col items-center gap-1">
@@ -746,7 +769,6 @@ export default function BatchCollection() {
                           </td>
                           <td className="py-2 px-2 text-right">
                              {(() => {
-                               const { advance } = calculateOverdueInfo(loan, date, totalPaidSum);
                                return advance > 0 ? (
                                  <span className="text-[11px] font-black text-indigo-500 whitespace-nowrap">
                                    {formatAmount(advance)}
@@ -808,6 +830,10 @@ export default function BatchCollection() {
                 {processedGroupLoans.map((loan, idx) => {
                   const isSelected = !!selectedLoans[loan.id];
                   const { paidEmisCount, maxEmis, termOver, overdue, advance } = loan._overdueInfo;
+                  const totalPaidSum = loan._totalPaidSum;
+                  const balance = loan._balance;
+                  const installmentAmt = loan._installmentAmt;
+                  const principalAmt = loan._principalAmt;
 
                   return (
                     <div key={loan.id} className={`bg-white p-5 shadow-sm border-y border-slate-200 transition-all ${isSelected ? 'border-pink-400 bg-pink-50/10' : ''}`}>
@@ -856,7 +882,6 @@ export default function BatchCollection() {
                             <span className="bg-slate-50 text-slate-700 text-[9px] font-black px-2 py-1 rounded-md border border-slate-100 uppercase">EMI: {formatAmount(installmentAmt)}</span>
                             <span className="bg-slate-50 text-slate-500 text-[9px] font-black px-2 py-1 rounded-md border border-slate-100 uppercase">P: {formatAmount(principalAmt)}</span>
                             {(() => {
-                              const { paidEmisCount, maxEmis, termOver, overdue, advance } = calculateOverdueInfo(loan, date, totalPaidSum);
                               return (
                                 <>
                                   <span className="bg-emerald-50 text-emerald-700 text-[9px] font-black px-2 py-1 rounded-md border border-emerald-100 uppercase">
@@ -1003,15 +1028,19 @@ export default function BatchCollection() {
               </div>
               
               <div className="p-6 max-h-[60vh] overflow-y-auto">
-                {collections.filter(c => c.loan_id?.toString() === trackingLoanId.toString()).length === 0 ? (
+                {loadingTrack ? (
+                  <div className="text-center py-10 text-slate-400">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mx-auto mb-3"></div>
+                    <p className="font-bold uppercase tracking-widest text-xs">Loading payments...</p>
+                  </div>
+                ) : trackingCollections.length === 0 ? (
                   <div className="text-center py-10 text-slate-400">
                     <Bot className="w-12 h-12 mx-auto mb-3 opacity-20" />
                     <p className="font-bold uppercase tracking-widest text-xs">No payments recorded yet</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {collections
-                      .filter(c => c.loan_id?.toString() === trackingLoanId.toString())
+                    {trackingCollections
                       .sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime())
                       .map((col, idx) => (
                         <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
