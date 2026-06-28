@@ -652,6 +652,11 @@ export default function LoanCardView() {
                         <div className="col-span-2 text-right">💵 কিস্তি: <span className="font-bold text-pink-700 font-sans">₹{formatAmount(baseEMI)}</span></div>
                       </div>
 
+                      {/* Decimal Adjustment Banner */}
+                      <div className="text-[7.5px] text-pink-700 font-extrabold text-center bg-pink-50 rounded-lg py-1 px-2 border border-pink-100 mb-2 leading-tight">
+                        📢 দশমিক সমন্বয়: ভগ্নাংশ টাকার হিসাব শেষ কিস্তির টাকার সাথে সমন্বয় করা হয়েছে।
+                      </div>
+
                       {/* Left Table Panel */}
                       <div className="overflow-hidden">
                         <table className="w-full border-collapse border border-slate-400 print:border-slate-800 text-[8px]">
@@ -731,6 +736,11 @@ export default function LoanCardView() {
                         <div className="col-span-2 text-right truncate">📈 স্কিম: <span className="font-bold text-slate-900">{loan.scheme_name || 'N/A'}</span></div>
                         <div className="col-span-2">📅 চক্র: <span className="font-extrabold text-pink-700 uppercase">{loan.emi_frequency || 'weekly'}</span></div>
                         <div className="col-span-2 text-right">🕒 মোট কিস্তি: <span className="font-bold text-slate-900">{loan.duration_weeks} টি</span></div>
+                      </div>
+
+                      {/* Decimal Adjustment Banner Part 2 */}
+                      <div className="text-[7.5px] text-pink-700 font-extrabold text-center bg-pink-50 rounded-lg py-1 px-2 border border-pink-100 mb-2 leading-tight">
+                        📢 Decimal Adjustment: Remaining fractional amounts are fully adjusted in the final EMI.
                       </div>
 
                       {/* Right Table Panel */}

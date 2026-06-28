@@ -131,8 +131,8 @@ const calculateOverdueInfo = (loan: any, selectedDate: string, totalPaid: number
   let advance = Math.max(0, totalPaid - expectedDemand);
   
   // Ignore small rounding differences (e.g. 1 or 2 rupees)
-  if (overdue <= 5) overdue = 0;
-  if (advance <= 5) advance = 0;
+  if (overdue <= 15) overdue = 0;
+  if (advance <= 15) advance = 0;
   
   return { 
     overdue: roundVal(overdue), 
