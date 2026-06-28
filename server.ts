@@ -227,10 +227,10 @@ async function startServer() {
           overdueExpectedEmis = overdueExpectedEmis - 1;
         }
 
-        const emiAmount = Number(loan.emi_amount) || 0;
+        const emiAmount = Math.round(Number(loan.emi_amount) || 0);
         const expectedAmount = expectedEmis * emiAmount;
         const totalPaid = Number(loan.total_paid) || 0;
-        const overdueAmount = Math.max(0, (overdueExpectedEmis * emiAmount) - totalPaid);
+        const overdueAmount = Math.round(Math.max(0, (overdueExpectedEmis * emiAmount) - totalPaid));
         const paidCount = Number(loan.paid_emi_count) || 0;
         const missedEmis = Math.max(0, overdueExpectedEmis - paidCount);
         

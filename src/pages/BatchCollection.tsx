@@ -61,7 +61,7 @@ const calculateOverdueInfo = (loan: any, selectedDate: string, totalPaid: number
   const baseDateStr = loan.start_date || loan.disbursement_date;
   
   const freq = (loan.emi_frequency || loan.term_type || 'weekly').toLowerCase();
-  const installment = parseFloat(loan.installment) || 0;
+  const installment = Math.round(parseFloat(loan.installment) || 0);
   const maxEmis = parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 0;
   const paidEmisCount = installment > 0 ? Math.round(totalPaid / installment) : 0;
 
@@ -215,7 +215,7 @@ export default function BatchCollection() {
           if (l.status !== "active") return false;
           const repayable = parseFloat(l.total_repayment) > 0 
             ? parseFloat(l.total_repayment) 
-            : (parseFloat(l.installment) * (parseInt(l.duration_weeks) || parseInt(l.no_of_emis) || 0));
+            : (Math.round(parseFloat(l.installment) || 0) * (parseInt(l.duration_weeks) || parseInt(l.no_of_emis) || 0));
           const totalPaid = parseFloat(l.total_paid || 0);
           return (repayable - totalPaid) > 1.0;
         });
@@ -269,9 +269,9 @@ export default function BatchCollection() {
       const totalPaidSum = parseFloat(loan.total_paid || 0);
       const repayable = parseFloat(loan.total_repayment) > 0 
         ? parseFloat(loan.total_repayment) 
-        : (parseFloat(loan.installment) * (parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 0));
+        : (Math.round(parseFloat(loan.installment) || 0) * (parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 0));
       const balance = Math.max(0, repayable - totalPaidSum);
-      const installmentAmt = parseFloat(loan.installment) || 0;
+      const installmentAmt = Math.round(parseFloat(loan.installment) || 0);
       const principalAmt = parseFloat(loan.amount) || 0;
       const overdueInfo = calculateOverdueInfo(loan, date, totalPaidSum);
 
@@ -354,7 +354,7 @@ export default function BatchCollection() {
         );
         const repayable = parseFloat(loan.total_repayment) > 0 
           ? parseFloat(loan.total_repayment) 
-          : (parseFloat(loan.installment) * (parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 0));
+          : (Math.round(parseFloat(loan.installment) || 0) * (parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 0));
         const balance = Math.max(0, roundVal(repayable - totalPaid));
         
         setAmounts(prev => ({ ...prev, [loanId]: balance.toString() }));
@@ -375,7 +375,7 @@ export default function BatchCollection() {
     const loan = loans.find(l => l.id === loanId);
     if (loan) {
       const amt = parseFloat(val) || 0;
-      const emi = parseFloat(loan.installment);
+      const emi = Math.round(parseFloat(loan.installment) || 0);
       
       if (amt < emi) {
         let pen = 0;

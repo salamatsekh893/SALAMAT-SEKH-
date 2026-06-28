@@ -24,7 +24,7 @@ export default function Loans() {
         const activeUnpaid = loanData.filter((l: any) => {
           const repayable = parseFloat(l.total_repayment) > 0 
             ? parseFloat(l.total_repayment) 
-            : (parseFloat(l.installment) * (parseInt(l.duration_weeks) || parseInt(l.no_of_emis) || 0));
+            : (Math.round(parseFloat(l.installment) || 0) * (parseInt(l.duration_weeks) || parseInt(l.no_of_emis) || 0));
           const totalPaid = parseFloat(l.total_paid || 0);
           return (repayable - totalPaid) > 1.0;
         });

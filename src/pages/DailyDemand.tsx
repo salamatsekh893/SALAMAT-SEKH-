@@ -46,7 +46,7 @@ export default function DailyDemand() {
     // Must have balance
     const repayable = parseFloat(loan.total_repayment) > 0 
       ? parseFloat(loan.total_repayment) 
-      : (parseFloat(loan.installment) * (parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 0));
+      : (Math.round(parseFloat(loan.installment) || 0) * (parseInt(loan.duration_weeks) || parseInt(loan.no_of_emis) || 0));
     const balance = repayable - parseFloat(loan.total_paid || 0);
     if (balance <= 1.0) return false;
     
