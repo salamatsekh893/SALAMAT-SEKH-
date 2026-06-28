@@ -91,8 +91,13 @@ export default function DemandSheet() {
   const processedLoans = loans.map(loan => {
     const matchingDates = getDemandCyclesInPeriod(loan, filters.startDate, filters.endDate);
     const matchCount = matchingDates.length;
-    const individualInstallment = Number(loan.installment || 0);
-    const totalDemand = individualInstallment * matchCount;
+    const individualInstallment = Math.round(Number(loan.installment || 0));
+    let totalDemand = individualInstallment * matchCount;
+    
+    const balance = (Number(loan.total_repayment) || (individualInstallment * Number(loan.duration_weeks || loan.no_of_emis || 0))) - Number(loan.total_paid || 0);
+    if (totalDemand > balance) {
+      totalDemand = balance > 0 ? balance : 0;
+    }
     
     // Calculate Arrear
     const todayStr = new Date().toISOString().split('T')[0];
@@ -148,9 +153,9 @@ export default function DemandSheet() {
         'Disbursement Date': formatDate(loan.created_at),
         'First EMI Date': formatDate(loan.start_date || loan.disbursement_date),
         'EMIs (Paid/Total)': `${loan.paid_emi_count || 0}/${loan.duration_weeks || 0}`,
-        'Balance (INR)': Math.round(balance * 100) / 100,
-        'Demand (INR)': Math.round(Number(loan.calculatedDemand || 0) * 100) / 100,
-        'Arrear (INR)': Math.round(Number(loan.arrear || 0) * 100) / 100,
+        'Balance (INR)': Math.round(balance),
+        'Demand (INR)': Math.round(Number(loan.calculatedDemand || 0)),
+        'Arrear (INR)': Math.round(Number(loan.arrear || 0)),
         'Collected (INR)': '',
         'Signature': ''
       };
@@ -371,16 +376,16 @@ export default function DemandSheet() {
                         <div className="text-[9px] print:text-[8px] text-red-600 font-bold mt-0.5 whitespace-nowrap">OVER</div>
                       )}
                     </td>
-                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-right font-bold text-black">₹{formatAmount(Number(loan.total_repayment || 0) - Number(loan.total_paid || 0))}</td>
+                    <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-right font-bold text-black">₹{formatAmount(Math.round(Number(loan.total_repayment || 0) - Number(loan.total_paid || 0)))}</td>
                     <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-right font-black text-black bg-slate-50/80 print:bg-transparent">
-                      ₹{formatAmount(Number(loan.calculatedDemand))}
+                      ₹{formatAmount(Math.round(Number(loan.calculatedDemand)))}
                       {loan.matchCount > 1 && (
-                        <div className="text-[9.5px] text-slate-600 font-extrabold">({loan.matchCount} × ₹{formatAmount(Number(loan.installment))})</div>
+                        <div className="text-[9.5px] text-slate-600 font-extrabold">({loan.matchCount} × ₹{formatAmount(Math.round(Number(loan.installment)))})</div>
                       )}
                     </td>
                     {/* Empty columns for printing */}
                     <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 bg-white print:bg-transparent text-right font-black text-red-600">
-                      {loan.arrear > 0 ? `₹${formatAmount(Number(loan.arrear))}` : ''}
+                      {loan.arrear > 0 ? `₹${formatAmount(Math.round(Number(loan.arrear)))}` : ''}
                     </td>
                     <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 bg-white print:bg-transparent"></td>
                     <td className="px-2 py-2.5 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 bg-white print:bg-transparent"></td>
@@ -390,10 +395,10 @@ export default function DemandSheet() {
                   <tr className="bg-slate-100 print:bg-slate-100 font-black text-black">
                     <td colSpan={10} className="px-2 py-3 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-right uppercase tracking-wider text-xs font-extrabold font-black">TOTAL</td>
                     <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-right text-black font-black">
-                      ₹{formatAmount(filteredLoans.reduce((sum, l) => sum + (Number(l.total_repayment || 0) - Number(l.total_paid || 0)), 0))}
+                      ₹{formatAmount(Math.round(filteredLoans.reduce((sum, l) => sum + (Number(l.total_repayment || 0) - Number(l.total_paid || 0)), 0)))}
                     </td>
                     <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-400 print:border-slate-800 text-right text-black font-black">
-                      ₹{formatAmount(filteredLoans.reduce((sum, l) => sum + Number(l.calculatedDemand || 0), 0))}
+                      ₹{formatAmount(Math.round(filteredLoans.reduce((sum, l) => sum + Number(l.calculatedDemand || 0), 0)))}
                     </td>
                     <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-400 print:border-slate-800"></td>
                     <td className="px-2 py-3 print:px-1 print:py-1 border border-slate-400 print:border-slate-800"></td>

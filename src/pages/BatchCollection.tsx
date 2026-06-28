@@ -300,7 +300,8 @@ export default function BatchCollection() {
     processedGroupLoans.forEach((loan) => {
       newSelected[loan.id] = checked;
       if (checked && !newAmounts[loan.id]) {
-        newAmounts[loan.id] = roundVal(loan.installment).toString();
+        const defaultAmt = loan._balance < roundVal(loan.installment) ? loan._balance : roundVal(loan.installment);
+        newAmounts[loan.id] = defaultAmt.toString();
       }
       if (checked && !newModes[loan.id]) {
         newModes[loan.id] = "Cash";
@@ -320,11 +321,20 @@ export default function BatchCollection() {
     setSelectedLoans((prev) => ({ ...prev, [loanId]: checked }));
 
     if (checked) {
+      const loan = loans.find((l) => l.id === loanId);
+      const totalPaidSum = parseFloat(loan?.total_paid || 0);
+      const repayable = parseFloat(loan?.total_repayment || 0) > 0 
+        ? parseFloat(loan?.total_repayment || 0) 
+        : (Math.round(parseFloat(loan?.installment || 0)) * (parseInt(loan?.duration_weeks || loan?.no_of_emis || 0)));
+      const balance = Math.max(0, repayable - totalPaidSum);
+      const inst = roundVal(loan?.installment);
+      const defaultAmt = balance > 0 && balance < inst ? balance : inst;
+
       setAmounts((prev) => ({
         ...prev,
         [loanId]:
           prev[loanId] ||
-          roundVal(loans.find((l) => l.id === loanId)?.installment).toString() ||
+          defaultAmt.toString() ||
           "0",
       }));
       setPaymentModes((prev) => ({
@@ -380,8 +390,14 @@ export default function BatchCollection() {
     if (loan) {
       const amt = parseFloat(val) || 0;
       const emi = Math.round(parseFloat(loan.installment) || 0);
+      const totalPaidSum = parseFloat(loan.total_paid || 0);
+      const repayable = parseFloat(loan.total_repayment || 0) > 0 
+        ? parseFloat(loan.total_repayment || 0) 
+        : (emi * (parseInt(loan.duration_weeks || loan.no_of_emis || 0)));
+      const balance = Math.max(0, repayable - totalPaidSum);
+      const expectedCollect = balance > 0 && balance < emi ? balance : emi;
       
-      if (amt < emi) {
+      if (amt < expectedCollect) {
         let pen = 0;
         const pRate = parseFloat(loan.penalty_rate) || 0;
         if (loan.penalty_type === 'percentage') {
@@ -811,7 +827,7 @@ export default function BatchCollection() {
                                   type="number" 
                                   className={`w-full max-w-[100px] min-w-[70px] bg-white border-2 border-emerald-500 rounded p-2 text-center font-black text-[#16A34A] text-xl focus:border-emerald-600 focus:ring-4 outline-none transition-all shadow-sm h-12 leading-none ${!isSelected ? 'opacity-30' : ''}`}
                                   value={amounts[loan.id] || ""}
-                                  placeholder={roundVal(loan.installment).toString()}
+                                  placeholder={(balance > 0 && balance < roundVal(loan.installment) ? balance : roundVal(loan.installment)).toString()}
                                   onChange={(e) => handleAmountChange(loan.id, e.target.value)}
                                 />
                                 {penalties[loan.id] && parseFloat(penalties[loan.id]) > 0 && (
@@ -947,7 +963,7 @@ export default function BatchCollection() {
                             type="number" 
                             className="w-full h-14 bg-white border-2 border-slate-200 rounded-xl px-4 text-center font-black text-[#16A34A] text-2xl outline-none shadow-sm focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 transition-all placeholder:text-slate-300"
                             value={amounts[loan.id] || ""}
-                            placeholder={roundVal(loan.installment).toString()}
+                            placeholder={(balance > 0 && balance < roundVal(loan.installment) ? balance : roundVal(loan.installment)).toString()}
                             onChange={(e) => handleAmountChange(loan.id, e.target.value)}
                           />
                           {penalties[loan.id] && parseFloat(penalties[loan.id]) > 0 && (
