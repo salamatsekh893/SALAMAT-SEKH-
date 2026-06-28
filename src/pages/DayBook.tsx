@@ -472,9 +472,9 @@ export default function DayBook() {
       ['Date', date],
       ['Branch', branchId ? branches.find(b => b.id == branchId)?.branch_name : 'All Branches'],
       [],
-      ['Total Inflows', totalInflows],
-      ['Total Outflows', totalOutflows],
-      ['Net Cash Flow', netCashFlow],
+      ['Total Inflows', Math.round(Number(totalInflows))],
+      ['Total Outflows', Math.round(Number(totalOutflows))],
+      ['Net Cash Flow', Math.round(Number(netCashFlow))],
       [],
       ['Time', 'Description', 'Type', 'Amount']
     ];
@@ -484,7 +484,7 @@ export default function DayBook() {
         formatTimeSafe(item.time),
         item.description,
         item.type.toUpperCase(),
-        item.amount
+        Math.round(Number(item.amount))
       ]);
     });
 

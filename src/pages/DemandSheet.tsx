@@ -149,7 +149,7 @@ export default function DemandSheet() {
         'Nominee Name': loan.nominee_name || '-',
         'Group': loan.group_name || '-',
         'Group Day': loan.meeting_day || '-',
-        'Loan Amount (INR)': Number(loan.amount || 0),
+        'Loan Amount (INR)': Math.round(Number(loan.amount || 0)),
         'Disbursement Date': formatDate(loan.created_at),
         'First EMI Date': formatDate(loan.start_date || loan.disbursement_date),
         'EMIs (Paid/Total)': `${loan.paid_emi_count || 0}/${loan.duration_weeks || 0}`,

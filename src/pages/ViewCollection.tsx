@@ -226,7 +226,7 @@ export default function ViewCollection() {
           'COLLECTED BY': col.collected_by_name,
           'APPROVED BY': col.approved_by_name || '-',
           'STATUS': col.status || 'pending',
-          'AMOUNT': parseFloat(col.amount_paid)
+          'AMOUNT': Math.round(Number(col.amount_paid))
         }));
 
         const ws = XLSX.utils.json_to_sheet(data);

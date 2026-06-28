@@ -150,21 +150,21 @@ export default function ProfitLoss() {
       ['Branch:', branchId ? branches.find(b => b.id == branchId)?.branch_name : 'All Branches'],
       [],
       ['REVENUE / INCOME DETAILS', 'AMOUNT in ₹ (INR)'],
-      ['1. Interest Collected on Loans', parseFloat(income.interest_collected || 0)],
-      ['2. Loan Processing Fees', parseFloat(income.processing_fees || 0)],
-      ['3. Loan Insurance Fees', parseFloat(income.insurance_fees || 0)],
-      ['4. Product Sales Revenue', parseFloat(income.product_sales || 0)],
-      ['TOTAL INBOUND INCOME', totalIncome],
+      ['1. Interest Collected on Loans', Math.round(Number(income.interest_collected || 0))],
+      ['2. Loan Processing Fees', Math.round(Number(income.processing_fees || 0))],
+      ['3. Loan Insurance Fees', Math.round(Number(income.insurance_fees || 0))],
+      ['4. Product Sales Revenue', Math.round(Number(income.product_sales || 0))],
+      ['TOTAL INBOUND INCOME', Math.round(Number(totalIncome))],
       [],
       ['OPERATING EXPENSES / OUTFLOWS', 'AMOUNT in ₹ (INR)'],
-      ['1. Employee Salaries Paid', parseFloat(expenses.salary_expenses || 0)],
-      ['2. Interest Credited on Member Savings', parseFloat(expenses.savings_interest || 0)],
+      ['1. Employee Salaries Paid', Math.round(Number(expenses.salary_expenses || 0))],
+      ['2. Interest Credited on Member Savings', Math.round(Number(expenses.savings_interest || 0))],
       ...((expenses.expense_breakdown || []).map((e: any) => [
-        `3. Other Expense - ${e.category}`, parseFloat(e.amount || 0)
+        `3. Other Expense - ${e.category}`, Math.round(Number(e.amount || 0))
       ])),
-      ['TOTAL OUTBOUND OPERATIONS', totalExpenses],
+      ['TOTAL OUTBOUND OPERATIONS', Math.round(Number(totalExpenses))],
       [],
-      [isProfit ? 'NET OPERATING PROFIT' : 'NET OPERATING LOSS', netProfit],
+      [isProfit ? 'NET OPERATING PROFIT' : 'NET OPERATING LOSS', Math.round(Number(netProfit))],
       ['OPERATING PROFIT MARGIN (%)', `${operatingMargin}%`]
     ];
 

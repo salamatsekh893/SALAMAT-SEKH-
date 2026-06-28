@@ -2943,9 +2943,9 @@ async function startServer() {
           total_repayment, processing_fee, insurance_fee, emi_frequency
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          data.customer_id, data.scheme_id, data.loan_amount, data.no_of_emis,
-          data.interest_amount, data.emi_amount, finalDateStr, data.status, data.branch_id,
-          data.total_repayment, data.processing_fee, data.insurance_fee, data.emi_frequency
+          data.customer_id, data.scheme_id, Math.round(Number(data.loan_amount || 0)), data.no_of_emis,
+          Math.round(Number(data.interest_amount || 0)), Math.round(Number(data.emi_amount || 0)), finalDateStr, data.status, data.branch_id,
+          Math.round(Number(data.total_repayment || 0)), Math.round(Number(data.processing_fee || 0)), Math.round(Number(data.insurance_fee || 0)), data.emi_frequency
         ]
       );
       
@@ -2995,13 +2995,13 @@ async function startServer() {
       const customer_id = data.customer_id;
       const scheme_id = data.scheme_id;
       const branch_id = data.branch_id;
-      const amount = data.amount || data.loan_amount;
-      const duration_weeks = data.duration_weeks || data.no_of_emis;
-      const interest = data.interest || data.interest_amount;
-      const installment = data.installment || data.emi_amount;
-      const total_repayment = data.total_repayment;
-      const processing_fee = data.processing_fee;
-      const insurance_fee = data.insurance_fee;
+      const amount = data.amount !== undefined ? Math.round(Number(data.amount)) : (data.loan_amount !== undefined ? Math.round(Number(data.loan_amount)) : undefined);
+      const duration_weeks = data.duration_weeks !== undefined ? data.duration_weeks : data.no_of_emis;
+      const interest = data.interest !== undefined ? Math.round(Number(data.interest)) : (data.interest_amount !== undefined ? Math.round(Number(data.interest_amount)) : undefined);
+      const installment = data.installment !== undefined ? Math.round(Number(data.installment)) : (data.emi_amount !== undefined ? Math.round(Number(data.emi_amount)) : undefined);
+      const total_repayment = data.total_repayment !== undefined ? Math.round(Number(data.total_repayment)) : undefined;
+      const processing_fee = data.processing_fee !== undefined ? Math.round(Number(data.processing_fee)) : undefined;
+      const insurance_fee = data.insurance_fee !== undefined ? Math.round(Number(data.insurance_fee)) : undefined;
       const emi_frequency = data.emi_frequency;
       const disbursement_date = data.disbursement_date;
 

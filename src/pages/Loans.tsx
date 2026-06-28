@@ -64,9 +64,9 @@ export default function Loans() {
       'MEMBER CODE': loan.member_code,
       'MOBILE': loan.mobile_no,
       'GROUP': loan.group_name || 'INDIVIDUAL',
-      'PRINCIPAL': parseFloat(loan.amount),
-      'INTEREST': parseFloat(loan.interest || 0),
-      'TOTAL REPAYABLE': parseFloat(loan.total_repayment || (parseFloat(loan.amount) + parseFloat(loan.interest || 0))),
+      'PRINCIPAL': Math.round(Number(loan.amount)),
+      'INTEREST': Math.round(Number(loan.interest || 0)),
+      'TOTAL REPAYABLE': Math.round(Number(loan.total_repayment || (Number(loan.amount) + Number(loan.interest || 0)))),
       'LAUNCH DATE': loan.start_date ? format(new Date(loan.start_date), 'dd-MM-yyyy') : '',
       'STATUS': loan.status
     }));
