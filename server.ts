@@ -247,7 +247,7 @@ async function startServer() {
           overdue_amount: overdueAmount,
           dpd: dpd
         };
-      }).filter((l: any) => l.overdue_amount > 1);
+      }).filter((l: any) => l.overdue_amount > 5);
 
       const totalOverdue = overdueList.reduce((sum: number, l: any) => sum + Number(l.overdue_amount), 0);
       const totalRisk = overdueList.reduce((sum: number, l: any) => sum + (Number(l.total_repayment) - Number(l.total_paid)), 0);

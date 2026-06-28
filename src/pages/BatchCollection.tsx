@@ -127,8 +127,12 @@ const calculateOverdueInfo = (loan: any, selectedDate: string, totalPaid: number
   
   const expectedDemand = expectedEmis * installment;
   const overdueDemand = overdueExpectedEmis * installment;
-  const overdue = Math.max(0, overdueDemand - totalPaid);
-  const advance = Math.max(0, totalPaid - expectedDemand);
+  let overdue = Math.max(0, overdueDemand - totalPaid);
+  let advance = Math.max(0, totalPaid - expectedDemand);
+  
+  // Ignore small rounding differences (e.g. 1 or 2 rupees)
+  if (overdue <= 5) overdue = 0;
+  if (advance <= 5) advance = 0;
   
   return { 
     overdue: roundVal(overdue), 

@@ -115,7 +115,7 @@ export default function DemandSheet() {
     if (expectedAmount > maxRepayment) expectedAmount = maxRepayment;
     
     let arrear = expectedAmount - Number(loan.total_paid || 0);
-    arrear = arrear > 0.5 ? Math.round(arrear) : 0;
+    arrear = arrear > 5 ? Math.round(arrear) : 0;
 
     return {
       ...loan,
