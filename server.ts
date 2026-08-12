@@ -2314,7 +2314,7 @@ async function startServer() {
       let totalTodayCloseBalance = 0;
 
       try {
-        const [bList]: any = await queryWithRetry(`
+        const bList: any = await queryWithRetry(`
           SELECT 
             b.id as branch_id,
             b.branch_name,
@@ -2329,7 +2329,7 @@ async function startServer() {
           ORDER BY b.id ASC
         `);
 
-        if (bList && bList.length > 0) {
+        if (Array.isArray(bList) && bList.length > 0) {
           branchCloseBalances = bList.map((b: any) => ({
             branch_id: b.branch_id,
             branch_name: b.branch_name,
@@ -2351,13 +2351,13 @@ async function startServer() {
         }
 
         // Today's Closing Balance calculation
-        const [todayRows]: any = await queryWithRetry(`
+        const todayRows: any = await queryWithRetry(`
           SELECT branch_id, closing_balance, status 
           FROM daily_cash_balances 
           WHERE DATE(date) = CURDATE()
         `);
         const todayClosedMap = new Map<number, number>();
-        if (todayRows && todayRows.length > 0) {
+        if (Array.isArray(todayRows) && todayRows.length > 0) {
           todayRows.forEach((r: any) => {
             if (r.status === 'closed') {
               todayClosedMap.set(r.branch_id, Number(r.closing_balance) || 0);
@@ -2365,7 +2365,7 @@ async function startServer() {
           });
         }
 
-        const [prevBalances]: any = await queryWithRetry(`
+        const prevBalances: any = await queryWithRetry(`
           SELECT b.id as branch_id, b.branch_name,
             COALESCE(
               (SELECT closing_balance FROM daily_cash_balances WHERE branch_id = b.id AND DATE(date) < CURDATE() ORDER BY date DESC LIMIT 1),
@@ -2375,37 +2375,37 @@ async function startServer() {
           WHERE b.status = 'active' OR b.status IS NULL
         `);
 
-        const [colToday]: any = await queryWithRetry(`
+        const colToday: any = await queryWithRetry(`
           SELECT branch_id, COALESCE(SUM(amount_paid), 0) as total
           FROM collections
           WHERE DATE(payment_date) = CURDATE() AND status = 'approved'
           GROUP BY branch_id
         `);
-        const colMap = new Map<number, number>((colToday || []).map((c: any) => [c.branch_id, Number(c.total) || 0]));
+        const colMap = new Map<number, number>((Array.isArray(colToday) ? colToday : []).map((c: any) => [c.branch_id, Number(c.total) || 0]));
 
-        const [disbToday]: any = await queryWithRetry(`
+        const disbToday: any = await queryWithRetry(`
           SELECT branch_id, COALESCE(SUM(amount), 0) as total
           FROM loans
           WHERE DATE(COALESCE(disbursement_date, start_date)) = CURDATE() AND status IN ('active', 'closed')
           GROUP BY branch_id
         `);
-        const disbMap = new Map<number, number>((disbToday || []).map((d: any) => [d.branch_id, Number(d.total) || 0]));
+        const disbMap = new Map<number, number>((Array.isArray(disbToday) ? disbToday : []).map((d: any) => [d.branch_id, Number(d.total) || 0]));
 
-        const [expToday]: any = await queryWithRetry(`
+        const expToday: any = await queryWithRetry(`
           SELECT branch_id, COALESCE(SUM(amount), 0) as total
           FROM expenses
           WHERE DATE(date) = CURDATE()
           GROUP BY branch_id
         `);
-        const expMap = new Map<number, number>((expToday || []).map((e: any) => [e.branch_id, Number(e.total) || 0]));
+        const expMap = new Map<number, number>((Array.isArray(expToday) ? expToday : []).map((e: any) => [e.branch_id, Number(e.total) || 0]));
 
-        const [salToday]: any = await queryWithRetry(`
+        const salToday: any = await queryWithRetry(`
           SELECT branch_id, COALESCE(SUM(net_salary), 0) as total
           FROM salaries
           WHERE DATE(payment_date) = CURDATE()
           GROUP BY branch_id
         `);
-        const salMap = new Map<number, number>((salToday || []).map((s: any) => [s.branch_id, Number(s.total) || 0]));
+        const salMap = new Map<number, number>((Array.isArray(salToday) ? salToday : []).map((s: any) => [s.branch_id, Number(s.total) || 0]));
 
         if (prevBalances && prevBalances.length > 0) {
           const todayBranchList = prevBalances.map((b: any) => {
