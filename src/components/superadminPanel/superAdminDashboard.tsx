@@ -35,30 +35,30 @@ export default function SuperAdminDashboard({ user, stats, hasPermission }: Supe
 
   return (
     <div className="flex flex-col gap-3 sm:gap-4 pb-10 bg-slate-100/60 min-h-screen">
-      {/* Welcome Hero Banner */}
-      <div className="relative bg-gradient-to-r from-[#172337] via-[#1e2e4a] to-[#2874f0] rounded-2xl p-4 sm:p-5 shadow-lg border border-blue-400/30 overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-yellow-400/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-          <div>
-            <div className="flex items-center gap-1.5 bg-yellow-400/20 border border-yellow-400/40 px-2.5 py-0.5 rounded-full text-yellow-300 text-[10px] font-black uppercase tracking-widest w-fit mb-2">
-              <ShieldCheck className="w-3.5 h-3.5 text-yellow-400" /> HQ Control Center
-            </div>
-            <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight">Super Admin Dashboard</h1>
-            <p className="text-blue-100/90 text-xs mt-0.5 max-w-xl font-medium">
-              Aljooya Subidha Services-এর হেড অফিস কন্ট্রোল পোর্টাল। এখান থেকে সমগ্র কোম্পানির সমস্ত ব্রাঞ্চ, কালেকশন এবং পোর্টফোলিও পর্যবেক্ষণ করতে পারবেন।
-            </p>
+      {/* Welcome Hero Banner - Ultra Compact */}
+      <div className="relative bg-gradient-to-r from-[#172337] via-[#1e2e4a] to-[#2874f0] rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-3 shadow-md border border-blue-400/30 overflow-hidden">
+        <div className="absolute top-0 right-0 w-60 h-60 bg-yellow-400/10 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none"></div>
+        <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="flex items-center gap-1 bg-yellow-400/20 border border-yellow-400/40 px-2 py-0.5 rounded-md text-yellow-300 text-[10px] font-black uppercase tracking-wider shrink-0">
+              <ShieldCheck className="w-3 h-3 text-yellow-400" /> HQ
+            </span>
+            <h1 className="text-sm sm:text-base font-black text-white tracking-tight">Super Admin Dashboard</h1>
+            <span className="text-[11px] text-blue-200/80 font-medium hidden md:inline">
+              | হেড অফিস কন্ট্রোল পোর্টাল
+            </span>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
             <button
               onClick={() => setShowMonthlyDBModal(true)}
-              className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl shadow-md hover:shadow-emerald-500/20 active:scale-95 transition-all text-xs font-black cursor-pointer border border-emerald-400/40"
+              className="flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white px-2.5 py-1 rounded-lg shadow-sm hover:shadow-emerald-500/20 active:scale-95 transition-all text-xs font-bold cursor-pointer border border-emerald-400/40"
             >
-              <FileSpreadsheet className="h-4 w-4 text-emerald-100" />
-              <span>Disbursement & DayBook Excel</span>
+              <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-100" />
+              <span>DayBook Excel</span>
             </button>
-            <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/15 shadow-inner">
-              <Calendar className="h-3.5 w-3.5 text-yellow-400" />
-              <span className="text-xs font-black text-white uppercase tracking-wider">
+            <div className="flex items-center gap-1 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/15">
+              <Calendar className="h-3 w-3 text-yellow-400" />
+              <span className="text-[11px] font-bold text-white uppercase">
                 {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
               </span>
             </div>
@@ -66,55 +66,51 @@ export default function SuperAdminDashboard({ user, stats, hasPermission }: Supe
         </div>
       </div>
 
-      {/* Glossy Special Closing Balance Banner */}
+      {/* Glossy Special Closing Balance Banner - Ultra Compact */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.99, y: 8 }}
+        initial={{ opacity: 0, scale: 0.99, y: 5 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#2874f0] via-[#1a5bc4] to-[#172337] p-0.5 shadow-lg border border-blue-400/40 group"
+        className="relative overflow-hidden rounded-xl bg-gradient-to-r from-[#2874f0] via-[#1a5bc4] to-[#172337] p-0.5 shadow-md border border-blue-400/40 group"
       >
-        <div className="absolute -top-24 -right-24 w-60 h-60 bg-yellow-400/20 rounded-full blur-2xl animate-pulse"></div>
-        <div className="relative z-10 bg-[#172337]/90 backdrop-blur-md rounded-[14px] p-3.5 sm:p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-xl text-slate-950 font-black shadow-md shrink-0 group-hover:scale-105 transition-transform">
-              <Wallet className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
+        <div className="relative z-10 bg-[#172337]/95 backdrop-blur-md rounded-[10px] px-3 py-2 sm:px-4 sm:py-2.5 flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-lg text-slate-950 font-black shadow-xs shrink-0">
+              <Wallet className="w-4 h-4 sm:w-4.5 sm:h-4.5 stroke-[2.5]" />
             </div>
-            <div>
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-[10px] font-black uppercase tracking-wider bg-yellow-400/20 border border-yellow-400/40 text-yellow-300 px-2 py-0.5 rounded-full flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-black uppercase tracking-wider bg-yellow-400/20 text-yellow-300 px-1.5 py-0.2 rounded border border-yellow-400/30 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-ping"></span>
-                  আজকের ক্যাশ ক্লোজিং ব্যালেন্স (Today's Closing Balance)
-                </span>
-                <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-bold px-1.5 py-0.2 rounded uppercase">
-                  Real-time
+                  আজকের ক্যাশ ক্লোজিং
                 </span>
               </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-base sm:text-xl font-black text-white tracking-tight">
                   ₹{formatAmount(stats?.totalTodayCloseBalance ?? stats?.todayCloseBalance ?? 0)}
                 </span>
-                <span className="text-[11px] text-yellow-200/80 font-medium hidden sm:inline">
-                  (সমগ্র ব্রাঞ্চের আজকের লাইভ স্থিতি)
+                <span className="text-[10px] text-yellow-200/80 font-medium hidden lg:inline">
+                  (আজকের লাইভ স্থিতি)
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-0.5 md:pb-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-700/60">
-            <div className="bg-slate-900/80 border border-slate-700/80 rounded-xl px-3 py-1.5 flex flex-col min-w-[120px]">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">সর্বশেষ ক্লোজড ব্যালেন্স</span>
-              <span className="text-xs sm:text-sm font-black text-yellow-300 mt-0.5">
+          <div className="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto pb-0.5 md:pb-0 pt-1 md:pt-0 border-t md:border-t-0 border-slate-700/60 justify-between md:justify-end text-[10px]">
+            <div className="bg-slate-900/90 border border-slate-700/80 rounded-lg px-2.5 py-1 flex items-center gap-1.5">
+              <span className="font-semibold text-slate-400 text-[9px] uppercase">সর্বশেষ:</span>
+              <span className="font-black text-yellow-300 text-xs">
                 ₹{formatAmount(stats?.totalBranchCloseBalance || 0)}
               </span>
             </div>
-            <div className="bg-slate-900/80 border border-slate-700/80 rounded-xl px-3 py-1.5 flex flex-col min-w-[110px]">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">ব্যাংক ব্যালেন্স</span>
-              <span className="text-xs sm:text-sm font-black text-emerald-400 mt-0.5">
+            <div className="bg-slate-900/90 border border-slate-700/80 rounded-lg px-2.5 py-1 flex items-center gap-1.5">
+              <span className="font-semibold text-slate-400 text-[9px] uppercase">ব্যাংক:</span>
+              <span className="font-black text-emerald-400 text-xs">
                 ₹{formatAmount(stats?.totalBankBalance || 0)}
               </span>
             </div>
-            <div className="bg-slate-900/80 border border-slate-700/80 rounded-xl px-3 py-1.5 flex flex-col min-w-[110px]">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">মোট কালেকশন</span>
-              <span className="text-xs sm:text-sm font-black text-sky-400 mt-0.5">
+            <div className="bg-slate-900/90 border border-slate-700/80 rounded-lg px-2.5 py-1 flex items-center gap-1.5">
+              <span className="font-semibold text-slate-400 text-[9px] uppercase">কালেকশন:</span>
+              <span className="font-black text-sky-400 text-xs">
                 ₹{formatAmount(stats?.collections || 0)}
               </span>
             </div>
