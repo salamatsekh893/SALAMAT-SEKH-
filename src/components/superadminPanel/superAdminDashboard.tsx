@@ -1,12 +1,14 @@
+import { useState } from 'react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Building2, UsersRound, Banknote, Wallet, Coins, Clock, CheckSquare, 
-  TrendingUp, Calendar, Calculator, ArrowRightLeft, Users, Sun, ClipboardList, CheckCircle, Activity, ShieldCheck
+  TrendingUp, Calendar, Calculator, ArrowRightLeft, Users, Sun, ClipboardList, CheckCircle, Activity, ShieldCheck, FileSpreadsheet, Download
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatAmount } from '../../lib/utils';
 import { cn } from '../../lib/utils';
+import MonthlyDayBookExportModal from '../MonthlyDayBookExportModal';
 
 interface SuperAdminDashboardProps {
   user: any;
@@ -16,6 +18,7 @@ interface SuperAdminDashboardProps {
 
 export default function SuperAdminDashboard({ user, stats, hasPermission }: SuperAdminDashboardProps) {
   const navigate = useNavigate();
+  const [showMonthlyDBModal, setShowMonthlyDBModal] = useState(false);
 
   const statCards = [
     { name: 'Total Branches', value: stats?.branches || 0, icon: Building2 },
@@ -23,6 +26,8 @@ export default function SuperAdminDashboard({ user, stats, hasPermission }: Supe
     { name: 'Pending Loan Apps', value: stats?.pendingLoans || 0, icon: Clock },
     { name: 'Awaiting Disbursal', value: stats?.approvedLoans || 0, icon: CheckSquare },
     { name: 'Active Loans', value: stats?.activeLoans || 0, icon: Banknote },
+    { name: "Today Closing Balance", value: `₹${formatAmount(stats?.totalTodayCloseBalance ?? stats?.todayCloseBalance ?? 0)}`, icon: Wallet, highlight: true },
+    { name: 'Last Close Balance', value: `₹${formatAmount(stats?.totalBranchCloseBalance || 0)}`, icon: Coins },
     { name: 'Total Bank Balance', value: `₹${formatAmount(stats?.totalBankBalance || 0)}`, icon: Building2 },
     { name: 'Total Capital', value: `₹${formatAmount(stats?.totalCapital || 0)}`, icon: Coins },
     { name: 'Total Collection', value: `₹${formatAmount(stats?.collections || 0)}`, icon: Wallet },
@@ -43,14 +48,79 @@ export default function SuperAdminDashboard({ user, stats, hasPermission }: Supe
               Aljooya Subidha Services-এর হেড অফিস কন্ট্রোল পোর্টাল। এখান থেকে সমগ্র কোম্পানির সমস্ত ব্রাঞ্চ, কালেকশন এবং পোর্টফোলিও পর্যবেক্ষণ করতে পারবেন।
             </p>
           </div>
-          <div className="flex items-center gap-2 bg-white/5 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 shadow-inner">
-            <Calendar className="h-4 w-4 text-indigo-400" />
-            <span className="text-xs font-black text-indigo-200 uppercase tracking-widest">
-              {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-            </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setShowMonthlyDBModal(true)}
+              className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-2xl shadow-lg hover:shadow-emerald-500/20 active:scale-95 transition-all text-xs font-black cursor-pointer border border-emerald-400/40"
+            >
+              <FileSpreadsheet className="h-4 w-4 text-emerald-100" />
+              <span>Disbursement & DayBook Excel</span>
+            </button>
+            <div className="flex items-center gap-2 bg-white/5 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 shadow-inner">
+              <Calendar className="h-4 w-4 text-indigo-400" />
+              <span className="text-xs font-black text-indigo-200 uppercase tracking-widest">
+                {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </span>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Flipkart Style Animated Special Closing Balance Card */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.98, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 p-0.5 shadow-xl shadow-orange-500/10 group"
+      >
+        <div className="absolute -top-24 -right-24 w-60 h-60 bg-yellow-300/30 rounded-full blur-2xl animate-pulse"></div>
+        <div className="relative z-10 bg-gradient-to-r from-slate-900 via-slate-900/95 to-slate-900 rounded-[14px] p-4 sm:p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="p-3 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl text-slate-950 font-black shadow-md shadow-amber-500/20 shrink-0 group-hover:scale-110 transition-transform">
+              <Wallet className="w-6 h-6 stroke-[2.5]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-black uppercase tracking-widest bg-amber-400/20 border border-amber-400/40 text-amber-300 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                  আজকের ক্যাশ ক্লোজিং ব্যালেন্স (Today's Closing Balance)
+                </span>
+                <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-bold px-2 py-0.5 rounded-md uppercase">
+                  Real-time
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  ₹{formatAmount(stats?.totalTodayCloseBalance ?? stats?.todayCloseBalance ?? 0)}
+                </span>
+                <span className="text-xs text-amber-300/80 font-semibold">
+                  (সমগ্র ব্রাঞ্চের আজকের লাইভ স্থিতি)
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-800">
+            <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl px-3.5 py-2 flex flex-col min-w-[130px]">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">সর্বশেষ ক্লোজড ব্যালেন্স</span>
+              <span className="text-sm font-black text-amber-300 mt-0.5">
+                ₹{formatAmount(stats?.totalBranchCloseBalance || 0)}
+              </span>
+            </div>
+            <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl px-3.5 py-2 flex flex-col min-w-[120px]">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">ব্যাংক ব্যালেন্স</span>
+              <span className="text-sm font-black text-emerald-400 mt-0.5">
+                ₹{formatAmount(stats?.totalBankBalance || 0)}
+              </span>
+            </div>
+            <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl px-3.5 py-2 flex flex-col min-w-[120px]">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">মোট কালেকশন</span>
+              <span className="text-sm font-black text-sky-400 mt-0.5">
+                ₹{formatAmount(stats?.collections || 0)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Grid of Stats */}
       <motion.div 
@@ -60,10 +130,10 @@ export default function SuperAdminDashboard({ user, stats, hasPermission }: Supe
           hidden: { opacity: 0 },
           show: {
             opacity: 1,
-            transition: { staggerChildren: 0.05 }
+            transition: { staggerChildren: 0.04 }
           }
         }}
-        className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2.5 sm:gap-4"
+        className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2 sm:gap-3"
       >
         {statCards.map((stat, idx) => {
           if (stat.name === 'Total Branches' && !hasPermission('sub_dash_stat_branches')) return null;
@@ -75,16 +145,19 @@ export default function SuperAdminDashboard({ user, stats, hasPermission }: Supe
           if (stat.name === 'Total Capital' && !hasPermission('sub_dash_stat_capital')) return null;
           if (stat.name === 'Total Collection' && !hasPermission('sub_dash_stat_collection')) return null;
 
+          const isTodayCard = stat.name === "Today Closing Balance";
+
           return (
             <motion.div 
               key={stat.name} 
               variants={{
-                hidden: { opacity: 0, y: 15 },
+                hidden: { opacity: 0, y: 10 },
                 show: { opacity: 1, y: 0 }
               }}
-              whileHover={{ y: -3, transition: { duration: 0.2 } }}
+              whileHover={{ y: -2, transition: { duration: 0.15 } }}
               className={cn(
-                "group relative p-4 rounded-3xl shadow-sm border flex justify-between items-center transition-all overflow-hidden min-h-[85px] sm:min-h-[95px] bg-white hover:shadow-lg",
+                "group relative p-2.5 sm:p-3 rounded-2xl shadow-xs border flex justify-between items-center transition-all overflow-hidden min-h-[68px] sm:min-h-[76px] bg-white hover:shadow-md",
+                isTodayCard ? "bg-gradient-to-br from-amber-50 to-orange-50/60 border-amber-300 ring-2 ring-amber-400/20" :
                 idx % 4 === 0 ? "border-sky-200/60 hover:border-sky-300" :
                 idx % 4 === 1 ? "border-emerald-200/60 hover:border-emerald-300" :
                 idx % 4 === 2 ? "border-orange-200/60 hover:border-orange-300" :
@@ -92,17 +165,22 @@ export default function SuperAdminDashboard({ user, stats, hasPermission }: Supe
               )}
             >
               <div className={cn(
-                "absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150",
+                "absolute top-0 right-0 w-20 h-20 rounded-full blur-xl -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-150",
+                isTodayCard ? "bg-amber-500/20" :
                 idx % 4 === 0 ? "bg-sky-500/10" :
                 idx % 4 === 1 ? "bg-emerald-500/10" :
                 idx % 4 === 2 ? "bg-orange-500/10" :
                 "bg-indigo-500/10"
               )}></div>
               
-              <div className="card-info relative z-10">
-                <h3 className="text-[10px] text-slate-500 mb-1 font-bold uppercase tracking-wider line-clamp-1">{stat.name}</h3>
+              <div className="card-info relative z-10 pr-1">
+                <h3 className={cn(
+                  "text-[9px] sm:text-[10px] mb-0.5 font-bold uppercase tracking-wider line-clamp-1",
+                  isTodayCard ? "text-amber-800" : "text-slate-500"
+                )}>{stat.name}</h3>
                 <h1 className={cn(
-                  "text-lg sm:text-2xl font-black tracking-tight",
+                  "text-sm sm:text-lg font-black tracking-tight",
+                  isTodayCard ? "text-amber-950" :
                   idx % 4 === 0 ? "text-sky-950" :
                   idx % 4 === 1 ? "text-emerald-950" :
                   idx % 4 === 2 ? "text-orange-950" :
@@ -110,13 +188,14 @@ export default function SuperAdminDashboard({ user, stats, hasPermission }: Supe
                 )}>{stat.value}</h1>
               </div>
               <div className={cn(
-                "transition-transform group-hover:scale-110 group-hover:-rotate-12 duration-300 ml-2 relative z-10 shrink-0 p-2.5 rounded-2xl",
-                idx % 4 === 0 ? "bg-sky-50 text-sky-500" :
-                idx % 4 === 1 ? "bg-emerald-50 text-emerald-500" :
-                idx % 4 === 2 ? "bg-orange-50 text-orange-500" :
-                "bg-indigo-50 text-indigo-500"
+                "transition-transform group-hover:scale-110 group-hover:-rotate-6 duration-200 ml-1.5 relative z-10 shrink-0 p-2 rounded-xl",
+                isTodayCard ? "bg-amber-500 text-slate-950 font-black shadow-xs" :
+                idx % 4 === 0 ? "bg-sky-50 text-sky-600" :
+                idx % 4 === 1 ? "bg-emerald-50 text-emerald-600" :
+                idx % 4 === 2 ? "bg-orange-50 text-orange-600" :
+                "bg-indigo-50 text-indigo-600"
               )}>
-                <stat.icon className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
+                <stat.icon className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2.5} />
               </div>
             </motion.div>
           );
@@ -202,6 +281,67 @@ export default function SuperAdminDashboard({ user, stats, hasPermission }: Supe
                 ₹{formatAmount(Math.round((stats?.financeStats?.totalPrincipal || 0) - ((stats?.financeStats?.totalPaid || 0) * ((stats?.financeStats?.totalPrincipal || 0) / (stats?.financeStats?.totalRepayment || 1)))))}
               </span>
             </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Branch-wise Cash Closing Balances Breakdown */}
+      {stats?.branchCloseBalances && stats.branchCloseBalances.length > 0 && (
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200"
+        >
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2.5 bg-emerald-100/80 rounded-2xl text-emerald-600">
+                <Coins className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-base font-black text-slate-800 tracking-tight">
+                  ব্রাঞ্চ-ভিত্তিক ক্লোজিং ব্যালেন্স (Branch Closing Balances)
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">প্রত্যেক ব্রাঞ্চের ক্যাশ ডে বুকের সর্বশেষ হিসাব স্থিতি</p>
+              </div>
+            </div>
+            <div className="text-left sm:text-right bg-emerald-50 px-3.5 py-1.5 rounded-2xl border border-emerald-200/60">
+              <span className="text-[9px] font-bold text-emerald-700 uppercase tracking-widest block">মোট কন্টেইনার ক্লোজিং ব্যালেন্স</span>
+              <span className="text-base font-black text-emerald-700 leading-none">₹{formatAmount(stats?.totalBranchCloseBalance || 0)}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+            {stats.branchCloseBalances.map((b: any) => (
+              <div 
+                key={b.branch_id}
+                className="p-3.5 bg-gradient-to-br from-slate-50 to-emerald-50/40 border border-slate-200/80 rounded-2xl flex justify-between items-center shadow-xs hover:border-emerald-300 transition-all"
+              >
+                <div>
+                  <h4 className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>{b.branch_name}</span>
+                  </h4>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] font-medium text-slate-500">
+                      {b.last_date ? `তারিখ: ${b.last_date}` : 'রেকর্ড নেই'}
+                    </span>
+                    {b.last_status && b.last_status !== 'N/A' && (
+                      <span className={cn(
+                        "text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase",
+                        b.last_status === 'closed' ? "bg-slate-200 text-slate-700" : "bg-emerald-100 text-emerald-700"
+                      )}>
+                        {b.last_status}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-sm font-black text-emerald-700 block">
+                    ₹{formatAmount(b.closing_balance)}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </motion.div>
       )}
@@ -332,6 +472,16 @@ export default function SuperAdminDashboard({ user, stats, hasPermission }: Supe
             </button>
           )}
 
+          <button 
+            className="flex flex-col items-center justify-center p-3 bg-white border border-emerald-200 rounded-2xl shadow-sm hover:shadow-md hover:border-emerald-400 hover:bg-emerald-50/50 active:scale-[0.98] transition-all group min-h-[80px]"
+            onClick={() => setShowMonthlyDBModal(true)}
+          >
+            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center mb-2 group-hover:bg-emerald-600 transition-colors">
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600 group-hover:text-white transition-colors" />
+            </div>
+            <span className="text-[9px] font-black text-emerald-700 uppercase tracking-wider text-center line-clamp-1 leading-none group-hover:text-emerald-800">Disbursement & DB Excel</span>
+          </button>
+
           {hasPermission('sub_dash_quick_day_shift') && (
             <button 
               className="flex flex-col items-center justify-center p-3 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:border-orange-300 hover:bg-orange-50/50 active:scale-[0.98] transition-all group min-h-[80px]"
@@ -393,6 +543,13 @@ export default function SuperAdminDashboard({ user, stats, hasPermission }: Supe
           </div>
         </div>
       )}
+
+      {/* Monthly Day Book Export Modal */}
+      <MonthlyDayBookExportModal
+        isOpen={showMonthlyDBModal}
+        onClose={() => setShowMonthlyDBModal(false)}
+        user={user}
+      />
     </div>
   );
 }

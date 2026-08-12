@@ -1,11 +1,13 @@
+import { useState } from 'react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Building2, UsersRound, Banknote, Wallet, Coins, Clock, CheckSquare, 
-  Calendar, ClipboardList, CheckCircle, Activity, ShieldCheck
+  Calendar, ClipboardList, CheckCircle, Activity, ShieldCheck, FileSpreadsheet
 } from 'lucide-react';
 import { formatAmount } from '../../lib/utils';
 import { cn } from '../../lib/utils';
+import MonthlyDayBookExportModal from '../MonthlyDayBookExportModal';
 
 interface EmployeeDashboardProps {
   user: any;
@@ -15,6 +17,7 @@ interface EmployeeDashboardProps {
 
 export default function EmployeeDashboard({ user, stats, hasPermission }: EmployeeDashboardProps) {
   const navigate = useNavigate();
+  const [showMonthlyDBModal, setShowMonthlyDBModal] = useState(false);
 
   const getRoleLabel = () => {
     switch(user?.role) {
@@ -29,6 +32,8 @@ export default function EmployeeDashboard({ user, stats, hasPermission }: Employ
     { name: 'Customers Assigned', value: stats?.customers || 0, icon: UsersRound },
     { name: 'Pending Approvals', value: stats?.pendingLoans || 0, icon: Clock },
     { name: 'Active Loans', value: stats?.activeLoans || 0, icon: Banknote },
+    { name: "Today Closing Balance", value: `₹${formatAmount(stats?.todayCloseBalance ?? stats?.branchCloseBalance ?? 0)}`, icon: Wallet },
+    { name: 'Last Close Balance', value: `₹${formatAmount(stats?.branchCloseBalance || 0)}`, icon: Coins },
     { name: 'Total Collection', value: `₹${formatAmount(stats?.collections || 0)}`, icon: Wallet },
   ];
 
@@ -47,14 +52,73 @@ export default function EmployeeDashboard({ user, stats, hasPermission }: Employ
               আপনার ফিল্ড ডিউটি, দৈনিক কিস্তি সংগ্রহ, এবং ট্রাভেলিং লগ মডিউলগুলো নিচের কুইক অ্যাকশন থেকে সহজে অ্যাক্সেস করুন।
             </p>
           </div>
-          <div className="flex items-center gap-2 bg-white/5 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 shadow-inner">
-            <Calendar className="h-4 w-4 text-blue-400" />
-            <span className="text-xs font-black text-blue-200 uppercase tracking-widest">
-              {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-            </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setShowMonthlyDBModal(true)}
+              className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-3.5 py-2 rounded-2xl shadow-lg hover:shadow-emerald-500/20 active:scale-95 transition-all text-xs font-black cursor-pointer border border-emerald-400/40"
+            >
+              <FileSpreadsheet className="h-4 w-4 text-emerald-100" />
+              <span>Disbursement & DB Excel</span>
+            </button>
+            <div className="flex items-center gap-2 bg-white/5 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 shadow-inner">
+              <Calendar className="h-4 w-4 text-blue-400" />
+              <span className="text-xs font-black text-blue-200 uppercase tracking-widest">
+                {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </span>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Flipkart Style Animated Special Closing Balance Banner */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.98, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-amber-500 p-0.5 shadow-xl shadow-blue-500/10 group"
+      >
+        <div className="absolute -top-24 -right-24 w-60 h-60 bg-blue-300/30 rounded-full blur-2xl animate-pulse"></div>
+        <div className="relative z-10 bg-gradient-to-r from-slate-900 via-slate-900/95 to-slate-900 rounded-[14px] p-4 sm:p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="p-3 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl text-slate-950 font-black shadow-md shadow-amber-500/20 shrink-0 group-hover:scale-110 transition-transform">
+              <Wallet className="w-6 h-6 stroke-[2.5]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-black uppercase tracking-widest bg-amber-400/20 border border-amber-400/40 text-amber-300 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                  আজকের ক্যাশ ক্লোজিং ব্যালেন্স (Today's Closing Balance)
+                </span>
+                <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-bold px-2 py-0.5 rounded-md uppercase">
+                  Real-time
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  ₹{formatAmount(stats?.todayCloseBalance ?? stats?.branchCloseBalance ?? 0)}
+                </span>
+                <span className="text-xs text-amber-300/80 font-semibold">
+                  (আজকের ডে বুকের চলমান হিসাব স্থিতি)
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-800">
+            <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl px-3.5 py-2 flex flex-col min-w-[130px]">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">সর্বশেষ ক্লোজড ব্যালেন্স</span>
+              <span className="text-sm font-black text-amber-300 mt-0.5">
+                ₹{formatAmount(stats?.branchCloseBalance || 0)}
+              </span>
+            </div>
+            <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl px-3.5 py-2 flex flex-col min-w-[120px]">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">মোট কালেকশন</span>
+              <span className="text-sm font-black text-sky-400 mt-0.5">
+                ₹{formatAmount(stats?.collections || 0)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Grid of Stats */}
       <motion.div 
@@ -64,33 +128,48 @@ export default function EmployeeDashboard({ user, stats, hasPermission }: Employ
           hidden: { opacity: 0 },
           show: {
             opacity: 1,
-            transition: { staggerChildren: 0.05 }
+            transition: { staggerChildren: 0.04 }
           }
         }}
-        className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4"
+        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3"
       >
         {statCards.map((stat, idx) => {
+          const isTodayCard = stat.name === "Today Closing Balance";
+
           return (
             <motion.div 
               key={stat.name} 
               variants={{
-                hidden: { opacity: 0, y: 15 },
+                hidden: { opacity: 0, y: 10 },
                 show: { opacity: 1, y: 0 }
               }}
-              whileHover={{ y: -3, transition: { duration: 0.2 } }}
+              whileHover={{ y: -2, transition: { duration: 0.15 } }}
               className={cn(
-                "group relative p-3 rounded-2xl shadow-md flex justify-between items-center transition-transform overflow-hidden min-h-[75px] sm:min-h-[85px]",
-                idx % 2 === 0 ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white" : "bg-gradient-to-br from-indigo-500 to-indigo-600 text-white"
+                "group relative p-2.5 sm:p-3 rounded-2xl shadow-xs border flex justify-between items-center transition-all overflow-hidden min-h-[68px] sm:min-h-[76px] bg-white hover:shadow-md",
+                isTodayCard ? "bg-gradient-to-br from-amber-500 to-orange-600 text-white border-amber-400 ring-2 ring-amber-400/20" :
+                idx % 2 === 0 ? "border-blue-200/60 hover:border-blue-300" :
+                "border-indigo-200/60 hover:border-indigo-300"
               )}
             >
               <div className="absolute right-0 top-0 -mt-2 -mr-2 w-16 h-16 bg-white opacity-10 rounded-full blur-xl transform group-hover:scale-150 transition-transform duration-500"></div>
               
-              <div className="card-info relative z-10">
-                <h3 className="text-[9px] text-white/90 mb-0.5 font-bold uppercase tracking-wider line-clamp-1">{stat.name}</h3>
-                <h1 className="text-base sm:text-xl font-black tracking-tight">{stat.value}</h1>
+              <div className="card-info relative z-10 pr-1">
+                <h3 className={cn(
+                  "text-[9px] sm:text-[10px] mb-0.5 font-bold uppercase tracking-wider line-clamp-1",
+                  isTodayCard ? "text-amber-100" : "text-slate-500"
+                )}>{stat.name}</h3>
+                <h1 className={cn(
+                  "text-sm sm:text-lg font-black tracking-tight",
+                  isTodayCard ? "text-white" : "text-slate-900"
+                )}>{stat.value}</h1>
               </div>
-              <div className="text-white/20 transition-transform group-hover:scale-110 group-hover:-rotate-12 duration-300 ml-1 relative z-10 shrink-0">
-                <stat.icon className="w-6 h-6 sm:w-8 sm:h-8" strokeWidth={2.5} />
+              <div className={cn(
+                "transition-transform group-hover:scale-110 group-hover:-rotate-6 duration-200 ml-1.5 relative z-10 shrink-0 p-2 rounded-xl",
+                isTodayCard ? "bg-white/20 text-white font-black" :
+                idx % 2 === 0 ? "bg-blue-50 text-blue-600" :
+                "bg-indigo-50 text-indigo-600"
+              )}>
+                <stat.icon className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2.5} />
               </div>
             </motion.div>
           );
@@ -154,6 +233,12 @@ export default function EmployeeDashboard({ user, stats, hasPermission }: Employ
           )}
         </div>
       </div>
+
+      <MonthlyDayBookExportModal 
+        isOpen={showMonthlyDBModal} 
+        onClose={() => setShowMonthlyDBModal(false)} 
+        user={user}
+      />
     </div>
   );
 }

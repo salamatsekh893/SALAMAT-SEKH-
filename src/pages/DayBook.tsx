@@ -2,14 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { voiceFeedback } from '../lib/voice';
 import { motion } from 'motion/react';
 import { useAuth } from '../hooks/useAuth';
-import { BookOpen, Calendar, ArrowDownLeft, ArrowUpRight, Filter, Download, Lock, Unlock, AlertCircle, RefreshCw, Building2 } from 'lucide-react';
+import { BookOpen, Calendar, ArrowDownLeft, ArrowUpRight, Filter, Download, Lock, Unlock, AlertCircle, RefreshCw, Building2, FileSpreadsheet } from 'lucide-react';
 import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
 import { fetchWithAuth } from '../lib/api';
 import { formatAmount } from '../lib/utils';
+import MonthlyDayBookExportModal from '../components/MonthlyDayBookExportModal';
 
 export default function DayBook() {
   const { user } = useAuth();
+  const [showMonthlyDBModal, setShowMonthlyDBModal] = useState(false);
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [branchId, setBranchId] = useState('');
   const [branches, setBranches] = useState<any[]>([]);
@@ -569,11 +571,17 @@ export default function DayBook() {
         </div>
         
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setShowMonthlyDBModal(true)}
+            className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-md text-xs font-bold transition-colors shadow-sm ml-auto sm:ml-0 cursor-pointer"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" /> Monthly Report Excel
+          </button>
           <button 
             onClick={exportToExcel}
-            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-md text-xs font-bold transition-colors shadow-sm ml-auto sm:ml-0"
+            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-md text-xs font-bold transition-colors shadow-sm"
           >
-            <Download className="w-3.5 h-3.5" /> Export
+            <Download className="w-3.5 h-3.5" /> Export Day
           </button>
         </div>
       </div>
@@ -1104,6 +1112,13 @@ export default function DayBook() {
           </div>
         </div>
       )}
+
+      {/* Monthly Day Book Export Modal */}
+      <MonthlyDayBookExportModal
+        isOpen={showMonthlyDBModal}
+        onClose={() => setShowMonthlyDBModal(false)}
+        user={user}
+      />
     </div>
   );
 }
