@@ -2098,11 +2098,19 @@ async function startServer() {
     }
   });
 
+  const dashboardCache = new Map<string, { data: any; expiry: number }>();
+
   app.get("/api/dashboard", verifyToken, async (req: any, res) => {
     try {
       autoCloseFullyPaidLoans(); // non-blocking
 
       const { role, branchId, userId } = req.user;
+
+      const cacheKey = `${role}_${branchId || 0}_${userId}`;
+      const cached = dashboardCache.get(cacheKey);
+      if (cached && Date.now() < cached.expiry) {
+        return res.json(cached.data);
+      }
 
       if (role === 'customer') {
         const [userRows]: any = await pool.query('SELECT phone FROM users WHERE id = ?', [userId]);
@@ -2236,47 +2244,44 @@ async function startServer() {
          // Dashboard is currently global, but let's at least protect it
       }
 
-      // Use explain-friendly queries and combined lookups where possible
-      const counts: any = await queryWithRetry(`
-        SELECT 
-          (SELECT COUNT(*) FROM branches) as branches,
-          (SELECT COUNT(*) FROM members ${role === 'branch_manager' ? 'WHERE branch_id = ?' : ''}) as customers,
-          (SELECT COUNT(*) FROM bank_accounts) as bank_accounts_count
-      `, role === 'branch_manager' ? [branchId] : []);
-
-      const loanStats: any = await queryWithRetry(`
-        SELECT 
-          COUNT(*) as total,
-          SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pendingCount,
-          SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approvedCount,
-          SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as activeCount
-        FROM loans
-        ${role === 'branch_manager' ? 'WHERE branch_id = ?' : ''}
-      `, role === 'branch_manager' ? [branchId] : []);
-
-      const collectionStats: any = await queryWithRetry(`
-        SELECT 
-          COALESCE(SUM(c.amount_paid), 0) as total,
-          COUNT(*) as count
-        FROM collections c
-        ${role === 'branch_manager' ? 'JOIN loans l ON c.loan_id = l.id WHERE l.branch_id = ? AND c.status != "rejected"' : 'WHERE c.status != "rejected"'}
-      `, role === 'branch_manager' ? [branchId] : []);
-
-      const bankStats: any = await queryWithRetry('SELECT COALESCE(SUM(current_balance), 0) as total FROM bank_accounts');
-      const capitalStats: any = await queryWithRetry('SELECT COALESCE(SUM(amount), 0) as total FROM company_capital');
-
-      // Efficient Finance Stats with single join/aggregation
-      const finStats: any = await queryWithRetry(`
-        SELECT 
-          SUM(l.amount) as totalPrincipal,
-          SUM(l.total_repayment) as totalRepayment,
-          (SELECT COALESCE(SUM(c.amount_paid), 0) 
-           FROM collections c 
-           JOIN loans l2 ON c.loan_id = l2.id 
-           WHERE l2.status = 'active' AND c.status != 'rejected') as totalPaid
-        FROM loans l
-        WHERE l.status = 'active'
-      `);
+      // Use explain-friendly queries and combined lookups where possible (batched concurrently)
+      const [counts, loanStats, collectionStats, bankStats, capitalStats, finStats]: any = await Promise.all([
+        queryWithRetry(`
+          SELECT 
+            (SELECT COUNT(*) FROM branches) as branches,
+            (SELECT COUNT(*) FROM members ${role === 'branch_manager' ? 'WHERE branch_id = ?' : ''}) as customers,
+            (SELECT COUNT(*) FROM bank_accounts) as bank_accounts_count
+        `, role === 'branch_manager' ? [branchId] : []),
+        queryWithRetry(`
+          SELECT 
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pendingCount,
+            SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approvedCount,
+            SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as activeCount
+          FROM loans
+          ${role === 'branch_manager' ? 'WHERE branch_id = ?' : ''}
+        `, role === 'branch_manager' ? [branchId] : []),
+        queryWithRetry(`
+          SELECT 
+            COALESCE(SUM(c.amount_paid), 0) as total,
+            COUNT(*) as count
+          FROM collections c
+          ${role === 'branch_manager' ? 'JOIN loans l ON c.loan_id = l.id WHERE l.branch_id = ? AND c.status != "rejected"' : 'WHERE c.status != "rejected"'}
+        `, role === 'branch_manager' ? [branchId] : []),
+        queryWithRetry('SELECT COALESCE(SUM(current_balance), 0) as total FROM bank_accounts'),
+        queryWithRetry('SELECT COALESCE(SUM(amount), 0) as total FROM company_capital'),
+        queryWithRetry(`
+          SELECT 
+            SUM(l.amount) as totalPrincipal,
+            SUM(l.total_repayment) as totalRepayment,
+            (SELECT COALESCE(SUM(c.amount_paid), 0) 
+             FROM collections c 
+             JOIN loans l2 ON c.loan_id = l2.id 
+             WHERE l2.status = 'active' AND c.status != 'rejected') as totalPaid
+          FROM loans l
+          WHERE l.status = 'active'
+        `)
+      ]);
 
       const p = Number(finStats[0]?.totalPrincipal) || 0;
       const r = Number(finStats[0]?.totalRepayment) || 0;
@@ -2350,12 +2355,48 @@ async function startServer() {
           }
         }
 
-        // Today's Closing Balance calculation
-        const todayRows: any = await queryWithRetry(`
-          SELECT branch_id, closing_balance, status 
-          FROM daily_cash_balances 
-          WHERE DATE(date) = CURDATE()
-        `);
+        // Today's Closing Balance calculation (batched concurrently)
+        const [todayRows, prevBalances, colToday, disbToday, expToday, salToday]: any = await Promise.all([
+          queryWithRetry(`
+            SELECT branch_id, closing_balance, status 
+            FROM daily_cash_balances 
+            WHERE DATE(date) = CURDATE()
+          `),
+          queryWithRetry(`
+            SELECT b.id as branch_id, b.branch_name,
+              COALESCE(
+                (SELECT closing_balance FROM daily_cash_balances WHERE branch_id = b.id AND DATE(date) < CURDATE() ORDER BY date DESC LIMIT 1),
+                0
+              ) as prev_closing
+            FROM branches b
+            WHERE b.status = 'active' OR b.status IS NULL
+          `),
+          queryWithRetry(`
+            SELECT branch_id, COALESCE(SUM(amount_paid), 0) as total
+            FROM collections
+            WHERE DATE(payment_date) = CURDATE() AND status = 'approved'
+            GROUP BY branch_id
+          `),
+          queryWithRetry(`
+            SELECT branch_id, COALESCE(SUM(amount), 0) as total
+            FROM loans
+            WHERE DATE(COALESCE(disbursement_date, start_date)) = CURDATE() AND status IN ('active', 'closed')
+            GROUP BY branch_id
+          `),
+          queryWithRetry(`
+            SELECT branch_id, COALESCE(SUM(amount), 0) as total
+            FROM expenses
+            WHERE DATE(date) = CURDATE()
+            GROUP BY branch_id
+          `),
+          queryWithRetry(`
+            SELECT branch_id, COALESCE(SUM(net_salary), 0) as total
+            FROM salaries
+            WHERE DATE(payment_date) = CURDATE()
+            GROUP BY branch_id
+          `)
+        ]);
+
         const todayClosedMap = new Map<number, number>();
         if (Array.isArray(todayRows) && todayRows.length > 0) {
           todayRows.forEach((r: any) => {
@@ -2365,46 +2406,9 @@ async function startServer() {
           });
         }
 
-        const prevBalances: any = await queryWithRetry(`
-          SELECT b.id as branch_id, b.branch_name,
-            COALESCE(
-              (SELECT closing_balance FROM daily_cash_balances WHERE branch_id = b.id AND DATE(date) < CURDATE() ORDER BY date DESC LIMIT 1),
-              0
-            ) as prev_closing
-          FROM branches b
-          WHERE b.status = 'active' OR b.status IS NULL
-        `);
-
-        const colToday: any = await queryWithRetry(`
-          SELECT branch_id, COALESCE(SUM(amount_paid), 0) as total
-          FROM collections
-          WHERE DATE(payment_date) = CURDATE() AND status = 'approved'
-          GROUP BY branch_id
-        `);
         const colMap = new Map<number, number>((Array.isArray(colToday) ? colToday : []).map((c: any) => [c.branch_id, Number(c.total) || 0]));
-
-        const disbToday: any = await queryWithRetry(`
-          SELECT branch_id, COALESCE(SUM(amount), 0) as total
-          FROM loans
-          WHERE DATE(COALESCE(disbursement_date, start_date)) = CURDATE() AND status IN ('active', 'closed')
-          GROUP BY branch_id
-        `);
         const disbMap = new Map<number, number>((Array.isArray(disbToday) ? disbToday : []).map((d: any) => [d.branch_id, Number(d.total) || 0]));
-
-        const expToday: any = await queryWithRetry(`
-          SELECT branch_id, COALESCE(SUM(amount), 0) as total
-          FROM expenses
-          WHERE DATE(date) = CURDATE()
-          GROUP BY branch_id
-        `);
         const expMap = new Map<number, number>((Array.isArray(expToday) ? expToday : []).map((e: any) => [e.branch_id, Number(e.total) || 0]));
-
-        const salToday: any = await queryWithRetry(`
-          SELECT branch_id, COALESCE(SUM(net_salary), 0) as total
-          FROM salaries
-          WHERE DATE(payment_date) = CURDATE()
-          GROUP BY branch_id
-        `);
         const salMap = new Map<number, number>((Array.isArray(salToday) ? salToday : []).map((s: any) => [s.branch_id, Number(s.total) || 0]));
 
         if (prevBalances && prevBalances.length > 0) {
@@ -2446,7 +2450,7 @@ async function startServer() {
         console.error("Error fetching branch close balances:", cbErr);
       }
 
-      res.json({
+      const payload = {
         branches: counts[0].branches,
         customers: counts[0].customers,
         totalLoans: loanStats[0].total,
@@ -2470,7 +2474,10 @@ async function startServer() {
           totalInterest: r - p,
           totalOutstanding: r - pd
         }
-      });
+      };
+
+      dashboardCache.set(cacheKey, { data: payload, expiry: Date.now() + 5000 });
+      res.json(payload);
     } catch (err) {
       console.error("Dashboard error:", err);
       res.status(500).json({ error: 'Database error' });
