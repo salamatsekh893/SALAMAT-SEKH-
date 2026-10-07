@@ -7119,8 +7119,12 @@ ${statsSummaryStr}`;
 
   // Vite middleware
   if (process.env.NODE_ENV !== "production") {
+    const isHmrDisabled = process.env.DISABLE_HMR === "true";
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: isHmrDisabled ? false : undefined,
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);
@@ -7136,13 +7140,37 @@ ${statsSummaryStr}`;
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
     // Run back-date EOD cleanup asynchronously after 15s to keep initial server boot fast and unblocked
     setTimeout(() => {
       autoClosePastDays().catch(err => console.error("Error running autoClosePastDays on boot:", err));
     }, 15000);
   });
+
+  server.on("error", (err: any) => {
+    if (err.code === "EADDRINUSE") {
+      console.warn(`[SERVER] Port ${PORT} is busy, retrying in 1s...`);
+      setTimeout(() => {
+        try {
+          server.close();
+        } catch (_) {}
+        server.listen(PORT, "0.0.0.0");
+      }, 1000);
+    } else {
+      console.error("[SERVER] Unexpected server error:", err);
+    }
+  });
+
+  const cleanup = () => {
+    try {
+      server.close(() => process.exit(0));
+    } catch (_) {
+      process.exit(0);
+    }
+  };
+  process.on("SIGTERM", cleanup);
+  process.on("SIGINT", cleanup);
 }
 
 startServer();
