@@ -11,7 +11,13 @@ export default defineConfig(({mode}) => {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       'process.env.GOOGLE_MAPS_PLATFORM_KEY': JSON.stringify(env.GOOGLE_MAPS_PLATFORM_KEY),
     },
+    esbuild: {
+      target: 'esnext',
+    },
     optimizeDeps: {
+      esbuildOptions: {
+        target: 'esnext',
+      },
       include: ['react-signature-canvas', 'trim-canvas'],
     },
     resolve: {
@@ -20,6 +26,7 @@ export default defineConfig(({mode}) => {
       },
     },
     build: {
+      target: 'esnext',
       outDir: 'dist',
     },
     server: {
